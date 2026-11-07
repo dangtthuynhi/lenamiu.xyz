@@ -33,17 +33,16 @@ window.VIETSUB = {
     // rồi dán Player ID (dạng 'x1abc') vào đây. Để trống thì video Dailymotion mở qua trang Dailymotion.
     dailymotionPlayerId: '',
 
-    // Ủng hộ: bỏ ảnh mã QR vào thư mục web (cạnh file này) rồi điền tên file vào qr.
+    // Nút "☕ Buy me a coffee": bỏ ảnh mã QR vào thư mục web (cạnh file này) rồi điền tên file vào qr.
     //   qr    ảnh hiện trong hộp (nên là ảnh chỉ có mã QR, để mã to dễ quét)
-    //   save  ảnh tải về khi bấm "Lưu ảnh QR" (vd nguyên poster). Bỏ trống thì tải ảnh qr.
-    // Để qr trống thì nút "♡ Ủng hộ" tự ẩn. Ngân hàng / số tài khoản / tên: không cần thì để ''.
-    // Gửi link https://lenamiu.xyz/#ung-ho là người nhận thấy hộp QR luôn.
+    //   save  ảnh tải về khi bấm "Lưu ảnh QR". Bỏ trống thì tải ảnh qr.
+    // Để qr trống thì nút tự ẩn. Ngân hàng / số tài khoản / tên: không cần thì để ''.
+    // Gửi link https://lenamiu.xyz/#coffee là người nhận thấy hộp QR luôn.
     donate: {
       qr: 'donate-qr.png',
       save: '',
-      title: 'Ủng hộ tụi mình',
-      text: 'Thích vietsub của tụi mình thì mời tụi mình ly trà sữa nha 🧋 Mỗi chút ủng hộ là ' +
-            'thêm động lực để tụi mình sub tiếp. Cảm ơn bạn nhiều lắm!',
+      title: 'Buy me a coffee ☕',
+      text: 'Nếu bạn thích vietsub ở đây, có thể mời mình một ly cà phê nha. Cảm ơn bạn!',
       bank: 'MoMo',
       account: 'PSG2631213500000002',
       name: 'DANG THI THUY NHI'

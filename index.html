@@ -264,7 +264,9 @@
     font-size: .9rem; font-weight: 700; text-decoration: none;
   }
 
-  /* ---------- hộp ủng hộ (mã QR) ---------- */
+  /* ---------- hộp Buy me a coffee (mã QR) ---------- */
+  .bmc-short { display: none; }
+  @media (max-width: 420px) { .bmc-long { display: none; } .bmc-short { display: inline; } }
   /* nền QR luôn trắng, kể cả chế độ tối, để app ngân hàng quét được */
   .qr { margin: 4px auto 0; width: min(100%, 300px); padding: 12px; background: #fff; border-radius: 16px;
         box-shadow: 0 0 0 1px var(--line); }
@@ -295,7 +297,7 @@
 <header class="top wrap">
   <a class="brand" href="./"><img src="favicon.svg" alt="" width="32" height="32"><span>LenaMiu <b>Vietsub</b></span></a>
   <p class="tagline" id="tagline"></p>
-  <button type="button" class="donate-btn" id="donateBtn" hidden>♡ Ủng hộ</button>
+  <button type="button" class="donate-btn" id="donateBtn" aria-label="Buy me a coffee" hidden>☕ <span class="bmc-long">Buy me a coffee</span><span class="bmc-short">Coffee</span></button>
 </header>
 
 <main class="wrap">
@@ -357,11 +359,11 @@
 <dialog class="sheet" id="donateDialog" aria-labelledby="dTitle">
   <form method="dialog" class="sheet-in">
     <div class="sheet-head">
-      <h2 id="dTitle">Ủng hộ tụi mình</h2>
+      <h2 id="dTitle">Buy me a coffee ☕</h2>
       <button class="icon-btn" value="close" aria-label="Đóng">✕</button>
     </div>
     <p class="sheet-sub" id="dText"></p>
-    <figure class="qr"><img id="dQr" alt="Mã QR ủng hộ"></figure>
+    <figure class="qr"><img id="dQr" alt="Mã QR chuyển khoản"></figure>
     <dl class="acct" id="dAcct"></dl>
     <p class="qr-tip">Đang xem trên điện thoại? Bấm “Lưu ảnh QR” (hoặc nhấn giữ ảnh → Lưu),
       rồi mở app ngân hàng / MoMo → Quét mã → chọn ảnh vừa lưu.</p>
@@ -374,8 +376,8 @@
 
 <footer class="foot wrap">
   <p id="footText"></p>
-  <p id="donateFoot" hidden>Thích vietsub của tụi mình?
-     <a href="#ung-ho" class="donate-link" id="donateLink">Ủng hộ tụi mình ♡</a></p>
+  <p id="donateFoot" hidden>Thích vietsub ở đây?
+     <a href="#coffee" class="donate-link" id="donateLink">Buy me a coffee ☕</a></p>
   <p>Kênh của tụi mình:
      <a href="https://www.youtube.com/@dangtthuynhi" target="_blank" rel="noopener">YouTube</a></p>
 </footer>
@@ -511,12 +513,13 @@
   $('tagline').textContent = SITE.tagline;
   $('footText').textContent = SITE.footer;
 
-  /* ---------- ủng hộ: hộp mã QR (cấu hình ở videos.js → site.donate) ---------- */
-  // Chưa có ảnh QR, hoặc ảnh sai tên file không tải được, thì ẩn hết nút Ủng hộ.
-  // Mở thẳng lenamiu.xyz/#ung-ho là hiện luôn hộp QR (tiện gửi link xin donate).
-  const DONATE = Object.assign({ qr: '', save: '', title: 'Ủng hộ tụi mình', text: '', bank: '', account: '', name: '' },
+  /* ---------- Buy me a coffee: hộp mã QR (cấu hình ở videos.js → site.donate) ---------- */
+  // Chưa có ảnh QR, hoặc ảnh sai tên file không tải được, thì ẩn hết nút.
+  // Mở thẳng lenamiu.xyz/#coffee là hiện luôn hộp QR (link cũ #ung-ho vẫn dùng được).
+  const DONATE = Object.assign({ qr: '', save: '', title: 'Buy me a coffee ☕', text: '', bank: '', account: '', name: '' },
                                SITE.donate);
-  const DONATE_HASH = 'ung-ho';
+  const DONATE_HASH = 'coffee';
+  const isDonateHash = (h) => h === DONATE_HASH || h === 'ung-ho';
   let openDonate = () => {};
   (function setupDonate() {
     const qr = String(DONATE.qr || '').trim();
@@ -527,7 +530,7 @@
     $('dText').hidden = !DONATE.text;
     const save = String(DONATE.save || '').trim() || qr;
     $('dSave').href = save;
-    $('dSave').setAttribute('download', 'ung-ho-lenamiu-vietsub' + (save.match(/\.\w+$/) || ['.png'])[0]);
+    $('dSave').setAttribute('download', 'buy-me-a-coffee-lenamiu' + (save.match(/\.\w+$/) || ['.png'])[0]);
 
     const rows = [['Ngân hàng', DONATE.bank], ['Số tài khoản', DONATE.account], ['Chủ tài khoản', DONATE.name]]
       .filter((r) => String(r[1] || '').trim());
@@ -543,7 +546,7 @@
     img.addEventListener('load', () => {
       $('donateBtn').hidden = false;
       $('donateFoot').hidden = false;
-      if (location.hash === '#' + DONATE_HASH) openDonate();
+      if (isDonateHash(location.hash.slice(1))) openDonate();
     }, { once: true });
     img.src = qr;
 
@@ -818,7 +821,7 @@
 
   function onNavigate() {
     const id = idFromHash();
-    if (id === DONATE_HASH) { openDonate(); return; }   // link #ung-ho: mở hộp QR, giữ video đang xem
+    if (isDonateHash(id)) { openDonate(); return; }   // link #coffee: mở hộp QR, giữ video đang xem
     if (!cur || (id || videos[0].id) !== cur.id) select(id, false);
   }
   window.addEventListener('popstate', onNavigate);
