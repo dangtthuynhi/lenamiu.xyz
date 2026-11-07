@@ -34,6 +34,15 @@ window.VIETSUB = {
 
   videos: [
     {
+      title: 'Khoảnh khắc đặc biệt của tụi mình ở Biarritz',
+      youtube: '',
+      odysee: 'https://odysee.com/LenaMiu-Biarritz-(Vietsub):c4c77f27387570b5353b3ebb2d864631586f760f',
+      drive: '',
+      group: 'Vlog',
+      date: '2026-11-07',
+      note: ''
+    },
+    {
       title: 'Pls Love Reaction EP 2',
       youtube: '',
       odysee: 'https://odysee.com/PLS-Love-Reaction-EP.2-(Vietsub):f0ba0e0126dd0a6658d00f57afed7503a3b2623f',
