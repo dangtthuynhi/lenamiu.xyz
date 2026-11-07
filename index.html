@@ -36,7 +36,7 @@
     color-scheme: light;
     --bg: #faf7f6; --surface: #ffffff; --surface-2: #f1ecec;
     --text: #1d1a1f; --muted: #6c6570; --line: rgba(29, 26, 31, .10);
-    --accent: #c13a6c; --on-accent: #ffffff;
+    --accent: #c13a6c; --on-accent: #ffffff; --danger: #c62828;
     --shadow: 0 1px 2px rgba(29, 26, 31, .06), 0 10px 28px -14px rgba(29, 26, 31, .28);
   }
   @media (prefers-color-scheme: dark) {
@@ -44,7 +44,7 @@
       color-scheme: dark;
       --bg: #121014; --surface: #1b181e; --surface-2: #26222a;
       --text: #f3eff4; --muted: #a39ca8; --line: rgba(255, 255, 255, .09);
-      --accent: #f06d9b; --on-accent: #1a0d13;
+      --accent: #f06d9b; --on-accent: #1a0d13; --danger: #ff7b72;
       --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 12px 32px -14px rgba(0, 0, 0, .8);
     }
   }
@@ -224,7 +224,41 @@
   .foot p { margin: 0 0 4px; }
   .foot a { color: inherit; }
 
+  /* ---------- hộp "Đăng lên X" ---------- */
+  .sheet {
+    width: min(520px, calc(100% - 32px)); max-width: none; max-height: calc(100% - 32px);
+    padding: 0; border: 0; border-radius: 18px; background: var(--surface); color: var(--text);
+    box-shadow: 0 24px 60px -20px rgba(0, 0, 0, .45);
+  }
+  .sheet::backdrop { background: rgba(18, 12, 22, .55); }
+  .sheet-in { padding: 18px 20px 20px; }
+  .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .sheet-head h2 { margin: 0; font-size: 1.1rem; }
+  .icon-btn {
+    flex: none; width: 36px; height: 36px; border: 0; border-radius: 999px;
+    background: var(--surface-2); color: var(--text); font: inherit; font-size: 1rem; cursor: pointer;
+  }
+  .sheet-sub { margin: 4px 0 12px; font-size: .85rem; color: var(--muted); }
+  .sheet textarea {
+    display: block; width: 100%; min-height: 170px; padding: 12px 14px; resize: vertical;
+    font: inherit; font-size: 16px; line-height: 1.5; color: var(--text);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 12px;
+  }
+  .sheet textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .sheet-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; }
+  .x-count { font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+  .x-count.over { color: var(--danger); font-weight: 600; }
+  .sheet-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  .primary {
+    display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 8px 18px;
+    border-radius: 999px; background: var(--accent); color: var(--on-accent);
+    font-size: .9rem; font-weight: 700; text-decoration: none;
+  }
+
   @media (max-width: 640px) {
+    .sheet { width: 100%; max-height: 92%; margin: auto 0 0; border-radius: 18px 18px 0 0; }
+    .sheet-in { padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+    .sheet-actions > * { flex: 1 1 0; justify-content: center; }
     .player { margin: 0 calc(-1 * max(16px, env(safe-area-inset-left))); border-radius: 0; box-shadow: none; }
     .grid { grid-template-columns: 1fr 1fr; gap: 18px 12px; }
     .c-title { font-size: .9rem; }
@@ -250,6 +284,7 @@
         <div class="sources" id="sources" role="group" aria-label="Nguồn phát"></div>
         <div class="actions">
           <a class="ghost" id="openLink" href="#" target="_blank" rel="noopener"></a>
+          <button type="button" class="ghost" id="xBtn">Đăng lên X</button>
           <button type="button" class="ghost" id="shareBtn">Chia sẻ</button>
         </div>
       </div>
@@ -276,6 +311,25 @@
   </section>
 
 </main>
+
+<dialog class="sheet" id="xDialog" aria-labelledby="xTitle">
+  <form method="dialog" class="sheet-in">
+    <div class="sheet-head">
+      <h2 id="xTitle">Đăng lên X</h2>
+      <button class="icon-btn" value="close" aria-label="Đóng">✕</button>
+    </div>
+    <p class="sheet-sub">Nội dung đã viết sẵn, sửa thoải mái trước khi đăng nha.</p>
+    <textarea id="xText" rows="7" aria-label="Nội dung bài đăng"></textarea>
+    <div class="sheet-row">
+      <button type="button" class="ghost" id="xAgain">↻ Viết câu khác</button>
+      <span class="x-count" id="xCount" aria-live="polite"></span>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="ghost" id="xCopy">Chép nội dung</button>
+      <a class="primary" id="xGo" href="https://x.com/intent/tweet" target="_blank" rel="noopener" autofocus>Mở X để đăng ↗</a>
+    </div>
+  </form>
+</dialog>
 
 <footer class="foot wrap">
   <p id="footText"></p>
@@ -390,7 +444,7 @@
     return {
       id, ids,
       title: v.title || 'Video chưa đặt tên',
-      group: v.group || '', date: v.date || '', note: v.note || '',
+      group: v.group || '', date: v.date || '', note: v.note || '', hashtags: v.hashtags || '',
       thumb: v.thumb ||
         (ids.youtube ? 'https://i.ytimg.com/vi/' + ids.youtube + '/hqdefault.jpg'
         : ids.drive ? 'https://drive.google.com/thumbnail?id=' + ids.drive + '&sz=w640'
@@ -692,6 +746,71 @@
       if (err && err.name === 'AbortError') return;   // tự tắt bảng chia sẻ
       window.prompt('Chép link này nha:', url);
     }
+  });
+
+  /* ---------- Đăng lên X: viết sẵn bài đăng rồi mở khung soạn bài của X ---------- */
+  // Mẫu câu và hashtag nằm trong videos.js (site.share). Mỗi lần bấm chọn ngẫu nhiên một mẫu.
+  const SHARE = Object.assign({ hashtags: '', templates: [] }, SITE.share);
+  const TEMPLATES = (SHARE.templates || []).filter(Boolean);
+  if (!TEMPLATES.length) TEMPLATES.push('[Vietsub] LenaMiu | {title}\n{link}\n\n{hashtags}');
+  // Luôn dùng link thật của trang (kể cả khi đang thử trong máy)
+  const SITE_URL = ((document.querySelector('link[rel="canonical"]') || {}).href || location.href).split('#')[0];
+  let lastTpl = -1;
+
+  function makePost(v) {
+    let pool = TEMPLATES.map((t, i) => i).filter((i) => v.group || !TEMPLATES[i].includes('{group}'));
+    if (!pool.length) pool = TEMPLATES.map((t, i) => i);
+    if (pool.length > 1) pool = pool.filter((i) => i !== lastTpl);   // bấm lại thì ra câu khác
+    lastTpl = pool[Math.floor(Math.random() * pool.length)];
+    const tags = [...new Set((SHARE.hashtags + ' ' + v.hashtags).split(/\s+/).filter(Boolean))].join(' ');
+    const val = { title: v.title, group: v.group, link: SITE_URL + '#' + v.id, hashtags: tags };
+    return TEMPLATES[lastTpl].replace(/\{(title|group|link|hashtags)\}/g, (m, k) => val[k])
+      .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  }
+
+  // Đếm ký tự theo cách của X: link nào cũng tính 23; chữ Latin cơ bản, tiếng Thái tính 1;
+  // chữ có dấu tiếng Việt (ạ, ố, ữ...), emoji tính 2.
+  function xLength(t) {
+    let n = 0;
+    t = t.normalize('NFC').replace(/https?:\/\/\S+/g, () => { n += 23; return ''; });
+    for (const ch of t) {
+      const c = ch.codePointAt(0);
+      if (c === 0x200D || (c >= 0xFE00 && c <= 0xFE0F) || (c >= 0x1F3FB && c <= 0x1F3FF)) continue;
+      n += (c <= 0x10FF || (c >= 0x2000 && c <= 0x200D) || (c >= 0x2010 && c <= 0x201F) ||
+            (c >= 0x2032 && c <= 0x2037)) ? 1 : 2;
+    }
+    return n;
+  }
+
+  const xd = $('xDialog');
+  function xRefresh() {
+    const ta = $('xText');
+    const t = ta.value;
+    const n = xLength(t);
+    // ô nội dung tự cao theo chữ (tối đa nửa màn hình), để thấy hết bài mà khỏi cuộn
+    ta.style.height = 'auto';
+    if (ta.scrollHeight) ta.style.height = Math.min(ta.scrollHeight + 2, innerHeight * 0.5) + 'px';
+    $('xGo').href = 'https://x.com/intent/tweet?text=' + encodeURIComponent(t);
+    $('xCount').textContent = n > 280 ? n + '/280 · dài quá, X sẽ bắt rút gọn' : n + '/280';
+    $('xCount').classList.toggle('over', n > 280);
+  }
+  function xFill() { $('xText').value = makePost(cur); xRefresh(); }
+
+  $('xBtn').addEventListener('click', () => {
+    xFill();
+    if (typeof xd.showModal === 'function') { xd.showModal(); xRefresh(); }   // đo lại chiều cao khi hộp đã hiện
+    else window.open($('xGo').href, '_blank', 'noopener');   // trình duyệt quá cũ: mở X luôn
+  });
+  $('xAgain').addEventListener('click', xFill);
+  $('xText').addEventListener('input', xRefresh);
+  $('xGo').addEventListener('click', () => setTimeout(() => xd.close(), 300));
+  xd.addEventListener('click', (e) => { if (e.target === xd) xd.close(); });   // bấm ra ngoài thì đóng
+  $('xCopy').addEventListener('click', async () => {
+    const btn = $('xCopy');
+    try { await navigator.clipboard.writeText($('xText').value); }
+    catch (e) { $('xText').select(); document.execCommand('copy'); }
+    btn.textContent = 'Đã chép ✓';
+    setTimeout(() => { btn.textContent = 'Chép nội dung'; }, 2000);
   });
 
   applyFilter();
