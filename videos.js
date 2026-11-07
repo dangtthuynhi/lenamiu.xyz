@@ -36,27 +36,30 @@ window.VIETSUB = {
     // Nút mở hộp mã QR (ở đầu trang + chân trang).
     //   button       chữ trên nút
     //   buttonShort  chữ trên nút khi xem bằng điện thoại (màn hình hẹp), nên ngắn
-    //   qr           ảnh mã QR hiện trong hộp (nên là ảnh chỉ có mã QR, để mã to dễ quét)
-    //   save         ảnh tải về khi bấm "Lưu ảnh QR". Bỏ trống thì tải ảnh qr.
     //   title, text  tiêu đề + dòng chữ trong hộp. text không cần thì để ''
-    //   bank, account, name  ngân hàng / số tài khoản / tên chủ tài khoản
-    //   pkApi        địa chỉ máy chủ thanh PK LenaMiu vs MiuLena (Cloudflare Worker, xem thư mục worker/).
-    //                Có pkApi + bank là ngân hàng (MB, ACB, Vietcombank...) + account thì trang tự tạo
-    //                mã QR kèm nội dung theo phe người xem chọn, và hiện thanh PK. Để trống thì dùng ảnh qr.
-    //   bankBin      (hiếm khi cần) mã ngân hàng VietQR, khi ngân hàng không có trong danh sách của trang
-    // Để qr và pkApi trống thì nút tự ẩn.
+    //   teamQr       ảnh mã QR làm sẵn cho từng phe (tạo trên SePay, nội dung CK là LenaMiu / MiuLena).
+    //                Người xem chọn phe nào thì hiện ảnh phe đó.
+    //   pkApi        địa chỉ máy chủ thanh PK (Cloudflare Worker, xem thư mục worker/). Để trống thì ẩn thanh PK.
+    //   bank, account, name  ngân hàng / số tài khoản / tên chủ tài khoản, hiện thành chữ dưới mã QR.
+    //                account để trống thì không hiện số tài khoản (ảnh QR của SePay đã che bớt số).
+    //   qr, save     (cách cũ) một ảnh QR chung cho mọi người, dùng khi không có teamQr.
+    //   bankBin      (hiếm khi cần) mã ngân hàng VietQR, chỉ dùng khi trang tự tạo mã QR từ account.
     // Gửi link https://lenamiu.xyz/#lumi là người nhận thấy hộp QR luôn.
     donate: {
       button: '🍼 Dự án nuôi Lumi',
       buttonShort: '🍼 Nuôi Lumi',
-      qr: 'donate-qr.png',
-      save: '',
       title: 'Mua sữa tã cho Lumi 🍼',
       text: '',
-      bank: 'MoMo',
-      account: 'PSG2631213500000002',
+      teamQr: {
+        LenaMiu: 'qr-lenamiu.png',
+        MiuLena: 'qr-miulena.png'
+      },
+      pkApi: 'https://lenamiu-pk.dangthithuynhi2000.workers.dev',
+      bank: 'BIDV',
+      account: '',
       name: 'DANG THI THUY NHI',
-      pkApi: ''
+      qr: '',
+      save: ''
     },
 
     // Nút "Đăng lên X": mỗi lần bấm chọn ngẫu nhiên 1 mẫu dưới đây để viết sẵn bài đăng.
