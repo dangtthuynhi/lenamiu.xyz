@@ -437,16 +437,18 @@
     v.li = li; v.card = a;
   });
 
-  // API của Odysee cho gọi thẳng từ trang khác: lấy ảnh bìa cho các video Odysee,
-  // có ảnh rồi thì gắn vào thẻ video (và khung phát nếu đang chờ bấm phát)
+  // Lấy ảnh bìa cho các video Odysee qua API của Odysee, có ảnh rồi thì gắn vào thẻ video
+  // (và khung phát nếu đang chờ bấm phát).
+  // Cố ý KHÔNG đặt Content-Type: application/json — kiểu đó trình duyệt phải hỏi trước
+  // (preflight) mà Odysee trả lời thiếu Access-Control-Allow-Origin nên bị chặn.
+  // Gửi dạng chữ thường (text/plain) thì không cần hỏi trước, Odysee vẫn đọc được.
   (function fillOdyseeThumbs() {
     const need = videos.filter((v) => v.needThumb);
     if (!need.length || !window.fetch) return;
     const urls = need.map((v) => 'lbry://' + v.ids.odysee.replace(/:/g, '#'));
     fetch('https://api.na-backend.odysee.com/api/v1/proxy?m=resolve', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ method: 'resolve', params: { urls } })
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'resolve', params: { urls } })
     })
       .then((r) => r.json())
       .then((d) => {
