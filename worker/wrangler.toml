@@ -8,4 +8,4 @@ compatibility_date = "2025-10-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "lenamiu-pk"
-database_id = "00000000-0000-0000-0000-000000000000"   # điền sau khi tạo: npx wrangler d1 create lenamiu-pk
+database_id = "4200c883-725a-481a-a75e-7e5d7a0fb77e"
