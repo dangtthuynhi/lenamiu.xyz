@@ -2,7 +2,7 @@
 
    POST /sepay  SePay gọi vào mỗi khi tài khoản ngân hàng có tiền vào (webhook).
                 Nội dung chuyển khoản có chữ "LenaMiu" hoặc "MiuLena" thì cộng tiền cho phe đó.
-   GET  /pk     Trang lenamiu.xyz hỏi tổng tiền mỗi phe + vài lượt gần nhất (không có tên người chuyển).
+   GET  /pk     Trang lenamiu.xyz hỏi % mỗi phe + vài lượt gần nhất (không có số tiền, không có tên người chuyển).
 
    Bí mật SEPAY_SECRET đặt bằng lệnh `npx wrangler secret put SEPAY_SECRET`, KHÔNG ghi vào file này.
    Dữ liệu nằm trong Cloudflare D1 (bảng tx, xem schema.sql). id giao dịch của SePay là khoá chính,
@@ -92,15 +92,25 @@ async function onSepay(request, env) {
 async function onPk(env, cors) {
   const [totals, recent] = await env.DB.batch([
     env.DB.prepare('SELECT team, SUM(amount) AS total, SUM(id > 0) AS n FROM tx GROUP BY team'),
-    env.DB.prepare('SELECT id, team, amount, at FROM tx WHERE id > 0 ORDER BY at DESC, id DESC LIMIT 5')
+    env.DB.prepare('SELECT id, team, at FROM tx WHERE id > 0 ORDER BY at DESC, id DESC LIMIT 5')
   ]);
-  const teams = {};
-  for (const t of TEAMS) teams[t.key] = { total: 0, count: 0 };
-  for (const r of totals.results) if (teams[r.team]) teams[r.team] = { total: r.total, count: r.n };
-  return json({ teams, recent: recent.results }, 200, {
-    ...cors,
-    'Cache-Control': 'public, max-age=3'
-  });
+  // Chỉ trả về % mỗi phe (làm tròn 0,1%), KHÔNG trả số tiền: ai mở link này cũng không biết đã nhận bao nhiêu.
+  const sum = {};
+  const count = {};
+  for (const t of TEAMS) { sum[t.key] = 0; count[t.key] = 0; }
+  for (const r of totals.results) if (r.team in sum) { sum[r.team] = r.total || 0; count[r.team] = r.n || 0; }
+  const all = TEAMS.reduce((s, t) => s + sum[t.key], 0);
+  const [first, second] = TEAMS.map((t) => t.key);
+  const pFirst = all ? Math.round((sum[first] / all) * 1000) / 10 : 50;
+  const teams = {
+    [first]: { pct: pFirst, count: count[first] },
+    [second]: { pct: Math.round((100 - pFirst) * 10) / 10, count: count[second] }
+  };
+  return json({
+    started: all > 0,
+    teams,
+    recent: recent.results.map((r) => ({ id: r.id, team: r.team, at: r.at }))   // bỏ số tiền
+  }, 200, { ...cors, 'Cache-Control': 'public, max-age=3' });
 }
 
 export default {
