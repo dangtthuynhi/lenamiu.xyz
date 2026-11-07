@@ -40,10 +40,10 @@ window.VIETSUB = {
     // Gửi link https://lenamiu.xyz/#ung-ho là người nhận thấy hộp QR luôn.
     donate: {
       qr: 'donate-qr.png',
-      save: 'donate-momo.jpg',
-      title: 'Góp quỹ cho tụi mình',
-      text: 'Thích vietsub của tụi mình thì góp quỹ ly trà sữa nha 🧋 Quỹ trên MoMo minh bạch, ' +
-            'tiền vào ra đều hiện rõ. Cảm ơn bạn nhiều lắm!',
+      save: '',
+      title: 'Ủng hộ tụi mình',
+      text: 'Thích vietsub của tụi mình thì mời tụi mình ly trà sữa nha 🧋 Mỗi chút ủng hộ là ' +
+            'thêm động lực để tụi mình sub tiếp. Cảm ơn bạn nhiều lắm!',
       bank: 'MoMo',
       account: 'PSG2631213500000002',
       name: 'DANG THI THUY NHI'

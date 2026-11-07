@@ -527,7 +527,7 @@
     $('dText').hidden = !DONATE.text;
     const save = String(DONATE.save || '').trim() || qr;
     $('dSave').href = save;
-    $('dSave').setAttribute('download', 'gop-quy-lenamiu-vietsub' + (save.match(/\.\w+$/) || ['.png'])[0]);
+    $('dSave').setAttribute('download', 'ung-ho-lenamiu-vietsub' + (save.match(/\.\w+$/) || ['.png'])[0]);
 
     const rows = [['Ngân hàng', DONATE.bank], ['Số tài khoản', DONATE.account], ['Chủ tài khoản', DONATE.name]]
       .filter((r) => String(r[1] || '').trim());
