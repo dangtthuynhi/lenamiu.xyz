@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LenaMiu Vietsub</title>
+<meta name="description" content="Video LenaMiu có vietsub, xem trên YouTube hoặc Dailymotion.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="LenaMiu Vietsub">
+<meta property="og:description" content="Video LenaMiu có vietsub, xem trên YouTube hoặc Dailymotion.">
+<meta property="og:url" content="https://lenamiu.xyz/">
+<link rel="canonical" href="https://lenamiu.xyz/">
+<meta name="theme-color" content="#faf7f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121014" media="(prefers-color-scheme: dark)">
+<!-- YouTube cần biết trang nào đang nhúng nó, thiếu là báo "Lỗi 153" -->
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #faf7f6; --surface: #ffffff; --surface-2: #f1ecec;
+    --text: #1d1a1f; --muted: #6c6570; --line: rgba(29, 26, 31, .10);
+    --accent: #c13a6c; --on-accent: #ffffff;
+    --shadow: 0 1px 2px rgba(29, 26, 31, .06), 0 10px 28px -14px rgba(29, 26, 31, .28);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #121014; --surface: #1b181e; --surface-2: #26222a;
+      --text: #f3eff4; --muted: #a39ca8; --line: rgba(255, 255, 255, .09);
+      --accent: #f06d9b; --on-accent: #1a0d13;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 12px 32px -14px rgba(0, 0, 0, .8);
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 400 16px/1.6 "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1120px; margin: 0 auto;
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  a:focus-visible, button:focus-visible, input:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+
+  /* ---------- đầu trang ---------- */
+  .top {
+    display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
+    gap: 4px 16px; padding-top: 20px; padding-bottom: 18px;
+  }
+  .brand {
+    font-size: 1.3rem; font-weight: 700; letter-spacing: -.01em;
+    color: var(--text); text-decoration: none;
+  }
+  .brand b { color: var(--accent); font-weight: 700; }
+  .tagline { margin: 0; color: var(--muted); font-size: .875rem; }
+
+  /* ---------- trình phát ---------- */
+  /* màn hình thấp (laptop) thì thu nhỏ khung phát, để tên video vẫn nằm trong màn hình */
+  .watch {
+    width: min(100%, calc((100vh - 230px) * 16 / 9)); margin: 0 auto 40px;
+    scroll-margin-top: 12px;
+  }
+  .player {
+    position: relative; aspect-ratio: 16 / 9; background: #000;
+    border-radius: 14px; overflow: hidden; box-shadow: var(--shadow);
+  }
+  .player iframe, .facade { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .facade {
+    display: block; padding: 0; margin: 0; background: #000; cursor: pointer;
+    color: #fff; font: inherit; text-decoration: none;
+  }
+  .facade img {
+    width: 100%; height: 100%; object-fit: cover; display: block; opacity: .9;
+    transition: opacity .25s ease, transform .5s ease;
+  }
+  .facade:hover img { opacity: 1; transform: scale(1.015); }
+  .facade .play {
+    position: absolute; left: 50%; top: 50%; width: 76px; height: 76px; margin: -38px 0 0 -38px;
+    border-radius: 50%; background: var(--accent); box-shadow: 0 10px 30px rgba(0, 0, 0, .4);
+    transition: transform .2s ease;
+  }
+  .facade .play::after {
+    content: ""; position: absolute; left: 30px; top: 23px;
+    border-style: solid; border-width: 15px 0 15px 23px;
+    border-color: transparent transparent transparent var(--on-accent);
+  }
+  .facade:hover .play { transform: scale(1.06); }
+  .facade .on {
+    position: absolute; left: 12px; bottom: 12px; padding: 4px 10px; border-radius: 999px;
+    background: rgba(0, 0, 0, .7); font-size: .8rem; font-weight: 600;
+  }
+
+  .meta { padding-top: 14px; }
+  .meta-row {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 10px; margin-bottom: 12px;
+  }
+  .sources { display: inline-flex; padding: 3px; gap: 2px; background: var(--surface-2); border-radius: 999px; }
+  .src {
+    font: inherit; font-size: .875rem; font-weight: 600; min-height: 36px; padding: 6px 16px;
+    border: 0; border-radius: 999px; background: transparent; color: var(--muted); cursor: pointer;
+  }
+  .src[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, .14); }
+  .src:disabled { opacity: .4; cursor: not-allowed; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ghost {
+    display: inline-flex; align-items: center;
+    font: inherit; font-size: .875rem; font-weight: 600; min-height: 36px; padding: 6px 16px;
+    border: 1px solid var(--line); border-radius: 999px; background: var(--surface);
+    color: var(--text); cursor: pointer; text-decoration: none;
+  }
+  .kicker {
+    margin: 0; font-size: .78rem; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  .watch h1 {
+    margin: 2px 0 0; font-size: clamp(1.25rem, 2.4vw, 1.6rem); line-height: 1.3;
+    letter-spacing: -.01em; text-wrap: balance;
+  }
+  .note { margin: 8px 0 0; color: var(--muted); white-space: pre-line; }
+  .hint { margin: 8px 0 0; font-size: .85rem; color: var(--muted); }
+
+  .stepper { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+  .step {
+    display: block; min-width: 0; padding: 10px 14px; border: 1px solid var(--line);
+    border-radius: 12px; background: var(--surface); color: var(--text); text-decoration: none;
+    transition: border-color .2s ease;
+  }
+  .step:hover { border-color: var(--accent); }
+  .step.next { grid-column: 2; text-align: right; }
+  .step small { display: block; font-size: .75rem; font-weight: 600; color: var(--muted); }
+  .step span {
+    display: block; font-size: .9rem; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* ---------- thư viện ---------- */
+  .lib-head {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 10px 16px; margin-bottom: 12px;
+  }
+  .lib-head h2 { margin: 0; font-size: 1.1rem; }
+  .count { color: var(--muted); font-weight: 500; }
+  .search {
+    flex: 1 1 220px; max-width: 340px; min-height: 40px; padding: 8px 16px;
+    font: inherit; font-size: 16px; color: var(--text);
+    background: var(--surface); border: 1px solid var(--line); border-radius: 999px;
+  }
+  .search::placeholder { color: var(--muted); }
+  .chips {
+    display: flex; gap: 8px; margin: 0 0 16px; padding-bottom: 2px;
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip {
+    flex: none; font: inherit; font-size: .85rem; font-weight: 600; min-height: 34px; padding: 5px 14px;
+    border: 1px solid var(--line); border-radius: 999px; background: var(--surface);
+    color: var(--text); cursor: pointer;
+  }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
+  .grid {
+    list-style: none; margin: 0; padding: 0; display: grid; gap: 22px 16px;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  }
+  .card { display: block; color: inherit; text-decoration: none; border-radius: 12px; }
+  .thumb {
+    position: relative; display: block; aspect-ratio: 16 / 9; overflow: hidden;
+    border-radius: 10px; background: var(--surface-2);
+  }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .35s ease; }
+  .card:hover .thumb img { transform: scale(1.04); }
+  .badges { position: absolute; right: 6px; bottom: 6px; display: flex; gap: 4px; }
+  .badge {
+    padding: 1px 6px; border-radius: 5px; background: rgba(0, 0, 0, .75); color: #fff;
+    font-size: .68rem; font-weight: 600; line-height: 1.6;
+  }
+  .card[aria-current="true"] .thumb { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
+  .card[aria-current="true"] .thumb::before {
+    content: "Đang xem"; position: absolute; left: 6px; top: 6px; z-index: 1;
+    padding: 2px 9px; border-radius: 999px; background: var(--accent); color: var(--on-accent);
+    font-size: .72rem; font-weight: 700;
+  }
+  .c-title {
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    margin-top: 8px; font-size: .95rem; font-weight: 600; line-height: 1.4;
+  }
+  .c-meta { display: block; margin-top: 2px; font-size: .8rem; color: var(--muted); }
+  .empty { margin: 8px 0 0; color: var(--muted); }
+  .local-note {
+    margin: 0 0 16px; padding: 10px 14px; border-radius: 10px;
+    background: var(--surface-2); color: var(--text); font-size: .875rem;
+  }
+
+  .foot {
+    margin-top: 56px; padding-top: 16px; padding-bottom: 32px;
+    border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem;
+  }
+  .foot p { margin: 0 0 4px; }
+  .foot a { color: inherit; }
+
+  @media (max-width: 640px) {
+    .player { margin: 0 calc(-1 * max(16px, env(safe-area-inset-left))); border-radius: 0; box-shadow: none; }
+    .grid { grid-template-columns: 1fr 1fr; gap: 18px 12px; }
+    .c-title { font-size: .9rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top wrap">
+  <a class="brand" href="./">LenaMiu <b>Vietsub</b></a>
+  <p class="tagline" id="tagline"></p>
+</header>
+
+<main class="wrap">
+
+  <section class="watch" id="watch" aria-label="Đang xem" hidden>
+    <div class="player" id="player"></div>
+    <div class="meta">
+      <div class="meta-row">
+        <div class="sources" role="group" aria-label="Nguồn phát">
+          <button type="button" class="src" data-src="youtube" aria-pressed="false">YouTube</button>
+          <button type="button" class="src" data-src="dailymotion" aria-pressed="false">Dailymotion</button>
+        </div>
+        <div class="actions">
+          <a class="ghost" id="openLink" href="#" target="_blank" rel="noopener"></a>
+          <button type="button" class="ghost" id="shareBtn">Chia sẻ</button>
+        </div>
+      </div>
+      <p class="kicker" id="watchKicker"></p>
+      <h1 id="watchTitle"></h1>
+      <p class="note" id="watchNote"></p>
+      <p class="hint" id="watchHint"></p>
+      <nav class="stepper" id="stepper" aria-label="Video khác">
+        <a class="step prev" id="prevLink" href="#"><small>‹ Trước</small><span></span></a>
+        <a class="step next" id="nextLink" href="#"><small>Sau ›</small><span></span></a>
+      </nav>
+    </div>
+  </section>
+
+  <section aria-labelledby="libTitle">
+    <div class="lib-head">
+      <h2 id="libTitle">Tất cả video <span class="count" id="count"></span></h2>
+      <input class="search" id="search" type="search" placeholder="Tìm video..."
+             aria-label="Tìm video" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="chips" id="chips" role="group" aria-label="Lọc theo nhóm"></div>
+    <ul class="grid" id="grid"></ul>
+    <p class="empty" id="empty" hidden></p>
+  </section>
+
+</main>
+
+<footer class="foot wrap">
+  <p id="footText"></p>
+  <p>Kênh của dangtthuynhi:
+     <a href="https://www.youtube.com/@dangtthuynhi" target="_blank" rel="noopener">YouTube</a>
+     · <a href="https://www.dailymotion.com/dangtthuynhi" target="_blank" rel="noopener">Dailymotion</a></p>
+  <p><a href="https://dangtthuynhi.github.io/the-gravity-between-us/">The Gravity Between Us · bản dịch</a></p>
+</footer>
+
+<script>
+  // GitHub Pages cho trình duyệt giữ file 10 phút. Thêm ?v=giờ-hiện-tại để lần nào
+  // cũng lấy videos.js mới nhất — thêm video xong là người xem thấy ngay.
+  document.write('<script src="videos.js?v=' + Date.now() + '"><\/script>');
+</script>
+<script>
+(function () {
+  'use strict';
+
+  const DATA = window.VIETSUB || {};
+  const SITE = Object.assign(
+    { title: 'LenaMiu Vietsub', tagline: '', footer: '', dailymotionPlayerId: '' }, DATA.site);
+  const LABEL = { youtube: 'YouTube', dailymotion: 'Dailymotion' };
+  const SRC_KEY = 'vietsub_src';
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const $ = (id) => document.getElementById(id);
+
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  function store(key, val) {
+    try { return val === undefined ? localStorage.getItem(key) : localStorage.setItem(key, val); }
+    catch (e) { return null; }
+  }
+
+  // Bỏ dấu tiếng Việt + chữ thường, để tìm "pls love" ra cả "Pls Love"
+  function norm(s) {
+    return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+  }
+  function slug(s) { return norm(s).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
+
+  // Nhận ID trần hoặc mọi kiểu link: youtu.be/…, watch?v=…, /shorts/…, /embed/…, /live/…
+  function ytId(s) {
+    s = String(s || '').trim();
+    if (/^[\w-]{11}$/.test(s)) return s;
+    const m = s.match(/(?:youtu\.be\/|[?&]v=|\/(?:embed|shorts|live)\/)([\w-]{11})/);
+    return m ? m[1] : '';
+  }
+  // Nhận ID trần hoặc link dailymotion.com/video/…, dai.ly/…, ?video=…
+  function dmId(s) {
+    s = String(s || '').trim();
+    if (/^x[0-9a-z]{4,}$/i.test(s)) return s;
+    const m = s.match(/(?:dailymotion\.com\/(?:embed\/)?video\/|dai\.ly\/|[?&]video=)([0-9a-z]+)/i);
+    return m ? m[1] : '';
+  }
+
+  function fmtDate(s) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || '').trim());
+    return m ? m[3] + '/' + m[2] + '/' + m[1] : String(s || '');
+  }
+
+  /* ---------- đọc danh sách video ---------- */
+  const used = new Set();
+  const videos = (DATA.videos || []).map((v, i) => {
+    const yt = ytId(v.youtube), dm = dmId(v.dailymotion);
+    if (!yt && !dm) {
+      console.warn('[vietsub] Bỏ qua video thứ ' + (i + 1) + ' "' + (v.title || '') +
+                   '": không đọc được link YouTube hay Dailymotion.');
+      return null;
+    }
+    const base = slug(v.id || v.title) || 'video-' + (i + 1);
+    let id = base;
+    for (let n = 2; used.has(id); n++) id = base + '-' + n;
+    used.add(id);
+    return {
+      id, yt, dm,
+      title: v.title || 'Video chưa đặt tên',
+      group: v.group || '', date: v.date || '', note: v.note || '',
+      thumb: v.thumb || (yt ? 'https://i.ytimg.com/vi/' + yt + '/hqdefault.jpg'
+                            : 'https://www.dailymotion.com/thumbnail/video/' + dm),
+      text: norm([v.title, v.group, v.note, fmtDate(v.date)].join(' ')),
+      visible: true
+    };
+  }).filter(Boolean);
+
+  const has = (v, s) => !!(s === 'youtube' ? v.yt : v.dm);
+  const otherOf = (s) => (s === 'youtube' ? 'dailymotion' : 'youtube');
+
+  let cur = null;
+  let src = 'youtube';
+  let group = '';
+  let query = '';
+
+  $('tagline').textContent = SITE.tagline;
+  $('footText').textContent = SITE.footer;
+
+  // Mở thẳng file trong máy thì trình duyệt không gửi Referer → YouTube báo lỗi 153.
+  // Chỉ chủ trang mới mở kiểu này, nên nhắc ngay trên trang cho khỏi tưởng web hỏng.
+  if (location.protocol === 'file:') {
+    document.querySelector('main').prepend(el('p', 'local-note',
+      'Đang mở file trong máy nên YouTube sẽ báo “Lỗi 153”. Xem thử trên ' +
+      'https://lenamiu.xyz hoặc mở bằng Live Server thì video chạy bình thường.'));
+  }
+
+  if (!videos.length) {
+    $('count').textContent = '(0)';
+    $('search').hidden = true;
+    $('empty').hidden = false;
+    $('empty').textContent = 'Chưa có video nào.';
+    console.info('[vietsub] Thêm video vào videos.js nha.');
+    return;
+  }
+  $('watch').hidden = false;
+
+  /* ---------- thư viện ---------- */
+  videos.forEach((v) => {
+    const li = el('li');
+    const a = el('a', 'card');
+    a.href = '#' + v.id;
+    a.dataset.id = v.id;
+
+    const thumb = el('span', 'thumb');
+    const img = el('img');
+    img.src = v.thumb; img.alt = ''; img.loading = 'lazy'; img.decoding = 'async';
+    const badges = el('span', 'badges');
+    if (v.yt) badges.append(el('span', 'badge', 'YouTube'));
+    if (v.dm) badges.append(el('span', 'badge', 'Dailymotion'));
+    thumb.append(img, badges);
+
+    const meta = [v.group, fmtDate(v.date)].filter(Boolean).join(' · ');
+    a.append(thumb, el('span', 'c-title', v.title));
+    if (meta) a.append(el('span', 'c-meta', meta));
+    li.append(a);
+    $('grid').append(li);
+    v.li = li; v.card = a;
+  });
+
+  const groups = [...new Set(videos.map((v) => v.group).filter(Boolean))];
+  if (groups.length >= 2) {
+    ['', ...groups].forEach((g) => {
+      const b = el('button', 'chip', g || 'Tất cả');
+      b.type = 'button';
+      b.setAttribute('aria-pressed', String(g === group));
+      b.addEventListener('click', () => {
+        group = g;
+        $('chips').querySelectorAll('.chip')
+          .forEach((c) => c.setAttribute('aria-pressed', String(c === b)));
+        applyFilter();
+      });
+      $('chips').append(b);
+    });
+  } else {
+    $('chips').hidden = true;
+  }
+
+  $('search').addEventListener('input', (e) => { query = e.target.value; applyFilter(); });
+
+  function applyFilter() {
+    const terms = norm(query).split(/\s+/).filter(Boolean);
+    let shown = 0;
+    videos.forEach((v) => {
+      v.visible = (!group || v.group === group) && terms.every((t) => v.text.includes(t));
+      v.li.hidden = !v.visible;
+      if (v.visible) shown++;
+    });
+    $('count').textContent = shown === videos.length
+      ? '(' + videos.length + ')' : '(' + shown + '/' + videos.length + ')';
+    $('empty').hidden = shown > 0;
+    if (!shown) {
+      $('empty').textContent = query.trim()
+        ? 'Không tìm thấy video nào khớp “' + query.trim() + '”.'
+        : 'Nhóm này chưa có video.';
+    }
+    updateStepper();
+  }
+
+  /* ---------- trình phát ---------- */
+  // Dailymotion chặn nhúng ("Forbidden") nếu thiếu Player ID,
+  // nên chưa có Player ID thì mở video qua trang Dailymotion
+  const DM_PLAYER = String(SITE.dailymotionPlayerId || '').trim();
+  if (!DM_PLAYER && videos.some((v) => v.dm)) {
+    console.warn('[vietsub] Chưa điền dailymotionPlayerId trong videos.js: video Dailymotion ' +
+                 'sẽ mở qua trang Dailymotion thay vì phát ngay trên web.');
+  }
+
+  function embedUrl(v, s) {
+    if (s === 'youtube') {
+      // origin: báo thêm cho YouTube trang nào đang nhúng, phòng khi trình duyệt chặn Referer
+      const origin = /^https?:$/.test(location.protocol)
+        ? '&origin=' + encodeURIComponent(location.origin) : '';
+      return 'https://www.youtube-nocookie.com/embed/' + v.yt +
+             '?autoplay=1&rel=0&playsinline=1&hl=vi' + origin;
+    }
+    return 'https://geo.dailymotion.com/player/' + DM_PLAYER + '.html?video=' + v.dm;
+  }
+
+  function watchUrl(v, s) {
+    return s === 'youtube' ? 'https://www.youtube.com/watch?v=' + v.yt
+                           : 'https://www.dailymotion.com/video/' + v.dm;
+  }
+
+  // Chưa bấm phát thì chỉ hiện ảnh bìa, để trang mở nhanh trên điện thoại
+  function showPlayer(play) {
+    const box = $('player');
+    box.textContent = '';
+    const linkOut = src === 'dailymotion' && !DM_PLAYER;
+    if (play && !linkOut) {
+      const f = el('iframe');
+      f.src = embedUrl(cur, src);
+      f.title = cur.title + ' — ' + LABEL[src];
+      f.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media; web-share';
+      f.allowFullscreen = true;
+      f.referrerPolicy = 'strict-origin-when-cross-origin';
+      box.append(f);
+      return;
+    }
+    const b = el(linkOut ? 'a' : 'button', 'facade');
+    if (linkOut) {
+      b.href = watchUrl(cur, 'dailymotion');
+      b.target = '_blank';
+      b.rel = 'noopener';
+      b.setAttribute('aria-label', 'Mở video trên Dailymotion: ' + cur.title);
+    } else {
+      b.type = 'button';
+      b.setAttribute('aria-label', 'Phát video: ' + cur.title + ' (' + LABEL[src] + ')');
+      b.addEventListener('click', () => showPlayer(true));
+    }
+    const img = el('img');
+    img.src = cur.thumb; img.alt = '';
+    b.append(img, el('span', 'play'),
+             el('span', 'on', linkOut ? 'Mở trên Dailymotion ↗' : 'Xem trên ' + LABEL[src]));
+    box.append(b);
+  }
+
+  function select(id, play) {
+    cur = videos.find((v) => v.id === id) || videos[0];
+    const pref = store(SRC_KEY) === 'dailymotion' ? 'dailymotion' : 'youtube';
+    src = has(cur, pref) ? pref : otherOf(pref);
+
+    const kicker = [cur.group, fmtDate(cur.date)].filter(Boolean).join(' · ');
+    $('watchKicker').textContent = kicker;
+    $('watchKicker').hidden = !kicker;
+    $('watchTitle').textContent = cur.title;
+    $('watchNote').textContent = cur.note;
+    $('watchNote').hidden = !cur.note;
+    document.title = cur.title + ' · ' + SITE.title;
+
+    videos.forEach((v) => {
+      if (v === cur) v.card.setAttribute('aria-current', 'true');
+      else v.card.removeAttribute('aria-current');
+    });
+    updateSources();
+    updateStepper();
+    showPlayer(play);
+  }
+
+  function updateSources() {
+    document.querySelectorAll('.src').forEach((b) => {
+      const s = b.dataset.src;
+      b.disabled = !has(cur, s);
+      b.setAttribute('aria-pressed', String(s === src));
+      b.title = has(cur, s) ? 'Xem trên ' + LABEL[s] : 'Video này chưa có trên ' + LABEL[s];
+    });
+    $('openLink').href = watchUrl(cur, src);
+    $('openLink').textContent = 'Mở trên ' + LABEL[src] + ' ↗';
+    const other = otherOf(src);
+    $('watchHint').textContent = has(cur, other)
+      ? 'Video không lên? Bấm qua ' + LABEL[other] + ' thử, hoặc mở thẳng trên ' + LABEL[src] + ' nha.'
+      : 'Video không lên? Bấm “Mở trên ' + LABEL[src] + '” để xem thẳng bên đó nha.';
+  }
+
+  document.querySelectorAll('.src').forEach((b) => b.addEventListener('click', () => {
+    const s = b.dataset.src;
+    if (s === src || !has(cur, s)) return;
+    src = s;
+    store(SRC_KEY, s);
+    updateSources();
+    showPlayer(!!$('player').querySelector('iframe'));   // đang phát thì phát tiếp bằng nguồn mới
+  }));
+
+  // Trước / sau: đi trong danh sách đang lọc, nếu video đang xem nằm trong đó
+  function updateStepper() {
+    if (!cur) return;
+    const list = cur.visible ? videos.filter((v) => v.visible) : videos;
+    const i = list.indexOf(cur);
+    setStep($('prevLink'), list[i - 1]);
+    setStep($('nextLink'), list[i + 1]);
+    $('stepper').hidden = !list[i - 1] && !list[i + 1];
+  }
+  function setStep(a, v) {
+    a.hidden = !v;
+    if (!v) return;
+    a.href = '#' + v.id;
+    a.dataset.id = v.id;
+    a.querySelector('span').textContent = v.title;
+  }
+
+  /* ---------- link riêng cho từng video: .../vietsub/#id ---------- */
+  function idFromHash() {
+    try { return decodeURIComponent(location.hash.slice(1)); } catch (e) { return ''; }
+  }
+
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[data-id]');
+    if (!a || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    const id = a.dataset.id;
+    if (id !== cur.id) history.pushState(null, '', '#' + id);
+    select(id, true);
+    $('watch').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+  });
+
+  function onNavigate() {
+    const id = idFromHash();
+    if (!cur || (id || videos[0].id) !== cur.id) select(id, false);
+  }
+  window.addEventListener('popstate', onNavigate);
+  window.addEventListener('hashchange', onNavigate);
+
+  $('shareBtn').addEventListener('click', async () => {
+    const btn = $('shareBtn');
+    const url = location.href.split('#')[0] + '#' + cur.id;
+    try {
+      if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+        await navigator.share({ title: cur.title, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      btn.textContent = 'Đã chép link ✓';
+      setTimeout(() => { btn.textContent = 'Chia sẻ'; }, 2000);
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;   // tự tắt bảng chia sẻ
+      window.prompt('Chép link này nha:', url);
+    }
+  });
+
+  applyFilter();
+  select(idFromHash(), false);
+})();
+</script>
+
+</body>
+</html>
