@@ -33,6 +33,22 @@ window.VIETSUB = {
     // rồi dán Player ID (dạng 'x1abc') vào đây. Để trống thì video Dailymotion mở qua trang Dailymotion.
     dailymotionPlayerId: '',
 
+    // Ủng hộ: bỏ ảnh mã QR vào thư mục web (cạnh file này) rồi điền tên file vào qr.
+    //   qr    ảnh hiện trong hộp (nên là ảnh chỉ có mã QR, để mã to dễ quét)
+    //   save  ảnh tải về khi bấm "Lưu ảnh QR" (vd nguyên poster). Bỏ trống thì tải ảnh qr.
+    // Để qr trống thì nút "♡ Ủng hộ" tự ẩn. Ngân hàng / số tài khoản / tên: không cần thì để ''.
+    // Gửi link https://lenamiu.xyz/#ung-ho là người nhận thấy hộp QR luôn.
+    donate: {
+      qr: 'donate-qr.png',
+      save: 'donate-momo.jpg',
+      title: 'Góp quỹ cho tụi mình',
+      text: 'Thích vietsub của tụi mình thì góp quỹ ly trà sữa nha 🧋 Quỹ trên MoMo minh bạch, ' +
+            'tiền vào ra đều hiện rõ. Cảm ơn bạn nhiều lắm!',
+      bank: 'MoMo',
+      account: 'PSG2631213500000002',
+      name: 'DANG THI THUY NHI'
+    },
+
     // Nút "Đăng lên X": mỗi lần bấm chọn ngẫu nhiên 1 mẫu dưới đây để viết sẵn bài đăng.
     //   {title} = tên video   {group} = nhóm   {link} = link tới đúng video   {hashtags} = hashtag
     //   \n = xuống dòng. Mẫu có {group} chỉ dùng cho video có nhóm.

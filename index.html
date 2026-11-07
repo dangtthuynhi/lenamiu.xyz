@@ -30,7 +30,10 @@
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+<!-- font tải song song, không bắt cả trang chờ: Google Fonts chậm thì trang vẫn hiện bằng font máy trước -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"
+      media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"></noscript>
 <style>
   :root {
     color-scheme: light;
@@ -77,7 +80,13 @@
   }
   .brand img { width: 32px; height: 32px; flex: none; }
   .brand b { color: var(--accent); font-weight: 700; }
-  .tagline { margin: 0; color: var(--muted); font-size: .875rem; }
+  .tagline { margin: 0 0 0 auto; color: var(--muted); font-size: .875rem; }
+  .donate-btn {
+    flex: none; font: inherit; font-size: .85rem; font-weight: 700; min-height: 34px; padding: 5px 14px;
+    border-radius: 999px; cursor: pointer; color: var(--accent);
+    background: var(--surface-2); background: color-mix(in srgb, var(--accent) 11%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  }
 
   /* ---------- trình phát ---------- */
   /* màn hình thấp (laptop) thì thu nhỏ khung phát, để tên video vẫn nằm trong màn hình */
@@ -255,10 +264,23 @@
     font-size: .9rem; font-weight: 700; text-decoration: none;
   }
 
+  /* ---------- hộp ủng hộ (mã QR) ---------- */
+  /* nền QR luôn trắng, kể cả chế độ tối, để app ngân hàng quét được */
+  .qr { margin: 4px auto 0; width: min(100%, 300px); padding: 12px; background: #fff; border-radius: 16px;
+        box-shadow: 0 0 0 1px var(--line); }
+  .qr img { display: block; width: 100%; height: auto; border-radius: 6px; }
+  .acct { margin: 14px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: .9rem; }
+  .acct dt { color: var(--muted); }
+  .acct dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+  .qr-tip { margin: 12px 0 0; font-size: .8rem; color: var(--muted); }
+  .foot .donate-link { color: var(--accent); font-weight: 600; }
+
   @media (max-width: 640px) {
     .sheet { width: 100%; max-height: 92%; margin: auto 0 0; border-radius: 18px 18px 0 0; }
     .sheet-in { padding-bottom: max(20px, env(safe-area-inset-bottom)); }
     .sheet-actions > * { flex: 1 1 0; justify-content: center; }
+    .top .tagline { order: 3; flex-basis: 100%; margin-left: 0; }
+    .donate-btn { margin-left: auto; }
     .player { margin: 0 calc(-1 * max(16px, env(safe-area-inset-left))); border-radius: 0; box-shadow: none; }
     .grid { grid-template-columns: 1fr 1fr; gap: 18px 12px; }
     .c-title { font-size: .9rem; }
@@ -273,6 +295,7 @@
 <header class="top wrap">
   <a class="brand" href="./"><img src="favicon.svg" alt="" width="32" height="32"><span>LenaMiu <b>Vietsub</b></span></a>
   <p class="tagline" id="tagline"></p>
+  <button type="button" class="donate-btn" id="donateBtn" hidden>♡ Ủng hộ</button>
 </header>
 
 <main class="wrap">
@@ -331,8 +354,28 @@
   </form>
 </dialog>
 
+<dialog class="sheet" id="donateDialog" aria-labelledby="dTitle">
+  <form method="dialog" class="sheet-in">
+    <div class="sheet-head">
+      <h2 id="dTitle">Ủng hộ tụi mình</h2>
+      <button class="icon-btn" value="close" aria-label="Đóng">✕</button>
+    </div>
+    <p class="sheet-sub" id="dText"></p>
+    <figure class="qr"><img id="dQr" alt="Mã QR ủng hộ"></figure>
+    <dl class="acct" id="dAcct"></dl>
+    <p class="qr-tip">Đang xem trên điện thoại? Bấm “Lưu ảnh QR” (hoặc nhấn giữ ảnh → Lưu),
+      rồi mở app ngân hàng / MoMo → Quét mã → chọn ảnh vừa lưu.</p>
+    <div class="sheet-actions">
+      <button type="button" class="ghost" id="dCopy" hidden>Chép số tài khoản</button>
+      <a class="primary" id="dSave" download>Lưu ảnh QR</a>
+    </div>
+  </form>
+</dialog>
+
 <footer class="foot wrap">
   <p id="footText"></p>
+  <p id="donateFoot" hidden>Thích vietsub của tụi mình?
+     <a href="#ung-ho" class="donate-link" id="donateLink">Ủng hộ tụi mình ♡</a></p>
   <p>Kênh của tụi mình:
      <a href="https://www.youtube.com/@dangtthuynhi" target="_blank" rel="noopener">YouTube</a></p>
 </footer>
@@ -467,6 +510,55 @@
 
   $('tagline').textContent = SITE.tagline;
   $('footText').textContent = SITE.footer;
+
+  /* ---------- ủng hộ: hộp mã QR (cấu hình ở videos.js → site.donate) ---------- */
+  // Chưa có ảnh QR, hoặc ảnh sai tên file không tải được, thì ẩn hết nút Ủng hộ.
+  // Mở thẳng lenamiu.xyz/#ung-ho là hiện luôn hộp QR (tiện gửi link xin donate).
+  const DONATE = Object.assign({ qr: '', save: '', title: 'Ủng hộ tụi mình', text: '', bank: '', account: '', name: '' },
+                               SITE.donate);
+  const DONATE_HASH = 'ung-ho';
+  let openDonate = () => {};
+  (function setupDonate() {
+    const qr = String(DONATE.qr || '').trim();
+    if (!qr) return;
+    const dd = $('donateDialog');
+    $('dTitle').textContent = DONATE.title;
+    $('dText').textContent = DONATE.text;
+    $('dText').hidden = !DONATE.text;
+    const save = String(DONATE.save || '').trim() || qr;
+    $('dSave').href = save;
+    $('dSave').setAttribute('download', 'gop-quy-lenamiu-vietsub' + (save.match(/\.\w+$/) || ['.png'])[0]);
+
+    const rows = [['Ngân hàng', DONATE.bank], ['Số tài khoản', DONATE.account], ['Chủ tài khoản', DONATE.name]]
+      .filter((r) => String(r[1] || '').trim());
+    rows.forEach(([k, v]) => $('dAcct').append(el('dt', '', k), el('dd', '', v)));
+    $('dAcct').hidden = !rows.length;
+    $('dCopy').hidden = !String(DONATE.account || '').trim();
+
+    openDonate = () => {
+      if (typeof dd.showModal === 'function') { if (!dd.open) dd.showModal(); }
+      else window.open(qr, '_blank', 'noopener');
+    };
+    const img = $('dQr');
+    img.addEventListener('load', () => {
+      $('donateBtn').hidden = false;
+      $('donateFoot').hidden = false;
+      if (location.hash === '#' + DONATE_HASH) openDonate();
+    }, { once: true });
+    img.src = qr;
+
+    $('donateBtn').addEventListener('click', openDonate);
+    $('donateLink').addEventListener('click', (e) => { e.preventDefault(); openDonate(); });
+    dd.addEventListener('click', (e) => { if (e.target === dd) dd.close(); });
+    $('dCopy').addEventListener('click', async () => {
+      const btn = $('dCopy');
+      const acc = String(DONATE.account).replace(/\s+/g, '');
+      try { await navigator.clipboard.writeText(acc); }
+      catch (e) { window.prompt('Chép số tài khoản này nha:', acc); return; }
+      btn.textContent = 'Đã chép ✓';
+      setTimeout(() => { btn.textContent = 'Chép số tài khoản'; }, 2000);
+    });
+  })();
 
   // Mở thẳng file trong máy thì trình duyệt không gửi Referer → YouTube báo lỗi 153.
   // Chỉ chủ trang mới mở kiểu này, nên nhắc ngay trên trang cho khỏi tưởng web hỏng.
@@ -726,6 +818,7 @@
 
   function onNavigate() {
     const id = idFromHash();
+    if (id === DONATE_HASH) { openDonate(); return; }   // link #ung-ho: mở hộp QR, giữ video đang xem
     if (!cur || (id || videos[0].id) !== cur.id) select(id, false);
   }
   window.addEventListener('popstate', onNavigate);
