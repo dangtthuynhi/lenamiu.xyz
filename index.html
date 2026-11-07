@@ -210,10 +210,6 @@
 
   @media (max-width: 640px) {
     .player { margin: 0 calc(-1 * max(16px, env(safe-area-inset-left))); border-radius: 0; box-shadow: none; }
-    /* Trình phát Google Drive trên điện thoại dựng cho cả màn hình (thanh tiêu đề + video +
-       thanh điều khiển); khung 16:9 thấp quá thì vỡ: video phình ra, thanh thời gian nhảy lên trên */
-    .player.is-drive { aspect-ratio: 1 / 1; }
-    .player.is-drive .facade img { object-fit: contain; }
     .grid { grid-template-columns: 1fr 1fr; gap: 18px 12px; }
     .c-title { font-size: .9rem; }
   }
@@ -283,10 +279,11 @@
   const DATA = window.VIETSUB || {};
   const SITE = Object.assign(
     { title: 'LenaMiu Vietsub', tagline: '', footer: '', dailymotionPlayerId: '' }, DATA.site);
-  // Thứ tự ưu tiên khi một video có nhiều nguồn
-  const SOURCES = ['youtube', 'drive', 'dailymotion'];
-  const LABEL = { youtube: 'YouTube', drive: 'Google Drive', dailymotion: 'Dailymotion' };
-  const BADGE = { youtube: 'YouTube', drive: 'Drive', dailymotion: 'Dailymotion' };
+  // Thứ tự ưu tiên khi một video có nhiều nguồn. Drive xếp sau Odysee vì trình phát
+  // Drive trên iPhone bị hai bộ nút chồng nhau.
+  const SOURCES = ['youtube', 'odysee', 'drive', 'dailymotion'];
+  const LABEL = { youtube: 'YouTube', odysee: 'Odysee', drive: 'Google Drive', dailymotion: 'Dailymotion' };
+  const BADGE = { youtube: 'YouTube', odysee: 'Odysee', drive: 'Drive', dailymotion: 'Dailymotion' };
   const SRC_KEY = 'vietsub_src';
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const $ = (id) => document.getElementById(id);
@@ -342,6 +339,18 @@
     if (m) return m[1];
     return /^[\w-]{25,}$/.test(s) ? s : '';
   }
+  // Nhận link odysee.com/<tên>:<mã> (có thể kèm @kênh:x/ ở trước) hoặc lbry://<tên>#<mã>.
+  // Trả về đường dẫn dạng "tên:mã" (chưa mã hoá) để ghép vào link nhúng / link xem.
+  function odyseeId(s) {
+    s = String(s || '').trim();
+    let m = s.match(/odysee\.com\/(?:\$\/embed\/)?([^?#]+)/);
+    if (m) { try { return decodeURIComponent(m[1]).replace(/\/+$/, ''); } catch (e) { return ''; } }
+    m = s.match(/^lbry:\/\/(.+)$/);
+    return m ? m[1].replace(/#/g, ':') : '';
+  }
+  function odyseePath(p) {
+    return p.split('/').map((seg) => encodeURIComponent(seg).replace(/%3A/gi, ':').replace(/%40/g, '@')).join('/');
+  }
 
   function fmtDate(s) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || '').trim());
@@ -351,10 +360,11 @@
   /* ---------- đọc danh sách video ---------- */
   const used = new Set();
   const videos = (DATA.videos || []).map((v, i) => {
-    const ids = { youtube: ytId(v.youtube), drive: driveId(v.drive), dailymotion: dmId(v.dailymotion) };
+    const ids = { youtube: ytId(v.youtube), odysee: odyseeId(v.odysee), drive: driveId(v.drive),
+                  dailymotion: dmId(v.dailymotion) };
     if (!SOURCES.some((s) => ids[s])) {
       console.warn('[vietsub] Bỏ qua video thứ ' + (i + 1) + ' "' + (v.title || '') +
-                   '": không đọc được link YouTube, Google Drive hay Dailymotion.');
+                   '": không đọc được link video nào (YouTube, Odysee, Google Drive, Dailymotion).');
       return null;
     }
     const base = slug(v.id || v.title) || 'video-' + (i + 1);
@@ -368,7 +378,10 @@
       thumb: v.thumb ||
         (ids.youtube ? 'https://i.ytimg.com/vi/' + ids.youtube + '/hqdefault.jpg'
         : ids.drive ? 'https://drive.google.com/thumbnail?id=' + ids.drive + '&sz=w640'
-        : 'https://www.dailymotion.com/thumbnail/video/' + ids.dailymotion),
+        : ids.dailymotion ? 'https://www.dailymotion.com/thumbnail/video/' + ids.dailymotion
+        : ''),
+      // Odysee không có link ảnh bìa cố định → hỏi API của Odysee sau (fillOdyseeThumbs)
+      needThumb: !v.thumb && !ids.youtube && !!ids.odysee,
       text: norm([v.title, v.group, v.note, fmtDate(v.date)].join(' ')),
       visible: true
     };
@@ -413,7 +426,8 @@
     const thumb = el('span', 'thumb');
     const badges = el('span', 'badges');
     sourcesOf(v).forEach((s) => badges.append(el('span', 'badge', BADGE[s])));
-    thumb.append(thumbImg(v.thumb, true), badges);
+    if (v.thumb) thumb.append(thumbImg(v.thumb, true));
+    thumb.append(badges);
 
     const meta = [v.group, fmtDate(v.date)].filter(Boolean).join(' · ');
     a.append(thumb, el('span', 'c-title', v.title));
@@ -422,6 +436,34 @@
     $('grid').append(li);
     v.li = li; v.card = a;
   });
+
+  // API của Odysee cho gọi thẳng từ trang khác: lấy ảnh bìa cho các video Odysee,
+  // có ảnh rồi thì gắn vào thẻ video (và khung phát nếu đang chờ bấm phát)
+  (function fillOdyseeThumbs() {
+    const need = videos.filter((v) => v.needThumb);
+    if (!need.length || !window.fetch) return;
+    const urls = need.map((v) => 'lbry://' + v.ids.odysee.replace(/:/g, '#'));
+    fetch('https://api.na-backend.odysee.com/api/v1/proxy?m=resolve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ method: 'resolve', params: { urls } })
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        need.forEach((v, i) => {
+          const c = d && d.result && d.result[urls[i]];
+          const t = c && c.value && c.value.thumbnail && c.value.thumbnail.url;
+          if (!t) return;
+          v.thumb = t;
+          const box = v.card.querySelector('.thumb');
+          const old = box.querySelector('img');
+          if (old) old.remove();
+          box.prepend(thumbImg(t, true));
+          if (v === cur && !$('player').querySelector('iframe')) showPlayer(false);
+        });
+      })
+      .catch(() => {});   // không lấy được thì để khung màu
+  })();
 
   const groups = [...new Set(videos.map((v) => v.group).filter(Boolean))];
   if (groups.length >= 2) {
@@ -479,12 +521,14 @@
       return 'https://www.youtube-nocookie.com/embed/' + v.ids.youtube +
              '?autoplay=1&rel=0&playsinline=1&hl=vi' + origin;
     }
+    if (s === 'odysee') return 'https://odysee.com/$/embed/' + odyseePath(v.ids.odysee);
     if (s === 'drive') return 'https://drive.google.com/file/d/' + v.ids.drive + '/preview';
     return 'https://geo.dailymotion.com/player/' + DM_PLAYER + '.html?video=' + v.ids.dailymotion;
   }
 
   function watchUrl(v, s) {
     if (s === 'youtube') return 'https://www.youtube.com/watch?v=' + v.ids.youtube;
+    if (s === 'odysee') return 'https://odysee.com/' + odyseePath(v.ids.odysee);
     if (s === 'drive') return 'https://drive.google.com/file/d/' + v.ids.drive + '/view';
     return 'https://www.dailymotion.com/video/' + v.ids.dailymotion;
   }
@@ -493,7 +537,6 @@
   function showPlayer(play) {
     const box = $('player');
     box.textContent = '';
-    box.classList.toggle('is-drive', src === 'drive');
     const linkOut = src === 'dailymotion' && !DM_PLAYER;
     if (play && !linkOut) {
       const f = el('iframe');
@@ -516,7 +559,8 @@
       b.setAttribute('aria-label', 'Phát video: ' + cur.title + ' (' + LABEL[src] + ')');
       b.addEventListener('click', () => showPlayer(true));
     }
-    b.append(thumbImg(cur.thumb), el('span', 'play'),
+    if (cur.thumb) b.append(thumbImg(cur.thumb));
+    b.append(el('span', 'play'),
              el('span', 'on', linkOut ? 'Mở trên Dailymotion ↗' : 'Xem trên ' + LABEL[src]));
     box.append(b);
   }

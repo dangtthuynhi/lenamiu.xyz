@@ -5,8 +5,10 @@
 
      title        Tên video (bắt buộc)
      youtube      Link YouTube, dán nguyên link là được. Không có thì để ''
+     odysee       Link Odysee (odysee.com/...), dán nguyên link là được. Không có thì để ''
      drive        Link Google Drive, dán nguyên link là được. Không có thì để ''
-                  (file trên Drive phải bật chia sẻ "Bất kỳ ai có đường liên kết")
+                  (file trên Drive phải bật chia sẻ "Bất kỳ ai có đường liên kết";
+                  trên iPhone trình phát Drive hay lỗi, nên có Odysee/YouTube thì tốt hơn)
      group        Nhóm để lọc, vd 'Pls Love', 'MARCHU'. Không cần thì để ''
      date         Ngày đăng, dạng '2026-11-07'. Không cần thì để ''
      note         Vài dòng ghi chú hiện dưới tên video. Không cần thì để ''
@@ -14,8 +16,8 @@
                   Bỏ trống thì tự lấy theo tên video — nhưng sửa tên là link
                   cũ hết dùng được, nên video nào hay gửi link thì đặt id luôn.
 
-   Mỗi video cần ít nhất một link. Có cả YouTube lẫn Drive thì người xem bấm đổi
-   qua lại được — YouTube bị chặn thì còn Drive.
+   Mỗi video cần ít nhất một link. Có nhiều link thì người xem bấm đổi qua lại được,
+   trang tự chọn theo thứ tự YouTube → Odysee → Drive.
    (Vẫn nhận thêm dailymotion: '...' nếu sau này cần.)
 */
 window.VIETSUB = {
@@ -34,6 +36,7 @@ window.VIETSUB = {
     {
       title: 'Pls Love Reaction EP 2',
       youtube: '',
+      odysee: 'https://odysee.com/PLS-Love-Reaction-EP.2-(Vietsub):f0ba0e0126dd0a6658d00f57afed7503a3b2623f',
       drive: 'https://drive.google.com/file/d/1azHXoRmIEKz26vlqoA57jroFKLPtGxMc/view?usp=sharing',
       group: 'Pls Love',
       date: '',
@@ -60,6 +63,7 @@ window.VIETSUB = {
     // {
     //   title: 'Pls Love Reaction EP 3',
     //   youtube: 'https://youtu.be/xxxxxxxxxxx',
+    //   odysee: 'https://odysee.com/ten-video:x',
     //   drive: 'https://drive.google.com/file/d/xxxxxxxx/view',
     //   group: 'Pls Love',
     //   date: '2026-11-07',
