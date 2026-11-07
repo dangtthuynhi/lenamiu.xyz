@@ -33,16 +33,21 @@ window.VIETSUB = {
     // rồi dán Player ID (dạng 'x1abc') vào đây. Để trống thì video Dailymotion mở qua trang Dailymotion.
     dailymotionPlayerId: '',
 
-    // Nút "☕ Buy me a coffee": bỏ ảnh mã QR vào thư mục web (cạnh file này) rồi điền tên file vào qr.
-    //   qr    ảnh hiện trong hộp (nên là ảnh chỉ có mã QR, để mã to dễ quét)
-    //   save  ảnh tải về khi bấm "Lưu ảnh QR". Bỏ trống thì tải ảnh qr.
+    // Nút mở hộp mã QR (ở đầu trang + chân trang).
+    //   button       chữ trên nút
+    //   buttonShort  chữ trên nút khi xem bằng điện thoại (màn hình hẹp), nên ngắn
+    //   qr           ảnh mã QR hiện trong hộp (nên là ảnh chỉ có mã QR, để mã to dễ quét)
+    //   save         ảnh tải về khi bấm "Lưu ảnh QR". Bỏ trống thì tải ảnh qr.
+    //   title, text  tiêu đề + dòng chữ trong hộp. text không cần thì để ''
     // Để qr trống thì nút tự ẩn. Ngân hàng / số tài khoản / tên: không cần thì để ''.
-    // Gửi link https://lenamiu.xyz/#coffee là người nhận thấy hộp QR luôn.
+    // Gửi link https://lenamiu.xyz/#lumi là người nhận thấy hộp QR luôn.
     donate: {
+      button: '🍼 Dự án nuôi Lumi',
+      buttonShort: '🍼 Nuôi Lumi',
       qr: 'donate-qr.png',
       save: '',
-      title: 'Buy me a coffee ☕',
-      text: 'Nếu bạn thích vietsub ở đây, có thể mời mình một ly cà phê nha. Cảm ơn bạn!',
+      title: 'Mua sữa tã cho Lumi 🍼',
+      text: '',
       bank: 'MoMo',
       account: 'PSG2631213500000002',
       name: 'DANG THI THUY NHI'

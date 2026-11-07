@@ -264,9 +264,9 @@
     font-size: .9rem; font-weight: 700; text-decoration: none;
   }
 
-  /* ---------- hộp Buy me a coffee (mã QR) ---------- */
-  .bmc-short { display: none; }
-  @media (max-width: 420px) { .bmc-long { display: none; } .bmc-short { display: inline; } }
+  /* ---------- hộp mã QR (nút ở đầu trang) ---------- */
+  .btn-short { display: none; }
+  @media (max-width: 420px) { .btn-long { display: none; } .btn-short { display: inline; } }
   /* nền QR luôn trắng, kể cả chế độ tối, để app ngân hàng quét được */
   .qr { margin: 4px auto 0; width: min(100%, 300px); padding: 12px; background: #fff; border-radius: 16px;
         box-shadow: 0 0 0 1px var(--line); }
@@ -297,7 +297,7 @@
 <header class="top wrap">
   <a class="brand" href="./"><img src="favicon.svg" alt="" width="32" height="32"><span>LenaMiu <b>Vietsub</b></span></a>
   <p class="tagline" id="tagline"></p>
-  <button type="button" class="donate-btn" id="donateBtn" aria-label="Buy me a coffee" hidden>☕ <span class="bmc-long">Buy me a coffee</span><span class="bmc-short">Coffee</span></button>
+  <button type="button" class="donate-btn" id="donateBtn" hidden><span class="btn-long"></span><span class="btn-short"></span></button>
 </header>
 
 <main class="wrap">
@@ -359,7 +359,7 @@
 <dialog class="sheet" id="donateDialog" aria-labelledby="dTitle">
   <form method="dialog" class="sheet-in">
     <div class="sheet-head">
-      <h2 id="dTitle">Buy me a coffee ☕</h2>
+      <h2 id="dTitle"></h2>
       <button class="icon-btn" value="close" aria-label="Đóng">✕</button>
     </div>
     <p class="sheet-sub" id="dText"></p>
@@ -376,8 +376,7 @@
 
 <footer class="foot wrap">
   <p id="footText"></p>
-  <p id="donateFoot" hidden>Thích vietsub ở đây?
-     <a href="#coffee" class="donate-link" id="donateLink">Buy me a coffee ☕</a></p>
+  <p id="donateFoot" hidden><a href="#lumi" class="donate-link" id="donateLink"></a></p>
   <p>Kênh của tụi mình:
      <a href="https://www.youtube.com/@dangtthuynhi" target="_blank" rel="noopener">YouTube</a></p>
 </footer>
@@ -513,24 +512,29 @@
   $('tagline').textContent = SITE.tagline;
   $('footText').textContent = SITE.footer;
 
-  /* ---------- Buy me a coffee: hộp mã QR (cấu hình ở videos.js → site.donate) ---------- */
+  /* ---------- nút mở hộp mã QR (cấu hình ở videos.js → site.donate) ---------- */
   // Chưa có ảnh QR, hoặc ảnh sai tên file không tải được, thì ẩn hết nút.
-  // Mở thẳng lenamiu.xyz/#coffee là hiện luôn hộp QR (link cũ #ung-ho vẫn dùng được).
-  const DONATE = Object.assign({ qr: '', save: '', title: 'Buy me a coffee ☕', text: '', bank: '', account: '', name: '' },
-                               SITE.donate);
-  const DONATE_HASH = 'coffee';
-  const isDonateHash = (h) => h === DONATE_HASH || h === 'ung-ho';
+  // Mở thẳng lenamiu.xyz/#lumi là hiện luôn hộp QR (link cũ #coffee, #ung-ho vẫn dùng được).
+  const DONATE = Object.assign({ button: 'Ủng hộ', buttonShort: '', qr: '', save: '', title: '', text: '',
+                                 bank: '', account: '', name: '' }, SITE.donate);
+  const DONATE_HASH = 'lumi';
+  const isDonateHash = (h) => h === DONATE_HASH || h === 'coffee' || h === 'ung-ho';
   let openDonate = () => {};
   (function setupDonate() {
     const qr = String(DONATE.qr || '').trim();
     if (!qr) return;
     const dd = $('donateDialog');
-    $('dTitle').textContent = DONATE.title;
+    const label = String(DONATE.button || '').trim() || 'Ủng hộ';
+    $('donateBtn').querySelector('.btn-long').textContent = label;
+    $('donateBtn').querySelector('.btn-short').textContent = String(DONATE.buttonShort || '').trim() || label;
+    $('donateBtn').setAttribute('aria-label', label);
+    $('donateLink').textContent = label;
+    $('dTitle').textContent = String(DONATE.title || '').trim() || label;
     $('dText').textContent = DONATE.text;
     $('dText').hidden = !DONATE.text;
     const save = String(DONATE.save || '').trim() || qr;
     $('dSave').href = save;
-    $('dSave').setAttribute('download', 'buy-me-a-coffee-lenamiu' + (save.match(/\.\w+$/) || ['.png'])[0]);
+    $('dSave').setAttribute('download', 'ma-qr-nuoi-lumi' + (save.match(/\.\w+$/) || ['.png'])[0]);
 
     const rows = [['Ngân hàng', DONATE.bank], ['Số tài khoản', DONATE.account], ['Chủ tài khoản', DONATE.name]]
       .filter((r) => String(r[1] || '').trim());
@@ -821,7 +825,7 @@
 
   function onNavigate() {
     const id = idFromHash();
-    if (isDonateHash(id)) { openDonate(); return; }   // link #coffee: mở hộp QR, giữ video đang xem
+    if (isDonateHash(id)) { openDonate(); return; }   // link #lumi: mở hộp QR, giữ video đang xem
     if (!cur || (id || videos[0].id) !== cur.id) select(id, false);
   }
   window.addEventListener('popstate', onNavigate);
