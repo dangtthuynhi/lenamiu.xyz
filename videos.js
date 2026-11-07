@@ -22,7 +22,7 @@ window.VIETSUB = {
 
   site: {
     title: 'LenaMiu Vietsub',
-    tagline: 'Vietsub bởi dangtthuynhi & Kem Dâu Ngọt · xem trên YouTube hoặc Google Drive',
+    tagline: 'Vietsub bởi dangtthuynhi & Kem Dâu Ngọt',
     footer: 'Vietsub phi lợi nhuận, làm vì thương LenaMiu. Video thuộc về chủ sở hữu gốc.',
 
     // Chỉ cần nếu có video Dailymotion: Dailymotion Studio → Embeds → Players → tạo player,
