@@ -40,6 +40,7 @@
     --bg: #faf7f6; --surface: #ffffff; --surface-2: #f1ecec;
     --text: #1d1a1f; --muted: #6c6570; --line: rgba(29, 26, 31, .10);
     --accent: #c13a6c; --on-accent: #ffffff; --danger: #c62828;
+    --team-a: #d63a78; --team-b: #7447dc;   /* LenaMiu hồng, MiuLena tím — lấy từ màu logo */
     --shadow: 0 1px 2px rgba(29, 26, 31, .06), 0 10px 28px -14px rgba(29, 26, 31, .28);
   }
   @media (prefers-color-scheme: dark) {
@@ -48,6 +49,7 @@
       --bg: #121014; --surface: #1b181e; --surface-2: #26222a;
       --text: #f3eff4; --muted: #a39ca8; --line: rgba(255, 255, 255, .09);
       --accent: #f06d9b; --on-accent: #1a0d13; --danger: #ff7b72;
+      --team-a: #e5528c; --team-b: #8c62ee;
       --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 12px 32px -14px rgba(0, 0, 0, .8);
     }
   }
@@ -270,7 +272,49 @@
   /* nền QR luôn trắng, kể cả chế độ tối, để app ngân hàng quét được */
   .qr { margin: 4px auto 0; width: min(100%, 300px); padding: 12px; background: #fff; border-radius: 16px;
         box-shadow: 0 0 0 1px var(--line); }
-  .qr img { display: block; width: 100%; height: auto; border-radius: 6px; }
+  .qr img, .qr svg { display: block; width: 100%; height: auto; border-radius: 6px; }
+  .qr-wait {
+    display: grid; place-items: center; aspect-ratio: 1; padding: 20px; text-align: center;
+    color: #6c6570; font-size: .9rem; font-weight: 500;
+  }
+
+  /* thanh PK LenaMiu vs MiuLena */
+  .pk { margin: 2px 0 14px; padding: 12px 14px; border-radius: 14px; background: var(--surface-2); }
+  .pk-score { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 8px; }
+  .pk-side { display: flex; flex-direction: column; min-width: 0; font-size: .85rem; line-height: 1.35; }
+  .pk-side b { font-weight: 800; }
+  .pk-side.a b { color: var(--team-a); }
+  .pk-side.b { text-align: right; }
+  .pk-side.b b { color: var(--team-b); }
+  .pk-side span { font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .pk-vs { padding-bottom: 3px; font-size: .75rem; font-weight: 800; letter-spacing: .08em; color: var(--muted); }
+  .pk-bar {
+    position: relative; height: 12px; margin-top: 8px; border-radius: 999px; overflow: hidden;
+    background: var(--team-b);
+  }
+  .pk-fill { position: absolute; inset: 0 auto 0 0; width: 50%; background: var(--team-a); transition: width .7s ease; }
+  .pk-fill::after { content: ""; position: absolute; top: 0; right: -1px; bottom: 0; width: 2px; background: var(--surface-2); }
+  .pk-news { margin: 8px 0 0; min-height: 1.3em; font-size: .8rem; color: var(--muted); }
+  .pk-news.fresh { color: var(--text); font-weight: 600; }
+  .pk.bump .pk-bar { animation: pk-bump .7s ease; }
+  @keyframes pk-bump { 40% { transform: scaleY(1.6); } }
+  .teams-label { margin: 0 0 6px; font-size: .9rem; font-weight: 600; }
+  .teams { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .team {
+    min-height: 44px; font: inherit; font-weight: 700; cursor: pointer;
+    border: 2px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--text);
+  }
+  .team.a { color: var(--team-a); }
+  .team.b { color: var(--team-b); }
+  .team.a[aria-pressed="true"] { background: var(--team-a); border-color: var(--team-a); color: #fff; }
+  .team.b[aria-pressed="true"] { background: var(--team-b); border-color: var(--team-b); color: #fff; }
+  .memo { margin: 10px 0 0; text-align: center; font-size: .9rem; }
+  .memo b { font-size: 1.05rem; letter-spacing: .02em; }
+  .memo-copy {
+    margin-left: 6px; padding: 2px 10px; font: inherit; font-size: .8rem; font-weight: 600; cursor: pointer;
+    border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--text);
+  }
+  @media (prefers-reduced-motion: reduce) { .pk.bump .pk-bar { animation: none; } }
   .acct { margin: 14px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: .9rem; }
   .acct dt { color: var(--muted); }
   .acct dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
@@ -363,10 +407,30 @@
       <button class="icon-btn" value="close" aria-label="Đóng">✕</button>
     </div>
     <p class="sheet-sub" id="dText"></p>
-    <figure class="qr"><img id="dQr" alt="Mã QR chuyển khoản"></figure>
+    <section class="pk" id="pk" aria-label="PK LenaMiu và MiuLena" hidden>
+      <div class="pk-score">
+        <span class="pk-side a"><b>LenaMiu</b><span id="pkA">0đ</span></span>
+        <span class="pk-vs">VS</span>
+        <span class="pk-side b"><b>MiuLena</b><span id="pkB">0đ</span></span>
+      </div>
+      <div class="pk-bar" id="pkBar" role="img" aria-label="Hai phe đang hoà"><span class="pk-fill" id="pkFill"></span></div>
+      <p class="pk-news" id="pkNews" aria-live="polite"></p>
+    </section>
+    <div id="teamBox" hidden>
+      <p class="teams-label" id="teamsLabel">Bạn đứng phe nào?</p>
+      <div class="teams" role="group" aria-labelledby="teamsLabel">
+        <button type="button" class="team a" data-team="LenaMiu" aria-pressed="false">LenaMiu</button>
+        <button type="button" class="team b" data-team="MiuLena" aria-pressed="false">MiuLena</button>
+      </div>
+    </div>
+    <figure class="qr" id="dQrBox"><img id="dQr" alt="Mã QR chuyển khoản"></figure>
+    <p class="memo" id="dMemoRow" hidden>Nội dung chuyển khoản: <b id="dMemo"></b>
+      <button type="button" class="memo-copy" id="dMemoCopy">Chép</button></p>
     <dl class="acct" id="dAcct"></dl>
     <p class="qr-tip">Đang xem trên điện thoại? Bấm “Lưu ảnh QR” (hoặc nhấn giữ ảnh → Lưu),
       rồi mở app ngân hàng / MoMo → Quét mã → chọn ảnh vừa lưu.</p>
+    <p class="qr-tip" id="pkTip" hidden>Chuyển khoản xong, thanh PK tự cập nhật sau vài giây.
+      Chuyển tay thì nhớ ghi đúng nội dung <b>LenaMiu</b> hoặc <b>MiuLena</b> để được tính nha.</p>
     <div class="sheet-actions">
       <button type="button" class="ghost" id="dCopy" hidden>Chép số tài khoản</button>
       <a class="primary" id="dSave" download>Lưu ảnh QR</a>
@@ -516,13 +580,107 @@
   // Chưa có ảnh QR, hoặc ảnh sai tên file không tải được, thì ẩn hết nút.
   // Mở thẳng lenamiu.xyz/#lumi là hiện luôn hộp QR (link cũ #coffee, #ung-ho vẫn dùng được).
   const DONATE = Object.assign({ button: 'Ủng hộ', buttonShort: '', qr: '', save: '', title: '', text: '',
-                                 bank: '', account: '', name: '' }, SITE.donate);
+                                 bank: '', bankBin: '', account: '', name: '', pkApi: '' }, SITE.donate);
   const DONATE_HASH = 'lumi';
   const isDonateHash = (h) => h === DONATE_HASH || h === 'coffee' || h === 'ung-ho';
   let openDonate = () => {};
+
+  // Hai phe của thanh PK. Phải khớp với máy chủ PK (worker/src/index.js).
+  const TEAMS = ['LenaMiu', 'MiuLena'];
+  const TEAM_KEY = 'pk_team';
+  // Mã ngân hàng (BIN) theo chuẩn VietQR/Napas, để tự tạo mã QR từ tên ngân hàng + số tài khoản.
+  // Ngân hàng không có ở đây thì điền thẳng bankBin trong videos.js.
+  const BANK_BIN = {
+    vietcombank: '970436', vcb: '970436', vietinbank: '970415', bidv: '970418', agribank: '970405',
+    mb: '970422', mbbank: '970422', techcombank: '970407', tcb: '970407', acb: '970416',
+    vpbank: '970432', tpbank: '970423', sacombank: '970403', hdbank: '970437', vib: '970441',
+    shb: '970443', eximbank: '970431', msb: '970426', ocb: '970448', seabank: '970440',
+    lpbank: '970449', namabank: '970428', abbank: '970425', bacabank: '970409', pvcombank: '970412',
+    kienlongbank: '970452', bvbank: '970454', timo: '970454', cake: '546034', ubank: '546035'
+  };
+  const BANK_BIN_OF = String(DONATE.bankBin || BANK_BIN[norm(DONATE.bank).replace(/[^a-z]/g, '')] || '');
+  const PK_API = String(DONATE.pkApi || '').trim().replace(/\/+$/, '');
+  // Có máy chủ PK + tài khoản ngân hàng → tự tạo mã QR theo phe; không thì dùng ảnh QR cố định
+  const AUTO_QR = !!(PK_API && BANK_BIN_OF && String(DONATE.account || '').trim());
+
+  /* --- VietQR: chuỗi chuyển khoản chuẩn Napas, kèm sẵn nội dung (trường 62.08) --- */
+  function tlv(id, v) { v = String(v); return id + String(v.length).padStart(2, '0') + v; }
+  function crc16(s) {   // CRC-16/CCITT-FALSE, đúng kiểu VietQR dùng (đã thử khớp với mã QR MoMo cũ)
+    let c = 0xFFFF;
+    for (const b of new TextEncoder().encode(s)) {
+      c ^= b << 8;
+      for (let i = 0; i < 8; i++) c = c & 0x8000 ? ((c << 1) ^ 0x1021) & 0xFFFF : (c << 1) & 0xFFFF;
+    }
+    return c.toString(16).toUpperCase().padStart(4, '0');
+  }
+  function vietqr(bin, account, memo) {
+    const p = tlv('00', '01') + tlv('01', '11') +
+      tlv('38', tlv('00', 'A000000727') + tlv('01', tlv('00', bin) + tlv('01', account)) + tlv('02', 'QRIBFTTA')) +
+      tlv('53', '704') + tlv('58', 'VN') + (memo ? tlv('62', tlv('08', memo)) : '') + '6304';
+    return p + crc16(p);
+  }
+
+  // Thư viện vẽ mã QR: chỉ tải khi cần (lần đầu mở hộp), có kiểm tra toàn vẹn file
+  let qrLibP = null;
+  function loadQrLib() {
+    if (window.qrcode) return Promise.resolve(window.qrcode);
+    if (!qrLibP) {
+      qrLibP = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+        s.integrity = 'sha384-mZT2gIty7ZDdOGkxfP6joZcYdMW1Jvj9dRlfpTmaJAKKXTqzygtB22k7FLe+KZC1';
+        s.crossOrigin = 'anonymous';
+        s.onload = () => (window.qrcode ? resolve(window.qrcode) : reject(new Error('qrcode')));
+        s.onerror = () => { qrLibP = null; reject(new Error('qrcode')); };
+        document.head.append(s);
+      });
+    }
+    return qrLibP;
+  }
+  function qrMatrix(lib, text) {
+    const q = lib(0, 'M');
+    q.addData(text);
+    q.make();
+    return { n: q.getModuleCount(), dark: (r, c) => q.isDark(r, c) };
+  }
+  function qrSvg(m) {
+    const NS = 'http://www.w3.org/2000/svg';
+    const pad = 4;
+    const size = m.n + pad * 2;
+    let d = '';
+    for (let r = 0; r < m.n; r++) for (let c = 0; c < m.n; c++) if (m.dark(r, c)) d += 'M' + (c + pad) + ' ' + (r + pad) + 'h1v1h-1z';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size);
+    svg.setAttribute('shape-rendering', 'crispEdges');
+    svg.setAttribute('role', 'img');
+    const bg = document.createElementNS(NS, 'rect');
+    bg.setAttribute('width', size); bg.setAttribute('height', size); bg.setAttribute('fill', '#fff');
+    const p = document.createElementNS(NS, 'path');
+    p.setAttribute('d', d); p.setAttribute('fill', '#000');
+    svg.append(bg, p);
+    return svg;
+  }
+  // Ảnh để lưu về máy: mã QR + vài dòng chữ bên dưới (nội dung chuyển khoản, tài khoản)
+  function qrPng(m, lines) {
+    const s = 12, pad = 4, w = (m.n + pad * 2) * s, lineH = 42;
+    const cv = document.createElement('canvas');
+    cv.width = w; cv.height = w + lines.length * lineH + 20;
+    const g = cv.getContext('2d');
+    g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height);
+    g.fillStyle = '#000';
+    for (let r = 0; r < m.n; r++) for (let c = 0; c < m.n; c++) if (m.dark(r, c)) g.fillRect((c + pad) * s, (r + pad) * s, s, s);
+    g.textAlign = 'center';
+    lines.forEach((t, i) => {
+      g.font = (i === 0 ? '700 30px' : '500 24px') + ' system-ui, -apple-system, "Segoe UI", sans-serif';
+      g.fillStyle = i === 0 ? '#c13a6c' : '#1d1a1f';
+      g.fillText(t, w / 2, w + 4 + i * lineH + 28, w - 24);
+    });
+    return cv.toDataURL('image/png');
+  }
+
   (function setupDonate() {
     const qr = String(DONATE.qr || '').trim();
-    if (!qr) return;
+    if (!qr && !AUTO_QR) return;
     const dd = $('donateDialog');
     const label = String(DONATE.button || '').trim() || 'Ủng hộ';
     $('donateBtn').querySelector('.btn-long').textContent = label;
@@ -532,9 +690,6 @@
     $('dTitle').textContent = String(DONATE.title || '').trim() || label;
     $('dText').textContent = DONATE.text;
     $('dText').hidden = !DONATE.text;
-    const save = String(DONATE.save || '').trim() || qr;
-    $('dSave').href = save;
-    $('dSave').setAttribute('download', 'ma-qr-nuoi-lumi' + (save.match(/\.\w+$/) || ['.png'])[0]);
 
     const rows = [['Ngân hàng', DONATE.bank], ['Số tài khoản', DONATE.account], ['Chủ tài khoản', DONATE.name]]
       .filter((r) => String(r[1] || '').trim());
@@ -542,17 +697,123 @@
     $('dAcct').hidden = !rows.length;
     $('dCopy').hidden = !String(DONATE.account || '').trim();
 
-    openDonate = () => {
-      if (typeof dd.showModal === 'function') { if (!dd.open) dd.showModal(); }
-      else window.open(qr, '_blank', 'noopener');
-    };
-    const img = $('dQr');
-    img.addEventListener('load', () => {
+    function showButtons() {
       $('donateBtn').hidden = false;
       $('donateFoot').hidden = false;
       if (isDonateHash(location.hash.slice(1))) openDonate();
-    }, { once: true });
-    img.src = qr;
+    }
+
+    let team = '';            // phe đang chọn
+    let pkTimer = 0;
+    let seen = null;          // id các lượt đã thấy, để nhận ra lượt mới vừa vào
+    let newsTimer = 0;
+
+    openDonate = () => {
+      if (typeof dd.showModal === 'function') { if (!dd.open) dd.showModal(); }
+      else window.open(AUTO_QR ? PK_API + '/pk' : qr, '_blank', 'noopener');
+      if (AUTO_QR) { renderQr(); pkStart(); }
+    };
+    dd.addEventListener('close', pkStop);
+
+    if (AUTO_QR) setupTeams();
+    else {
+      // Ảnh QR cố định: ảnh tải được thì mới hiện nút
+      const save = String(DONATE.save || '').trim() || qr;
+      $('dSave').href = save;
+      $('dSave').setAttribute('download', 'ma-qr-nuoi-lumi' + (save.match(/\.\w+$/) || ['.png'])[0]);
+      $('dQr').addEventListener('load', showButtons, { once: true });
+      $('dQr').src = qr;
+    }
+
+    /* --- chọn phe → mã QR có sẵn nội dung LenaMiu / MiuLena --- */
+    function setupTeams() {
+      $('teamBox').hidden = false;
+      $('pk').hidden = false;
+      $('pkTip').hidden = false;
+      team = TEAMS.includes(store(TEAM_KEY)) ? store(TEAM_KEY) : '';   // nhớ phe đã chọn lần trước
+      $('teamBox').addEventListener('click', (e) => {
+        const b = e.target.closest('.team');
+        if (!b) return;
+        team = b.dataset.team;
+        store(TEAM_KEY, team);
+        renderQr();
+      });
+      $('dMemoCopy').addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(team); } catch (e) { window.prompt('Chép nội dung này nha:', team); return; }
+        $('dMemoCopy').textContent = 'Đã chép ✓';
+        setTimeout(() => { $('dMemoCopy').textContent = 'Chép'; }, 2000);
+      });
+      showButtons();
+    }
+
+    function renderQr() {
+      $('teamBox').querySelectorAll('.team').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.team === team)));
+      const box = $('dQrBox');
+      $('dMemoRow').hidden = !team;
+      $('dSave').hidden = !team;
+      if (!team) {
+        box.replaceChildren(el('div', 'qr-wait', 'Chọn phe LenaMiu hoặc MiuLena để hiện mã QR nha'));
+        return;
+      }
+      $('dMemo').textContent = team;
+      const want = team;
+      loadQrLib().then((lib) => {
+        if (want !== team) return;   // đã bấm qua phe khác trong lúc chờ
+        const account = String(DONATE.account).replace(/\s+/g, '');
+        const m = qrMatrix(lib, vietqr(BANK_BIN_OF, account, team));
+        const svg = qrSvg(m);
+        svg.setAttribute('aria-label', 'Mã QR chuyển khoản, nội dung ' + team);
+        box.replaceChildren(svg);
+        $('dSave').href = qrPng(m, ['Nội dung: ' + team, [DONATE.bank, account].filter(Boolean).join(' · '),
+                                    String(DONATE.name || '')].filter(Boolean));
+        $('dSave').setAttribute('download', 'ma-qr-' + team + '.png');
+      }).catch(() => {
+        box.replaceChildren(el('div', 'qr-wait',
+          'Chưa tải được mã QR. Bạn chuyển khoản theo số tài khoản bên dưới, nội dung ghi ' + team + ' nha.'));
+        $('dSave').hidden = true;
+      });
+    }
+
+    /* --- thanh PK: hỏi máy chủ vài giây một lần trong lúc hộp đang mở --- */
+    const vnd =(n) => Number(n || 0).toLocaleString('vi-VN') + 'đ';
+    function pkStart() {
+      if (!PK_API || pkTimer) return;
+      pkFetch();
+      pkTimer = setInterval(() => { if (!document.hidden) pkFetch(); }, 5000);
+    }
+    function pkStop() { clearInterval(pkTimer); pkTimer = 0; }
+    async function pkFetch() {
+      try {
+        const r = await fetch(PK_API + '/pk', { cache: 'no-store' });
+        if (r.ok) renderPk(await r.json());
+      } catch (e) { /* mạng chập chờn: giữ số cũ, lần sau hỏi lại */ }
+    }
+    function renderPk(d) {
+      const t = (d && d.teams) || {};
+      const a = Number((t.LenaMiu || {}).total) || 0;
+      const b = Number((t.MiuLena || {}).total) || 0;
+      $('pkA').textContent = vnd(a);
+      $('pkB').textContent = vnd(b);
+      const pct = a + b ? (a / (a + b)) * 100 : 50;
+      $('pkFill').style.width = pct + '%';
+      $('pkBar').setAttribute('aria-label', a === b ? 'Hai phe đang hoà'
+        : (a > b ? 'LenaMiu' : 'MiuLena') + ' đang dẫn, ' + Math.round(Math.max(pct, 100 - pct)) + '%');
+
+      const recent = Array.isArray(d && d.recent) ? d.recent : [];
+      const fresh = seen ? recent.filter((x) => !seen.has(x.id)) : [];
+      seen = new Set([...(seen || []), ...recent.map((x) => x.id)]);
+      if (fresh.length) {
+        const x = fresh[0];
+        $('pkNews').textContent = '+' + vnd(x.amount) + ' cho phe ' + x.team + ' vừa vào 🎉';
+        $('pkNews').classList.add('fresh');
+        $('pk').classList.remove('bump'); void $('pk').offsetWidth; $('pk').classList.add('bump');
+        clearTimeout(newsTimer);
+        newsTimer = setTimeout(() => { $('pkNews').classList.remove('fresh'); }, 8000);
+      } else if (!$('pkNews').classList.contains('fresh')) {
+        const n = ((t.LenaMiu || {}).count || 0) + ((t.MiuLena || {}).count || 0);
+        $('pkNews').textContent = n ? n + ' lượt · tự cập nhật vài giây một lần' : 'Chưa có lượt nào, mở màn đi nào!';
+      }
+    }
 
     $('donateBtn').addEventListener('click', openDonate);
     $('donateLink').addEventListener('click', (e) => { e.preventDefault(); openDonate(); });

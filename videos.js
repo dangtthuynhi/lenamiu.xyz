@@ -39,7 +39,12 @@ window.VIETSUB = {
     //   qr           ảnh mã QR hiện trong hộp (nên là ảnh chỉ có mã QR, để mã to dễ quét)
     //   save         ảnh tải về khi bấm "Lưu ảnh QR". Bỏ trống thì tải ảnh qr.
     //   title, text  tiêu đề + dòng chữ trong hộp. text không cần thì để ''
-    // Để qr trống thì nút tự ẩn. Ngân hàng / số tài khoản / tên: không cần thì để ''.
+    //   bank, account, name  ngân hàng / số tài khoản / tên chủ tài khoản
+    //   pkApi        địa chỉ máy chủ thanh PK LenaMiu vs MiuLena (Cloudflare Worker, xem thư mục worker/).
+    //                Có pkApi + bank là ngân hàng (MB, ACB, Vietcombank...) + account thì trang tự tạo
+    //                mã QR kèm nội dung theo phe người xem chọn, và hiện thanh PK. Để trống thì dùng ảnh qr.
+    //   bankBin      (hiếm khi cần) mã ngân hàng VietQR, khi ngân hàng không có trong danh sách của trang
+    // Để qr và pkApi trống thì nút tự ẩn.
     // Gửi link https://lenamiu.xyz/#lumi là người nhận thấy hộp QR luôn.
     donate: {
       button: '🍼 Dự án nuôi Lumi',
@@ -50,7 +55,8 @@ window.VIETSUB = {
       text: '',
       bank: 'MoMo',
       account: 'PSG2631213500000002',
-      name: 'DANG THI THUY NHI'
+      name: 'DANG THI THUY NHI',
+      pkApi: ''
     },
 
     // Nút "Đăng lên X": mỗi lần bấm chọn ngẫu nhiên 1 mẫu dưới đây để viết sẵn bài đăng.

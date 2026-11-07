@@ -1,0 +1,11 @@
+# Cấu hình máy chủ PK trên Cloudflare Workers. Chạy lệnh trong thư mục worker/.
+#   Thử trong máy:   npx wrangler dev
+#   Đưa lên mạng:    npx wrangler deploy
+name = "lenamiu-pk"
+main = "src/index.js"
+compatibility_date = "2025-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "lenamiu-pk"
+database_id = "00000000-0000-0000-0000-000000000000"   # điền sau khi tạo: npx wrangler d1 create lenamiu-pk
