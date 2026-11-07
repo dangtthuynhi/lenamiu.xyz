@@ -231,10 +231,7 @@
     <div class="player" id="player"></div>
     <div class="meta">
       <div class="meta-row">
-        <div class="sources" role="group" aria-label="Nguồn phát">
-          <button type="button" class="src" data-src="youtube" aria-pressed="false">YouTube</button>
-          <button type="button" class="src" data-src="dailymotion" aria-pressed="false">Dailymotion</button>
-        </div>
+        <div class="sources" id="sources" role="group" aria-label="Nguồn phát"></div>
         <div class="actions">
           <a class="ghost" id="openLink" href="#" target="_blank" rel="noopener"></a>
           <button type="button" class="ghost" id="shareBtn">Chia sẻ</button>
@@ -266,10 +263,8 @@
 
 <footer class="foot wrap">
   <p id="footText"></p>
-  <p>Kênh của dangtthuynhi:
-     <a href="https://www.youtube.com/@dangtthuynhi" target="_blank" rel="noopener">YouTube</a>
-     · <a href="https://www.dailymotion.com/dangtthuynhi" target="_blank" rel="noopener">Dailymotion</a></p>
-  <p><a href="https://dangtthuynhi.github.io/the-gravity-between-us/">The Gravity Between Us · bản dịch</a></p>
+  <p>Kênh của tụi mình:
+     <a href="https://www.youtube.com/@dangtthuynhi" target="_blank" rel="noopener">YouTube</a></p>
 </footer>
 
 <script>
@@ -284,7 +279,10 @@
   const DATA = window.VIETSUB || {};
   const SITE = Object.assign(
     { title: 'LenaMiu Vietsub', tagline: '', footer: '', dailymotionPlayerId: '' }, DATA.site);
-  const LABEL = { youtube: 'YouTube', dailymotion: 'Dailymotion' };
+  // Thứ tự ưu tiên khi một video có nhiều nguồn
+  const SOURCES = ['youtube', 'drive', 'dailymotion'];
+  const LABEL = { youtube: 'YouTube', drive: 'Google Drive', dailymotion: 'Dailymotion' };
+  const BADGE = { youtube: 'YouTube', drive: 'Drive', dailymotion: 'Dailymotion' };
   const SRC_KEY = 'vietsub_src';
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const $ = (id) => document.getElementById(id);
@@ -294,6 +292,17 @@
     if (cls) n.className = cls;
     if (text != null) n.textContent = text;
     return n;
+  }
+
+  // Ảnh bìa lỗi (Drive hay giới hạn lượt tải ảnh) thì bỏ ảnh đi, để lại khung màu
+  // thay vì biểu tượng ảnh vỡ
+  function thumbImg(src, lazy) {
+    const img = el('img');
+    img.alt = '';
+    if (lazy) { img.loading = 'lazy'; img.decoding = 'async'; }
+    img.addEventListener('error', () => img.remove(), { once: true });
+    img.src = src;
+    return img;
   }
 
   function store(key, val) {
@@ -322,6 +331,13 @@
     const m = s.match(/(?:dailymotion\.com\/(?:embed\/)?video\/|dai\.ly\/|[?&]video=)([0-9a-z]+)/i);
     return m ? m[1] : '';
   }
+  // Nhận ID trần hoặc link drive.google.com/file/d/…/view, open?id=…, uc?id=…
+  function driveId(s) {
+    s = String(s || '').trim();
+    const m = s.match(/(?:\/file\/d\/|[?&]id=)([\w-]{20,})/);
+    if (m) return m[1];
+    return /^[\w-]{25,}$/.test(s) ? s : '';
+  }
 
   function fmtDate(s) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || '').trim());
@@ -331,10 +347,10 @@
   /* ---------- đọc danh sách video ---------- */
   const used = new Set();
   const videos = (DATA.videos || []).map((v, i) => {
-    const yt = ytId(v.youtube), dm = dmId(v.dailymotion);
-    if (!yt && !dm) {
+    const ids = { youtube: ytId(v.youtube), drive: driveId(v.drive), dailymotion: dmId(v.dailymotion) };
+    if (!SOURCES.some((s) => ids[s])) {
       console.warn('[vietsub] Bỏ qua video thứ ' + (i + 1) + ' "' + (v.title || '') +
-                   '": không đọc được link YouTube hay Dailymotion.');
+                   '": không đọc được link YouTube, Google Drive hay Dailymotion.');
       return null;
     }
     const base = slug(v.id || v.title) || 'video-' + (i + 1);
@@ -342,18 +358,20 @@
     for (let n = 2; used.has(id); n++) id = base + '-' + n;
     used.add(id);
     return {
-      id, yt, dm,
+      id, ids,
       title: v.title || 'Video chưa đặt tên',
       group: v.group || '', date: v.date || '', note: v.note || '',
-      thumb: v.thumb || (yt ? 'https://i.ytimg.com/vi/' + yt + '/hqdefault.jpg'
-                            : 'https://www.dailymotion.com/thumbnail/video/' + dm),
+      thumb: v.thumb ||
+        (ids.youtube ? 'https://i.ytimg.com/vi/' + ids.youtube + '/hqdefault.jpg'
+        : ids.drive ? 'https://drive.google.com/thumbnail?id=' + ids.drive + '&sz=w640'
+        : 'https://www.dailymotion.com/thumbnail/video/' + ids.dailymotion),
       text: norm([v.title, v.group, v.note, fmtDate(v.date)].join(' ')),
       visible: true
     };
   }).filter(Boolean);
 
-  const has = (v, s) => !!(s === 'youtube' ? v.yt : v.dm);
-  const otherOf = (s) => (s === 'youtube' ? 'dailymotion' : 'youtube');
+  const has = (v, s) => !!v.ids[s];
+  const sourcesOf = (v) => SOURCES.filter((s) => has(v, s));
 
   let cur = null;
   let src = 'youtube';
@@ -389,12 +407,9 @@
     a.dataset.id = v.id;
 
     const thumb = el('span', 'thumb');
-    const img = el('img');
-    img.src = v.thumb; img.alt = ''; img.loading = 'lazy'; img.decoding = 'async';
     const badges = el('span', 'badges');
-    if (v.yt) badges.append(el('span', 'badge', 'YouTube'));
-    if (v.dm) badges.append(el('span', 'badge', 'Dailymotion'));
-    thumb.append(img, badges);
+    sourcesOf(v).forEach((s) => badges.append(el('span', 'badge', BADGE[s])));
+    thumb.append(thumbImg(v.thumb, true), badges);
 
     const meta = [v.group, fmtDate(v.date)].filter(Boolean).join(' · ');
     a.append(thumb, el('span', 'c-title', v.title));
@@ -447,7 +462,7 @@
   // Dailymotion chặn nhúng ("Forbidden") nếu thiếu Player ID,
   // nên chưa có Player ID thì mở video qua trang Dailymotion
   const DM_PLAYER = String(SITE.dailymotionPlayerId || '').trim();
-  if (!DM_PLAYER && videos.some((v) => v.dm)) {
+  if (!DM_PLAYER && videos.some((v) => has(v, 'dailymotion'))) {
     console.warn('[vietsub] Chưa điền dailymotionPlayerId trong videos.js: video Dailymotion ' +
                  'sẽ mở qua trang Dailymotion thay vì phát ngay trên web.');
   }
@@ -457,15 +472,17 @@
       // origin: báo thêm cho YouTube trang nào đang nhúng, phòng khi trình duyệt chặn Referer
       const origin = /^https?:$/.test(location.protocol)
         ? '&origin=' + encodeURIComponent(location.origin) : '';
-      return 'https://www.youtube-nocookie.com/embed/' + v.yt +
+      return 'https://www.youtube-nocookie.com/embed/' + v.ids.youtube +
              '?autoplay=1&rel=0&playsinline=1&hl=vi' + origin;
     }
-    return 'https://geo.dailymotion.com/player/' + DM_PLAYER + '.html?video=' + v.dm;
+    if (s === 'drive') return 'https://drive.google.com/file/d/' + v.ids.drive + '/preview';
+    return 'https://geo.dailymotion.com/player/' + DM_PLAYER + '.html?video=' + v.ids.dailymotion;
   }
 
   function watchUrl(v, s) {
-    return s === 'youtube' ? 'https://www.youtube.com/watch?v=' + v.yt
-                           : 'https://www.dailymotion.com/video/' + v.dm;
+    if (s === 'youtube') return 'https://www.youtube.com/watch?v=' + v.ids.youtube;
+    if (s === 'drive') return 'https://drive.google.com/file/d/' + v.ids.drive + '/view';
+    return 'https://www.dailymotion.com/video/' + v.ids.dailymotion;
   }
 
   // Chưa bấm phát thì chỉ hiện ảnh bìa, để trang mở nhanh trên điện thoại
@@ -494,17 +511,15 @@
       b.setAttribute('aria-label', 'Phát video: ' + cur.title + ' (' + LABEL[src] + ')');
       b.addEventListener('click', () => showPlayer(true));
     }
-    const img = el('img');
-    img.src = cur.thumb; img.alt = '';
-    b.append(img, el('span', 'play'),
+    b.append(thumbImg(cur.thumb), el('span', 'play'),
              el('span', 'on', linkOut ? 'Mở trên Dailymotion ↗' : 'Xem trên ' + LABEL[src]));
     box.append(b);
   }
 
   function select(id, play) {
     cur = videos.find((v) => v.id === id) || videos[0];
-    const pref = store(SRC_KEY) === 'dailymotion' ? 'dailymotion' : 'youtube';
-    src = has(cur, pref) ? pref : otherOf(pref);
+    const pref = store(SRC_KEY);
+    src = has(cur, pref) ? pref : sourcesOf(cur)[0];
 
     const kicker = [cur.group, fmtDate(cur.date)].filter(Boolean).join(' · ');
     $('watchKicker').textContent = kicker;
@@ -523,29 +538,38 @@
     showPlayer(play);
   }
 
+  // Chỉ hiện nút cho những nguồn video này có; một nguồn thì khỏi hiện nút chuyển
   function updateSources() {
-    document.querySelectorAll('.src').forEach((b) => {
-      const s = b.dataset.src;
-      b.disabled = !has(cur, s);
+    const box = $('sources');
+    const list = sourcesOf(cur);
+    const hadFocus = box.contains(document.activeElement);
+    box.textContent = '';
+    box.hidden = list.length < 2;
+    list.forEach((s) => {
+      const b = el('button', 'src', LABEL[s]);
+      b.type = 'button';
+      b.dataset.src = s;
       b.setAttribute('aria-pressed', String(s === src));
-      b.title = has(cur, s) ? 'Xem trên ' + LABEL[s] : 'Video này chưa có trên ' + LABEL[s];
+      box.append(b);
     });
+    if (hadFocus && !box.hidden) box.querySelector('[aria-pressed="true"]').focus();
+
     $('openLink').href = watchUrl(cur, src);
     $('openLink').textContent = 'Mở trên ' + LABEL[src] + ' ↗';
-    const other = otherOf(src);
-    $('watchHint').textContent = has(cur, other)
-      ? 'Video không lên? Bấm qua ' + LABEL[other] + ' thử, hoặc mở thẳng trên ' + LABEL[src] + ' nha.'
+    const others = list.filter((s) => s !== src).map((s) => LABEL[s]);
+    $('watchHint').textContent = others.length
+      ? 'Video không lên? Bấm qua ' + others.join(' hoặc ') + ' thử, hoặc mở thẳng trên ' + LABEL[src] + ' nha.'
       : 'Video không lên? Bấm “Mở trên ' + LABEL[src] + '” để xem thẳng bên đó nha.';
   }
 
-  document.querySelectorAll('.src').forEach((b) => b.addEventListener('click', () => {
-    const s = b.dataset.src;
-    if (s === src || !has(cur, s)) return;
-    src = s;
-    store(SRC_KEY, s);
+  $('sources').addEventListener('click', (e) => {
+    const b = e.target.closest('.src');
+    if (!b || b.dataset.src === src) return;
+    src = b.dataset.src;
+    store(SRC_KEY, src);
     updateSources();
     showPlayer(!!$('player').querySelector('iframe'));   // đang phát thì phát tiếp bằng nguồn mới
-  }));
+  });
 
   // Trước / sau: đi trong danh sách đang lọc, nếu video đang xem nằm trong đó
   function updateStepper() {
@@ -564,7 +588,7 @@
     a.querySelector('span').textContent = v.title;
   }
 
-  /* ---------- link riêng cho từng video: .../vietsub/#id ---------- */
+  /* ---------- link riêng cho từng video: lenamiu.xyz/#id ---------- */
   function idFromHash() {
     try { return decodeURIComponent(location.hash.slice(1)); } catch (e) { return ''; }
   }
