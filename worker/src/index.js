@@ -87,10 +87,12 @@ async function onSepay(request, env) {
   return json({ success: true, counted: r.meta.changes > 0, team });   // changes = 0: giao dịch đã cộng rồi
 }
 
+// id > 0: giao dịch thật từ SePay. id < 0: số nhập tay (vd tiền nhận trước khi có thanh PK) —
+// vẫn cộng vào tổng tiền, nhưng không tính là "lượt" và không hiện thành lượt mới vào.
 async function onPk(env, cors) {
   const [totals, recent] = await env.DB.batch([
-    env.DB.prepare('SELECT team, SUM(amount) AS total, COUNT(*) AS n FROM tx GROUP BY team'),
-    env.DB.prepare('SELECT id, team, amount, at FROM tx ORDER BY at DESC, id DESC LIMIT 5')
+    env.DB.prepare('SELECT team, SUM(amount) AS total, SUM(id > 0) AS n FROM tx GROUP BY team'),
+    env.DB.prepare('SELECT id, team, amount, at FROM tx WHERE id > 0 ORDER BY at DESC, id DESC LIMIT 5')
   ]);
   const teams = {};
   for (const t of TEAMS) teams[t.key] = { total: 0, count: 0 };

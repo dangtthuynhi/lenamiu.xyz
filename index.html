@@ -836,7 +836,8 @@
         newsTimer = setTimeout(() => { $('pkNews').classList.remove('fresh'); }, 8000);
       } else if (!$('pkNews').classList.contains('fresh')) {
         const n = ((t.LenaMiu || {}).count || 0) + ((t.MiuLena || {}).count || 0);
-        $('pkNews').textContent = n ? n + ' lượt · tự cập nhật vài giây một lần' : 'Chưa có lượt nào, mở màn đi nào!';
+        $('pkNews').textContent = !(a + b) ? 'Chưa có lượt nào, mở màn đi nào!'
+          : (n ? n + ' lượt · ' : '') + 'tự cập nhật vài giây một lần';
       }
     }
 
