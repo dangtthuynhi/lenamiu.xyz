@@ -4,12 +4,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>LenaMiu Vietsub</title>
-<meta name="description" content="Video LenaMiu có vietsub, xem trên YouTube hoặc Dailymotion.">
+<meta name="description" content="Video LenaMiu có vietsub, làm bởi dangtthuynhi &amp; Kem Dâu Ngọt.">
+<!-- ảnh + tên hiện ra khi dán link vào Messenger, Zalo, Threads, Facebook... -->
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="LenaMiu Vietsub">
+<meta property="og:locale" content="vi_VN">
 <meta property="og:title" content="LenaMiu Vietsub">
-<meta property="og:description" content="Video LenaMiu có vietsub, xem trên YouTube hoặc Dailymotion.">
+<meta property="og:description" content="Video LenaMiu có vietsub, làm bởi dangtthuynhi &amp; Kem Dâu Ngọt.">
 <meta property="og:url" content="https://lenamiu.xyz/">
+<meta property="og:image" content="https://lenamiu.xyz/og-image.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Logo LenaMiu Vietsub">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://lenamiu.xyz/">
+<!-- logo trên tab trình duyệt và khi lưu ra màn hình chính -->
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
 <meta name="theme-color" content="#faf7f6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#121014" media="(prefers-color-scheme: dark)">
 <!-- YouTube cần biết trang nào đang nhúng nó, thiếu là báo "Lỗi 153" -->
@@ -53,13 +67,15 @@
 
   /* ---------- đầu trang ---------- */
   .top {
-    display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
     gap: 4px 16px; padding-top: 20px; padding-bottom: 18px;
   }
   .brand {
+    display: inline-flex; align-items: center; gap: 10px;
     font-size: 1.3rem; font-weight: 700; letter-spacing: -.01em;
     color: var(--text); text-decoration: none;
   }
+  .brand img { width: 32px; height: 32px; flex: none; }
   .brand b { color: var(--accent); font-weight: 700; }
   .tagline { margin: 0; color: var(--muted); font-size: .875rem; }
 
@@ -221,7 +237,7 @@
 <body>
 
 <header class="top wrap">
-  <a class="brand" href="./">LenaMiu <b>Vietsub</b></a>
+  <a class="brand" href="./"><img src="favicon.svg" alt="" width="32" height="32"><span>LenaMiu <b>Vietsub</b></span></a>
   <p class="tagline" id="tagline"></p>
 </header>
 
