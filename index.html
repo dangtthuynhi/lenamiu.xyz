@@ -210,6 +210,10 @@
 
   @media (max-width: 640px) {
     .player { margin: 0 calc(-1 * max(16px, env(safe-area-inset-left))); border-radius: 0; box-shadow: none; }
+    /* Trình phát Google Drive trên điện thoại dựng cho cả màn hình (thanh tiêu đề + video +
+       thanh điều khiển); khung 16:9 thấp quá thì vỡ: video phình ra, thanh thời gian nhảy lên trên */
+    .player.is-drive { aspect-ratio: 1 / 1; }
+    .player.is-drive .facade img { object-fit: contain; }
     .grid { grid-template-columns: 1fr 1fr; gap: 18px 12px; }
     .c-title { font-size: .9rem; }
   }
@@ -489,6 +493,7 @@
   function showPlayer(play) {
     const box = $('player');
     box.textContent = '';
+    box.classList.toggle('is-drive', src === 'drive');
     const linkOut = src === 'dailymotion' && !DM_PLAYER;
     if (play && !linkOut) {
       const f = el('iframe');
