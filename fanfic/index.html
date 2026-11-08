@@ -280,8 +280,17 @@
     overflow-wrap: break-word; padding: 12px 0 8px;
   }
   .prose p { margin: 0 0 1.05em; }
-  .prose hr.scene { border: 0; margin: 1.6em 0; text-align: center; color: var(--muted); }
-  .prose hr.scene::before { content: "✻   ✻   ✻"; white-space: pre; font-size: .85em; }
+  .prose hr { border: 0; margin: 1.6em 0; text-align: center; color: var(--muted); }
+  .prose hr::before { content: "✻   ✻   ✻"; white-space: pre; font-size: .85em; }
+  .prose h3 { margin: 1.5em 0 .7em; font-family: var(--rd-font); font-size: 1.12em; font-weight: 600; line-height: 1.45; }
+  .prose blockquote {
+    margin: 0 0 1.05em; padding: .55em 1em; border-left: 3px solid color-mix(in srgb, var(--accent) 50%, var(--line));
+    border-radius: 0 10px 10px 0; background: color-mix(in srgb, var(--accent) 6%, transparent);
+  }
+  .prose .c { text-align: center; }
+  .prose .r { text-align: right; }
+  .prose strong { font-weight: 700; }
+  .prose u { text-underline-offset: .18em; }
   .end-box { margin: 28px 0 8px; padding: 22px 16px; text-align: center; border-top: 1px solid var(--line); }
   .heart {
     display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 10px 22px; border-radius: 999px;
@@ -324,16 +333,37 @@
   }
   .ch-rows .t { min-width: 0; flex: 1 1 220px; }
   .ch-rows .note { display: block; font-size: .82rem; color: var(--danger); }
-  .tb { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
+  /* thanh công cụ dính trên đầu khi cuộn chương dài; điện thoại thì vuốt ngang */
+  .tb {
+    position: sticky; top: 0; z-index: 6; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; padding: 8px 0;
+    background: var(--bg);
+  }
+  @media (max-width: 640px) {
+    /* điện thoại: vuốt ngang để thấy thêm nút, mép phải mờ dần để biết còn nút */
+    .tb { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+          -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); }
+  }
+  .tb::-webkit-scrollbar { display: none; }
   .tb button {
-    min-width: 40px; min-height: 36px; padding: 4px 10px; border-radius: 10px; border: 1px solid var(--line);
-    background: var(--surface); color: var(--text); font: inherit; font-size: .88rem; cursor: pointer;
+    flex: none; display: inline-flex; align-items: center; justify-content: center; min-width: 38px; min-height: 38px;
+    padding: 4px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text);
+    font: inherit; font-size: .86rem; cursor: pointer; white-space: nowrap;
   }
-  .tb .sp { flex: 1; }
-  .ed-body {
-    height: min(68vh, 760px); min-height: 280px; font-family: var(--rd-font); font-size: 17px; line-height: 1.75;
+  .tb button:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+  .tb button[aria-pressed="true"] {
+    color: var(--accent); border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+    background: color-mix(in srgb, var(--accent) 11%, var(--surface));
   }
-  .ed-preview { min-height: 280px; padding: 4px 16px; border: 1px dashed var(--line); border-radius: 12px; }
+  .tb .sep { flex: none; width: 1px; height: 22px; margin: 0 4px; background: var(--line); }
+  .ed-rich {
+    --rd-size: 17px; position: relative; min-height: 55vh; padding: 14px 16px 24px; outline: none;
+    border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+  }
+  .ed-rich:focus { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
+  .ed-rich > :first-child { margin-top: 0; }
+  .ed-rich.ed-empty::before {
+    content: attr(data-ph); position: absolute; left: 16px; right: 16px; top: 14px; color: var(--muted); pointer-events: none;
+  }
   .ed-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; margin: 6px 0 16px; font-size: .8rem; color: var(--muted); }
   .help { font-size: .82rem; color: var(--muted); margin: 0 0 16px; }
   .help code { padding: 1px 5px; border-radius: 6px; background: var(--surface-2); font-size: .95em; }
@@ -572,93 +602,175 @@
   });
 
   /* ================= định dạng chữ truyện ================= */
-  // **đậm**   *nghiêng*   ***đậm nghiêng***   dòng chỉ có *** (hoặc --- , ~~~) = chuyển cảnh
-  const SCENE = /^(\*\s*){3,}$|^-{3,}$|^~{3,}$|^[✻❀✿]+$/;
-  const INLINE = /\*\*\*([^\s*](?:[^*]*?[^\s*])?)\*\*\*|\*\*([^\s*](?:[^*]*?[^\s*])?)\*\*|\*([^\s*](?:[^*]*?[^\s*])?)\*/g;
-  function inline(line) {
+  // Nội dung chương lưu dạng HTML rút gọn, chỉ gồm vài thẻ:
+  //   khối:  <p> đoạn   <h3> tiêu đề nhỏ   <blockquote> trích dẫn   <hr> chuyển cảnh   (class "c" căn giữa, "r" căn phải)
+  //   chữ:   <strong> đậm   <em> nghiêng   <u> gạch chân   <s> gạch ngang   <br> xuống dòng   (lồng vào nhau thoải mái)
+  // Mọi nội dung (lưu trên máy chủ, dán từ Google Docs / Word, ô soạn thảo) đều qua bộ lọc walkRich: đọc bằng DOMParser
+  // (không chạy script, không tải ảnh), chỉ lấy chữ + các định dạng trên rồi DỰNG LẠI phần tử mới. HTML gốc không bao giờ
+  // được gắn thẳng vào trang.
+  const F = { b: 1, i: 2, u: 4, s: 8 };
+  const SKIP = /^(SCRIPT|STYLE|HEAD|TITLE|META|LINK|TEMPLATE|NOSCRIPT|IFRAME|OBJECT|EMBED|SVG|MATH|IMG|PICTURE|VIDEO|AUDIO|CANVAS|BUTTON|INPUT|SELECT|TEXTAREA)$/;
+  const BLOCK = /^(P|DIV|H[1-6]|LI|PRE|SECTION|ARTICLE|HEADER|FOOTER|ASIDE|TR|DT|DD|FIGCAPTION|ADDRESS|CENTER)$/;
+  const isRichHtml = (s) => /^\s*<(p|h3|blockquote|hr)[\s>/]/i.test(s);
+  const countWords = (s) => { const t = String(s || '').trim(); return t ? t.split(/\s+/).length : 0; };
+
+  function walkRich(root) {
+    const blocks = [];
+    let cur = null;
+    const open = (type, align) => { cur = { type, align: align || '', runs: [] }; blocks.push(cur); return cur; };
+    const alignOf = (el, inherit) => {
+      const a = String((el.style && el.style.textAlign) || (el.getAttribute && el.getAttribute('align')) || '').toLowerCase();
+      if (a === 'center' || el.tagName === 'CENTER' || (el.classList && el.classList.contains('c'))) return 'c';
+      if (a === 'right' || a === 'end' || (el.classList && el.classList.contains('r'))) return 'r';
+      if (a === 'left' || a === 'start' || a === 'justify') return '';
+      return inherit || '';
+    };
+    const fmtOf = (el, f) => {
+      const t = el.tagName, st = el.style || {};
+      if (t === 'B' || t === 'STRONG') f |= F.b;
+      if (t === 'I' || t === 'EM' || t === 'CITE') f |= F.i;
+      if (t === 'U' || t === 'INS') f |= F.u;
+      if (t === 'S' || t === 'STRIKE' || t === 'DEL') f |= F.s;
+      const fw = st.fontWeight;                 // Google Docs bọc cả bài trong <b style="font-weight:normal">
+      if (fw) f = (fw === 'bold' || fw === 'bolder' || Number(fw) >= 600) ? f | F.b : f & ~F.b;
+      const fs = st.fontStyle;
+      if (fs) f = (fs === 'italic' || fs === 'oblique') ? f | F.i : f & ~F.i;
+      const td = String(st.textDecorationLine || st.textDecoration || '');
+      if (td.includes('underline')) f |= F.u;
+      if (td.includes('line-through')) f |= F.s;
+      return f;
+    };
+    (function walk(node, f, quote, align) {
+      if (node.nodeType === 3) {
+        const t = node.nodeValue.replace(/\s+/g, ' ');
+        if (!t || (!cur && !t.trim())) return;
+        (cur || open(quote ? 'blockquote' : 'p', align)).runs.push({ t, f });
+        return;
+      }
+      if (node.nodeType !== 1 && node.nodeType !== 11) return;          // 11 = DocumentFragment
+      const tag = node.tagName || '';
+      if (SKIP.test(tag)) return;
+      if (tag === 'BR') { (cur || open(quote ? 'blockquote' : 'p', align)).runs.push({ br: true }); return; }
+      if (tag === 'HR') { cur = null; blocks.push({ type: 'hr' }); return; }
+      const nf = node.nodeType === 1 ? fmtOf(node, f) : f;
+      const na = node.nodeType === 1 ? alignOf(node, align) : align;
+      if (tag === 'BLOCKQUOTE' && !quote) {
+        cur = null; open('blockquote', na);
+        for (const k of node.childNodes) walk(k, nf, true, na);
+        cur = null;
+        return;
+      }
+      if (BLOCK.test(tag) || tag === 'BLOCKQUOTE') {
+        if (quote) {
+          // đoạn nằm trong khung trích dẫn: thành dòng mới trong cùng khung
+          if (cur && cur.runs.length && !cur.runs[cur.runs.length - 1].br) cur.runs.push({ br: true });
+          for (const k of node.childNodes) walk(k, nf, true, na);
+          return;
+        }
+        cur = null; open(/^H[1-6]$/.test(tag) ? 'h3' : 'p', na);
+        for (const k of node.childNodes) walk(k, nf, false, na);
+        cur = null;
+        return;
+      }
+      for (const k of node.childNodes) walk(k, nf, quote, align);
+    })(root, 0, false, '');
+
+    // dọn: bỏ khoảng trắng thừa đầu/cuối dòng, bỏ khối rỗng, gộp các dòng chuyển cảnh liền nhau
     const out = [];
-    let last = 0, m;
-    INLINE.lastIndex = 0;
-    while ((m = INLINE.exec(line))) {
-      if (m.index > last) out.push(line.slice(last, m.index));
-      if (m[1] != null) out.push(h('strong', null, h('em', null, m[1])));
-      else if (m[2] != null) out.push(h('strong', null, m[2]));
-      else out.push(h('em', null, m[3]));
-      last = INLINE.lastIndex;
+    for (const b of blocks) {
+      if (b.type === 'hr') { if (out.length && out[out.length - 1].type !== 'hr') out.push(b); continue; }
+      const runs = b.runs;
+      for (let k = 0; k < runs.length; k++) {
+        if (runs[k].br) continue;
+        if (k === 0 || runs[k - 1].br) runs[k].t = runs[k].t.replace(/^\s+/, '');
+        if (k === runs.length - 1 || runs[k + 1].br) runs[k].t = runs[k].t.replace(/\s+$/, '');
+      }
+      b.runs = runs.filter((r) => r.br || r.t);
+      while (b.runs.length && b.runs[0].br) b.runs.shift();
+      while (b.runs.length && b.runs[b.runs.length - 1].br) b.runs.pop();
+      if (b.runs.some((r) => r.t && r.t.trim())) out.push(b);
     }
-    if (last < line.length) out.push(line.slice(last));
+    while (out.length && out[out.length - 1].type === 'hr') out.pop();
+    while (out.length && out[0].type === 'hr') out.shift();
     return out;
   }
-  function renderBody(text) {
+  const richFromHtml = (html) => walkRich(new DOMParser().parseFromString(String(html || ''), 'text/html').body);
+  // Nội dung đã lưu: dạng HTML rút gọn, hoặc chữ thường (mỗi dòng một đoạn, có thể dùng ** * __ ~~)
+  const richFromStored = (s) => (isRichHtml(String(s || '')) ? richFromHtml(s) : walkRich(legacyNodes(s)));
+
+  function buildInline(runs) {
     const frag = document.createDocumentFragment();
-    for (const raw of String(text || '').split('\n')) {
-      const line = raw.trim();
-      if (!line) continue;
-      frag.append(SCENE.test(line) ? h('hr', { class: 'scene' }) : h('p', null, inline(line)));
+    const merged = [];
+    for (const r of runs) {
+      const last = merged[merged.length - 1];
+      if (r.t != null && last && last.t != null && last.f === r.f) last.t += r.t; else merged.push(Object.assign({}, r));
+    }
+    for (const r of merged) {
+      if (r.br) { frag.append(document.createElement('br')); continue; }
+      let n = document.createTextNode(r.t);
+      if (r.f & F.s) n = h('s', null, n);
+      if (r.f & F.u) n = h('u', null, n);
+      if (r.f & F.i) n = h('em', null, n);
+      if (r.f & F.b) n = h('strong', null, n);
+      frag.append(n);
     }
     return frag;
   }
-  // Dán từ Google Docs / Word: giữ chữ đậm, nghiêng, xuống dòng (đổi thành dấu * / **)
-  function htmlToText(html) {
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    const runs = [];
-    const BLOCK = /^(P|DIV|H[1-6]|LI|BLOCKQUOTE|TR|PRE|SECTION|ARTICLE|UL|OL|TABLE)$/;
-    const nl = () => { if (runs.length && runs[runs.length - 1].t !== '\n') runs.push({ t: '\n' }); };
-    (function walk(node, b, i) {
-      if (node.nodeType === 3) {
-        const t = node.nodeValue.replace(/\s+/g, ' ');
-        if (t) runs.push({ t, b, i });
-        return;
+  function richNodes(blocks) {
+    const frag = document.createDocumentFragment();
+    for (const b of blocks) frag.append(b.type === 'hr' ? h('hr', { class: 'scene' }) : h(b.type, { class: b.align || null }, buildInline(b.runs)));
+    return frag;
+  }
+  const renderBody = (stored) => richNodes(richFromStored(stored));                 // trang đọc, trang duyệt
+  function richHtml(blocks) { const d = document.createElement('div'); d.append(richNodes(blocks)); return d.innerHTML; }   // để lưu
+  const blocksWords = (blocks) => blocks.reduce((n, b) => n + (b.runs ? countWords(b.runs.map((r) => r.t || ' ').join('')) : 0), 0);
+  function escapeHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  // Chữ thường kiểu cũ: mỗi dòng một đoạn; dòng chỉ có *** (hoặc --- , ~~~) là chuyển cảnh;
+  // **đậm** *nghiêng* __gạch chân__ ~~gạch ngang~~, lồng nhau được: *nghiêng **đậm** nghiêng*
+  const SCENE = /^(\*\s*){3,}$|^-{3,}$|^~{3,}$|^[✻❀✿]+$/;
+  const MARKS = ['***', '**', '__', '~~', '*'];
+  function legacyNodes(text) {
+    const frag = document.createDocumentFragment();
+    for (const raw of String(text || '').split('\n')) {
+      const line = raw.trim();
+      if (line) frag.append(SCENE.test(line) ? h('hr') : h('p', null, legacyInline(line)));
+    }
+    return frag;
+  }
+  function findClose(s, mk, from) {
+    let j = from;
+    while ((j = s.indexOf(mk, j)) >= 0) {
+      if (mk === '*' && s[j + 1] === '*') {                       // gặp **...** bên trong *...*: nhảy qua cả cặp
+        const c2 = s.indexOf('**', j + 2);
+        if (c2 < 0) return -1;
+        j = c2 + 2;
+        continue;
       }
-      if (node.nodeType !== 1 || /^(STYLE|SCRIPT|HEAD|TITLE|META|LINK|TEMPLATE)$/.test(node.tagName)) return;
-      const tag = node.tagName;
-      if (tag === 'BR') { runs.push({ t: '\n' }); return; }
-      if (tag === 'HR') { nl(); runs.push({ t: '***' }, { t: '\n' }); return; }
-      let nb = b || tag === 'B' || tag === 'STRONG';
-      let ni = i || tag === 'I' || tag === 'EM';
-      const fw = node.style && node.style.fontWeight;   // Google Docs bọc cả bài trong <b style="font-weight:normal">
-      if (fw) nb = fw === 'bold' || fw === 'bolder' || Number(fw) >= 600;
-      const fs = node.style && node.style.fontStyle;
-      if (fs) ni = fs === 'italic' || fs === 'oblique';
-      const block = BLOCK.test(tag);
-      if (block) nl();
-      for (const k of node.childNodes) walk(k, nb, ni);
-      if (block) nl();
-    })(doc.body, false, false);
-    let out = '';
-    for (let k = 0; k < runs.length; k++) {
-      const r = runs[k];
-      if (r.t === '\n') { out += '\n'; continue; }
-      let t = r.t;
-      while (k + 1 < runs.length && runs[k + 1].t !== '\n' && !!runs[k + 1].b === !!r.b && !!runs[k + 1].i === !!r.i) t += runs[++k].t;
-      const core = t.trim();
-      if ((!r.b && !r.i) || !core || core === '***') { out += t; continue; }
-      const mk = r.b && r.i ? '***' : r.b ? '**' : '*';
-      out += t.match(/^\s*/)[0] + mk + core + mk + t.match(/\s*$/)[0];
+      if (j > from && !/\s/.test(s[j - 1])) return j;
+      j += mk.length;
     }
-    return out.replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+    return -1;
   }
-  function insertText(ta, text) {
-    ta.focus();
-    let done = false;
-    try { done = document.execCommand('insertText', false, text); } catch (e) { done = false; }   // giữ được Ctrl+Z
-    if (!done) {
-      ta.setRangeText(text, ta.selectionStart, ta.selectionEnd, 'end');
-      ta.dispatchEvent(new Event('input', { bubbles: true }));
+  function legacyInline(s) {
+    const out = [];
+    let buf = '', i = 0;
+    while (i < s.length) {
+      const mk = MARKS.find((m) => s.startsWith(m, i) && s[i + m.length] && !/\s/.test(s[i + m.length]));
+      const end = mk ? findClose(s, mk, i + mk.length) : -1;
+      if (end > 0) {
+        if (buf) { out.push(buf); buf = ''; }
+        const inner = legacyInline(s.slice(i + mk.length, end));
+        out.push(mk === '***' ? h('strong', null, h('em', null, inner))
+          : h({ '**': 'strong', '*': 'em', '__': 'u', '~~': 's' }[mk], null, inner));
+        i = end + mk.length;
+        continue;
+      }
+      buf += s[i++];
     }
+    if (buf) out.push(buf);
+    return out;
   }
-  function wrapSelection(ta, mk) {
-    const s = ta.selectionStart, e = ta.selectionEnd;
-    const sel = ta.value.slice(s, e);
-    const core = sel.trim();
-    if (!core) {
-      insertText(ta, mk + mk);
-      ta.selectionStart = ta.selectionEnd = s + mk.length;
-      return;
-    }
-    insertText(ta, sel.match(/^\s*/)[0] + mk + core + mk + sel.match(/\s*$/)[0]);
-  }
-  const countWords = (s) => { const t = String(s || '').trim(); return t ? t.split(/\s+/).length : 0; };
 
   /* ================= cài đặt đọc ================= */
   const RD_DEFAULT = { size: 19, font: 'serif', lh: 1.8, theme: 'auto' };
@@ -1352,61 +1464,141 @@
     const published = status === 'published';
 
     const title = h('input', { type: 'text', maxlength: 120, value: chap ? chap.title : '', placeholder: 'Không bắt buộc' });
-    const ta = h('textarea', { class: 'ed-body', value: chap ? chap.body : '', spellcheck: 'true',
-      placeholder: 'Viết truyện ở đây, hoặc dán từ Google Docs / Word (giữ được chữ đậm, nghiêng)…' });
+    // Ô soạn thảo kiểu Google Docs: thấy sao thì người đọc thấy vậy, không còn dấu ** hay *
+    const ed = h('div', { class: 'ed-rich prose', contenteditable: 'true', role: 'textbox', 'aria-multiline': 'true',
+      'aria-label': 'Nội dung chương', spellcheck: 'true',
+      'data-ph': 'Viết truyện ở đây, hoặc dán từ Google Docs / Word (giữ nguyên chữ đậm, nghiêng, căn giữa…)' });
+    const load = (stored) => { fill(ed, richNodes(richFromStored(stored))); if (!ed.firstChild) ed.append(h('p', null, h('br'))); };
+    load(chap ? chap.body : '');
+    const current = () => walkRich(ed);
     const meta = h('div', { class: 'ed-meta' }, h('span'), h('span'));
-    const preview = h('div', { class: 'ed-preview prose', hidden: true });
-    let dirty = false, saveT;
+    let dirty = false, saveT, metaT;
     const paintMeta = () => {
-      meta.firstChild.textContent = fmt(countWords(ta.value)) + ' chữ · ' + fmt(ta.value.length) + '/' + fmt(MAX_BODY) + ' ký tự';
-      meta.firstChild.style.color = ta.value.length > MAX_BODY ? 'var(--danger)' : '';
+      const blocks = current();
+      const len = richHtml(blocks).length;
+      ed.classList.toggle('ed-empty', !ed.textContent.trim() && !ed.querySelector('hr'));
+      meta.firstChild.textContent = fmt(blocksWords(blocks)) + ' chữ' +
+        (len > MAX_BODY * 0.9 ? ' · đã dùng ' + Math.round((len / MAX_BODY) * 100) + '% giới hạn một chương' : '');
+      meta.firstChild.style.color = len > MAX_BODY ? 'var(--danger)' : '';
     };
-    const autosave = () => {
+    const changed = () => {
       dirty = true;
+      clearTimeout(metaT);
+      metaT = setTimeout(paintMeta, 250);
       clearTimeout(saveT);
       saveT = setTimeout(() => {
-        ls.put(draftKey, { title: title.value, body: ta.value, at: Date.now() });
+        ls.put(draftKey, { title: title.value, body: richHtml(current()), at: Date.now() });
         meta.lastChild.textContent = 'Đã lưu tạm trên máy này lúc ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-      }, 700);
+      }, 800);
     };
-    ta.addEventListener('input', () => { paintMeta(); autosave(); });
-    title.addEventListener('input', autosave);
-    ta.addEventListener('paste', (e) => {
-      const html = e.clipboardData && e.clipboardData.getData('text/html');
-      if (!html) return;
-      const text = htmlToText(html);
-      if (!text) return;
+    ed.addEventListener('input', changed);
+    title.addEventListener('input', changed);
+    // Dán từ Google Docs / Word / trang web: lọc chỉ giữ chữ + định dạng cho phép
+    ed.addEventListener('paste', (e) => {
+      const cd = e.clipboardData;
+      if (!cd) return;
       e.preventDefault();
-      insertText(ta, text);
+      const html = cd.getData('text/html');
+      const blocks = html ? richFromHtml(html) : walkRich(legacyNodes(cd.getData('text/plain')));
+      if (!blocks.length) return;
+      let out;
+      if (blocks.length === 1 && blocks[0].type === 'p' && !blocks[0].align) {     // 1 đoạn ngắn: chèn ngay giữa dòng
+        const d = document.createElement('div');
+        d.append(buildInline(blocks[0].runs));
+        out = d.innerHTML;
+      } else out = richHtml(blocks);
+      document.execCommand('insertHTML', false, out);
     });
-    ta.addEventListener('keydown', (e) => {
-      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
-      const k = e.key.toLowerCase();
-      if (k === 'b') { e.preventDefault(); wrapSelection(ta, '**'); }
-      if (k === 'i') { e.preventDefault(); wrapSelection(ta, '*'); }
-    });
+    ed.addEventListener('drop', (e) => { if (e.dataTransfer && [...e.dataTransfer.types].includes('Files')) e.preventDefault(); });
     const onLeave = (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } };
     window.addEventListener('beforeunload', onLeave);
     cleanups.push(() => window.removeEventListener('beforeunload', onLeave));
 
-    const prevBtn = h('button', { type: 'button', 'aria-pressed': 'false', onclick: () => {
-      const on = preview.hidden;
-      preview.hidden = !on; ta.hidden = on;
-      prevBtn.textContent = on ? '✎ Viết tiếp' : '👁 Xem thử';
-      if (on) preview.replaceChildren(renderBody(ta.value) );
-    } }, '👁 Xem thử');
-    const toolbar = h('div', { class: 'tb' },
-      h('button', { type: 'button', title: 'Chữ đậm (Ctrl+B)', onclick: () => wrapSelection(ta, '**') }, h('b', null, 'B')),
-      h('button', { type: 'button', title: 'Chữ nghiêng (Ctrl+I)', onclick: () => wrapSelection(ta, '*') }, h('i', null, 'I')),
-      h('button', { type: 'button', title: 'Chuyển cảnh', onclick: () => insertText(ta, '\n\n***\n\n') }, '✻ Chuyển cảnh'),
-      h('span', { class: 'sp' }), prevBtn);
+    // ---- thanh công cụ ----
+    let prepared = false, lastRange = null;
+    const prep = () => {
+      if (prepared) return;
+      prepared = true;
+      try { document.execCommand('styleWithCSS', false, false); document.execCommand('defaultParagraphSeparator', false, 'p'); } catch (e) { /* trình duyệt cũ */ }
+    };
+    ed.addEventListener('focus', prep);
+    const blockOf = () => {
+      const s = getSelection();
+      let n = s && s.anchorNode;
+      while (n && n !== ed) { if (n.nodeType === 1 && /^(P|DIV|H[1-6]|BLOCKQUOTE)$/.test(n.tagName)) return n; n = n.parentNode; }
+      return null;
+    };
+    const inBlock = (tag) => { const b = blockOf(); const q = b && b.closest(tag); return !!q && ed.contains(q); };
+    const run = (name, value) => {
+      const s = getSelection();
+      if (!(s && s.rangeCount && ed.contains(s.anchorNode))) {          // bấm nút làm mất chỗ đang chọn: chọn lại
+        ed.focus();
+        if (lastRange) { s.removeAllRanges(); s.addRange(lastRange); }
+      }
+      prep();
+      document.execCommand(name, false, value);       // value bỏ trống = '' (truyền null thì Chrome gắn id="null" cho <hr>)
+      sync();
+      changed();
+    };
+    const toggleBlock = (tag) => run('formatBlock', inBlock(tag) ? '<p>' : '<' + tag + '>');
+    const alignIcon = (a) => {
+      const ns = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(ns, 'svg');
+      svg.setAttribute('viewBox', '0 0 16 16'); svg.setAttribute('width', '16'); svg.setAttribute('height', '16'); svg.setAttribute('aria-hidden', 'true');
+      const short = a === 'l' ? [1.5, 10] : a === 'c' ? [4, 12] : [6, 14.5];
+      [[1.5, 14.5], short, [1.5, 14.5], short].forEach(([x1, x2], i) => {
+        const l = document.createElementNS(ns, 'line');
+        const y = String(2.5 + i * 3.7);
+        l.setAttribute('x1', x1); l.setAttribute('x2', x2); l.setAttribute('y1', y); l.setAttribute('y2', y);
+        l.setAttribute('stroke', 'currentColor'); l.setAttribute('stroke-width', '1.6'); l.setAttribute('stroke-linecap', 'round');
+        svg.append(l);
+      });
+      return svg;
+    };
+    // onmousedown chặn mặc định để bấm nút không làm mất phần chữ đang bôi đen
+    const tool = (label, name, onclick, key) => h('button', { type: 'button', title: name, 'aria-label': name,
+      'aria-pressed': key ? 'false' : null, 'data-k': key || null, onmousedown: (e) => e.preventDefault(), onclick }, label);
+    const sep = () => h('span', { class: 'sep', 'aria-hidden': 'true' });
+    const toolbar = h('div', { class: 'tb', role: 'toolbar', 'aria-label': 'Định dạng chữ' },
+      tool(h('b', null, 'B'), 'Chữ đậm (Ctrl+B)', () => run('bold'), 'bold'),
+      tool(h('i', null, 'I'), 'Chữ nghiêng (Ctrl+I)', () => run('italic'), 'italic'),
+      tool(h('u', null, 'U'), 'Gạch chân (Ctrl+U)', () => run('underline'), 'underline'),
+      tool(h('s', null, 'S'), 'Gạch ngang', () => run('strikeThrough'), 'strikeThrough'),
+      sep(),
+      tool('Tiêu đề', 'Tiêu đề nhỏ', () => toggleBlock('h3'), 'block:h3'),
+      tool('❝ Trích dẫn', 'Trích dẫn (thư, tin nhắn…)', () => toggleBlock('blockquote'), 'block:blockquote'),
+      sep(),
+      tool(alignIcon('l'), 'Căn trái', () => run('justifyLeft'), 'justifyLeft'),
+      tool(alignIcon('c'), 'Căn giữa', () => run('justifyCenter'), 'justifyCenter'),
+      tool(alignIcon('r'), 'Căn phải', () => run('justifyRight'), 'justifyRight'),
+      sep(),
+      tool('✻ Chuyển cảnh', 'Chuyển cảnh', () => run('insertHorizontalRule')),
+      tool('Bỏ định dạng', 'Bỏ định dạng của phần đang chọn', () => { run('removeFormat'); run('formatBlock', '<p>'); }),
+      sep(),
+      tool('↶', 'Hoàn tác (Ctrl+Z)', () => run('undo')),
+      tool('↷', 'Làm lại (Ctrl+Y)', () => run('redo')));
+    function sync() {
+      for (const b of toolbar.querySelectorAll('[data-k]')) {
+        const k = b.dataset.k;
+        let on = false;
+        try { on = k.startsWith('block:') ? inBlock(k.slice(6)) : document.queryCommandState(k); } catch (e) { on = false; }
+        b.setAttribute('aria-pressed', String(!!on));
+      }
+    }
+    const onSel = () => {
+      const s = getSelection();
+      if (s && s.rangeCount && ed.contains(s.anchorNode)) { lastRange = s.getRangeAt(0).cloneRange(); sync(); }
+    };
+    document.addEventListener('selectionchange', onSel);
+    cleanups.push(() => document.removeEventListener('selectionchange', onSel));
+    ed.addEventListener('keyup', sync);
 
     // bản đang viết dở trên máy này (mất mạng, lỡ đóng tab...) mới hơn bản trên máy chủ thì hỏi khôi phục
     const local = ls.json(draftKey, null);
     const serverAt = chap ? Date.parse(chap.updated || 0) : 0;
-    const restoreBox = local && (local.body !== ta.value || local.title !== title.value) && local.body && local.at > serverAt
+    const restoreBox = local && local.body && local.at > serverAt && (local.body !== richHtml(current()) || local.title !== title.value)
       ? h('p', { class: 'notice warn' }, 'Có bản bạn đang viết dở trên máy này (' + ago(new Date(local.at).toISOString()) + '). ',
-          h('button', { type: 'button', class: 'btn sm', onclick: (e) => { title.value = local.title || ''; ta.value = local.body; paintMeta(); dirty = true; e.target.closest('p').remove(); } }, 'Mở lại bản đó'), ' ',
+          h('button', { type: 'button', class: 'btn sm', onclick: (e) => { title.value = local.title || ''; load(local.body); paintMeta(); dirty = true; e.target.closest('p').remove(); } }, 'Mở lại bản đó'), ' ',
           h('button', { type: 'button', class: 'btn sm', onclick: (e) => { ls.del(draftKey); e.target.closest('p').remove(); } }, 'Bỏ'))
       : null;
 
@@ -1418,11 +1610,13 @@
     if (published && !canPub && !chap.editStatus) notes.push(h('p', { class: 'notice' }, 'Chương này đã đăng. Bản sửa sẽ được người duyệt xem trước, trong lúc đó người đọc vẫn thấy bản cũ.'));
 
     async function save(submit) {
-      if (!ta.value.trim()) { toast('Chương chưa có nội dung.', true); ta.focus(); return; }
-      if (ta.value.length > MAX_BODY) { toast('Chương dài quá 100.000 ký tự, bạn chia thành 2 chương nhé.', true); return; }
+      const blocks = current();
+      if (!blocksWords(blocks)) { toast('Chương chưa có nội dung.', true); ed.focus(); return; }
+      const bodyHtml = richHtml(blocks);
+      if (bodyHtml.length > MAX_BODY) { toast('Chương dài quá giới hạn, bạn chia thành 2 chương nhé.', true); return; }
       bar2.querySelectorAll('button').forEach((b) => { b.disabled = true; });
       try {
-        const body = { title: title.value, body: ta.value, submit };
+        const body = { title: title.value, body: bodyHtml, submit };
         const d = isNew ? await api('/my/stories/' + storyId + '/chapters', { method: 'POST', body })
                         : await api('/my/chapters/' + chap.id, { method: 'PUT', body });
         dirty = false;
@@ -1460,13 +1654,14 @@
       h('div', { class: 'page-head' }, h('h1', null, isNew ? 'Chương ' + pos + ' (mới)' : 'Sửa chương'), chap ? badge(status) : null),
       notes, restoreBox,
       h('label', { class: 'field' }, h('span', null, 'Tên chương'), title),
-      h('div', { class: 'field' }, h('span', null, 'Nội dung'), toolbar, ta, preview),
+      h('div', { class: 'field' }, h('span', null, 'Nội dung'), toolbar, ed),
       meta,
-      h('p', { class: 'help' }, 'Mỗi dòng là một đoạn. ', h('code', null, '**chữ đậm**'), ' · ', h('code', null, '*chữ nghiêng*'),
-        ' · dòng chỉ có ', h('code', null, '***'), ' để chuyển cảnh. Dán từ Google Docs / Word giữ được đậm, nghiêng. Bài đang viết được lưu tạm trên máy này.'),
+      h('p', { class: 'help' }, 'Bôi đen chữ rồi bấm nút để in đậm, nghiêng, gạch chân, căn giữa… Phím tắt: ',
+        h('code', null, 'Ctrl+B'), ' ', h('code', null, 'Ctrl+I'), ' ', h('code', null, 'Ctrl+U'),
+        '. Dán từ Google Docs / Word giữ nguyên định dạng. Bài đang viết được lưu tạm trên máy này.'),
       bar2));
     paintMeta();
-    if (isNew) ta.focus();
+    if (isNew) ed.focus();
   }
 
   /* ================= người duyệt ================= */

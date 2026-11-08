@@ -59,7 +59,11 @@ function clean(v, max, multiline = false) {
   }
   return s.length > max ? null : s;
 }
-function countWords(s) { const t = String(s || '').trim(); return t ? t.split(/\s+/).length : 0; }
+// Đếm chữ (bỏ qua thẻ định dạng <p> <strong>... trong nội dung chương)
+function countWords(s) {
+  const t = String(s || '').replace(/<[^>]*>/g, ' ').replace(/&[#a-z0-9]+;/gi, ' ').trim();
+  return t ? t.split(/\s+/).length : 0;
+}
 function tagsOf(v) {
   const list = Array.isArray(v) ? v : String(v ?? '').split(/[,|#\n]/);
   const out = [];
@@ -451,7 +455,7 @@ function chapterFields(b) {
   if (title === null) fail(400, 'Tên chương dài quá (tối đa 120 ký tự).');
   const body = clean(b.body, MAX.body, true);
   if (body === null) fail(400, 'Chương dài quá (tối đa 100.000 ký tự), bạn chia thành 2 chương nhé.');
-  if (!body) fail(400, 'Chương chưa có nội dung.');
+  if (!body || !countWords(body)) fail(400, 'Chương chưa có nội dung.');
   return { title, body, words: countWords(body) };
 }
 // Chương vừa được đăng: truyện hiện lên (nếu chưa bị ẩn) và nhảy lên đầu mục "mới cập nhật"
