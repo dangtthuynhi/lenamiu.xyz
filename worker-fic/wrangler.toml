@@ -15,4 +15,4 @@ compatibility_date = "2025-10-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "lenamiu-fic"
-database_id = "00000000-0000-0000-0000-000000000000"   # tạm để thử trong máy, thay bằng id thật khi đưa lên mạng
+database_id = "c6c219fa-0cb5-4b16-88ab-d32d6be70ef9"
