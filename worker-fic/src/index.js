@@ -1,6 +1,7 @@
 /* Máy chủ trang Fanfic LenaMiu (Cloudflare Workers + D1, gói miễn phí).
 
-   Tài khoản   POST /auth/register  /auth/login  /auth/logout  /auth/password     GET|PUT /auth/me
+   Tài khoản   POST /auth/login  /auth/logout  /auth/password     GET|PUT /auth/me
+               KHÔNG có đăng ký công khai: chỉ người duyệt tạo tài khoản (POST /admin/users).
    Đọc truyện  GET  /stories                 danh sách truyện đã đăng
                GET  /stories/:id             thông tin truyện + mục lục
                GET  /chapters/:id?u=         nội dung chương (u = mã người đọc, để biết đã thả tim chưa)
@@ -17,7 +18,6 @@
 
    Bí mật (đặt bằng `npx wrangler secret put ...`, không ghi vào file này):
      FIC_SALT          chuỗi ngẫu nhiên để băm IP (giới hạn spam theo mạng, không lưu IP thật)
-     TURNSTILE_SECRET  khoá Turnstile chống tạo tài khoản ảo. Không đặt thì bỏ qua bước này (thử trong máy).
 */
 
 const ORIGINS = ['https://lenamiu.xyz', 'https://www.lenamiu.xyz', 'https://dangtthuynhi.github.io'];
@@ -172,20 +172,6 @@ async function needAdmin(c) {
   if (u.role !== 'admin') fail(403, 'Chỉ người duyệt mới làm được việc này.');
   return u;
 }
-async function turnstileOk(c, token) {
-  if (!c.env.TURNSTILE_SECRET) return true;            // chưa cài Turnstile (thử trong máy) thì bỏ qua
-  if (!token || String(token).length > 2048) return false;
-  const form = new FormData();
-  form.append('secret', c.env.TURNSTILE_SECRET);
-  form.append('response', String(token));
-  const ip = c.req.headers.get('CF-Connecting-IP');
-  if (ip) form.append('remoteip', ip);
-  try {
-    const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body: form });
-    return !!(await r.json()).success;
-  } catch (e) { return false; }
-}
-
 // Hàng chờ duyệt: chương mới chờ duyệt + bản sửa của chương đã đăng (truyện bị ẩn / người bị khoá thì bỏ qua)
 const QUEUE_WHERE = `(ch.status = 'pending' OR ch.edit_status = 'pending') AND s.status != 'hidden' AND u.banned = 0`;
 async function queueCount(c) {
@@ -203,24 +189,7 @@ function route(method, pattern, fn) {
 const idOf = (c) => Number(c.params.id);
 
 /* ===== tài khoản ===== */
-route('POST', '/auth/register', async (c) => {
-  const b = await readJson(c);
-  const username = String(b.username || '').trim().toLowerCase();
-  if (!/^[a-z0-9_]{3,20}$/.test(username)) fail(400, 'Tên đăng nhập cần 3–20 ký tự, chỉ gồm chữ thường không dấu, số và dấu _.');
-  const name = clean(b.name, MAX.name);
-  if (!name || name.length < 2) fail(400, 'Bút danh cần 2–40 ký tự.');
-  if (!PASS_RE.test(String(b.pass || ''))) fail(400, 'Mật khẩu không hợp lệ.');
-  const ipk = 'reg:' + (await ipKey(c));
-  if (!(await limitOk(c, ipk, 5))) fail(429, 'Hôm nay mạng này đã tạo nhiều tài khoản quá, mai thử lại nhé.');
-  if (!(await turnstileOk(c, b.ts))) fail(400, 'Chưa qua bước kiểm tra chống spam, bạn thử lại nhé.');
-  const r = await c.db.prepare(`INSERT OR IGNORE INTO users (username, name, pass, role, created) VALUES (?1, ?2, ?3, 'user', ?4)`)
-    .bind(username, name, await hashPass(b.pass), nowIso()).run();
-  if (!r.meta.changes) fail(409, 'Tên đăng nhập này có người dùng rồi, bạn chọn tên khác nhé.');
-  await limitBump(c, ipk, 86400);
-  const user = { id: r.meta.last_row_id, username, name, role: 'user' };
-  return { token: await newSession(c, user.id), user };
-});
-
+// Không có đăng ký công khai. Tài khoản do người duyệt tạo ở POST /admin/users (phần "người duyệt" bên dưới).
 route('POST', '/auth/login', async (c) => {
   const b = await readJson(c);
   const username = String(b.username || '').trim().toLowerCase().slice(0, 40);
@@ -729,6 +698,22 @@ route('GET', '/admin/users', async (c) => {
         (SELECT COUNT(*) FROM comments WHERE user_id = u.id) AS comments
       FROM users u ORDER BY u.id DESC LIMIT 1000`).all();
   return { users: results.map((r) => ({ ...r, banned: !!r.banned })) };
+});
+
+// Người duyệt tạo tài khoản mới (trang không cho tự đăng ký). Mật khẩu do trình duyệt của người duyệt băm sẵn.
+route('POST', '/admin/users', async (c) => {
+  await needAdmin(c);
+  const b = await readJson(c);
+  const username = String(b.username || '').trim().toLowerCase();
+  if (!/^[a-z0-9_]{3,20}$/.test(username)) fail(400, 'Tên đăng nhập cần 3–20 ký tự, chỉ gồm chữ thường không dấu, số và dấu _.');
+  const name = clean(b.name, MAX.name);
+  if (!name || name.length < 2) fail(400, 'Bút danh cần 2–40 ký tự.');
+  if (!PASS_RE.test(String(b.pass || ''))) fail(400, 'Mật khẩu không hợp lệ.');
+  const role = b.role === 'trusted' ? 'trusted' : 'user';
+  const r = await c.db.prepare(`INSERT OR IGNORE INTO users (username, name, pass, role, created) VALUES (?1, ?2, ?3, ?4, ?5)`)
+    .bind(username, name, await hashPass(b.pass), role, nowIso()).run();
+  if (!r.meta.changes) fail(409, 'Tên đăng nhập này có người dùng rồi, bạn chọn tên khác nhé.');
+  return { user: { id: r.meta.last_row_id, username, name, role } };
 });
 
 route('POST', '/admin/users/:id', async (c) => {

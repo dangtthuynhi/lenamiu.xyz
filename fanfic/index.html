@@ -323,6 +323,12 @@
     font: inherit; font-size: .84rem; font-weight: 600; cursor: pointer;
   }
   .reply-form { margin: 8px 0 4px 16px; }
+  .grid2 { display: grid; gap: 0 12px; grid-template-columns: 1fr; }
+  @media (min-width: 560px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+  .creds {
+    margin: 10px 0; padding: 10px 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line);
+    white-space: pre-wrap; overflow-wrap: anywhere; font: 500 .88rem/1.6 ui-monospace, "SF Mono", Consolas, monospace;
+  }
   .cmt-who { display: grid; gap: 0 12px; grid-template-columns: 1fr; }
   .cmt-who .field { margin-bottom: 12px; }
   @media (min-width: 560px) { .cmt-who { grid-template-columns: 1fr 1fr; } }
@@ -432,8 +438,6 @@
   const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
   // Máy chủ fanfic (thư mục worker-fic/). Mở trang trong máy thì tự dùng máy chủ chạy trong máy.
   const API = LOCAL ? 'http://' + location.hostname + ':8789' : 'https://lenamiu-fic.dangthithuynhi2000.workers.dev';
-  // Khoá công khai Cloudflare Turnstile (chống tạo tài khoản ảo). Trong máy dùng khoá thử của Cloudflare (luôn qua).
-  const TURNSTILE_KEY = LOCAL ? '1x00000000000000000000AA' : '';
   const PASS_ITER = 150000;           // số vòng băm mật khẩu trong trình duyệt (đổi là mọi người phải đặt lại mật khẩu)
   const MAX_BODY = 100000;
   const RATING = { all: 'Mọi lứa tuổi', 13: '13+', 16: '16+', 18: '18+' };
@@ -841,7 +845,7 @@
     [/^\/truyen\/(\d+)$/, viewStory],
     [/^\/doc\/(\d+)$/, viewChapter],
     [/^\/dang-nhap$/, viewLogin],
-    [/^\/dang-ky$/, viewRegister],
+    [/^\/dang-ky$/, viewLogin],          // không còn đăng ký: link cũ dẫn về trang đăng nhập
     [/^\/cua-toi$/, viewMine],
     [/^\/viet$/, viewStoryForm],
     [/^\/truyen\/(\d+)\/sua$/, viewStoryForm],
@@ -1265,84 +1269,8 @@
         h('label', { class: 'field' }, h('span', null, 'Tên đăng nhập'), user),
         h('label', { class: 'field' }, h('span', null, 'Mật khẩu'), pass),
         err, btn),
-      h('p', { class: 'small muted', style: 'margin:16px 0 0;text-align:center' }, 'Chưa có tài khoản? ',
-        h('a', { href: '#/dang-ky' + (next !== '/' ? '?next=' + encodeURIComponent(next) : '') }, 'Đăng ký')),
-      h('p', { class: 'small muted', style: 'margin:6px 0 0;text-align:center' }, 'Quên mật khẩu thì nhắn người duyệt để được đặt lại nhé.'))));
-    user.focus();
-  }
-
-  let tsLoading = null;
-  function loadTurnstile() {
-    if (!tsLoading) {
-      tsLoading = new Promise((res, rej) => {
-        const sc = document.createElement('script');
-        sc.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-        sc.async = true;
-        sc.onload = () => res(window.turnstile);
-        sc.onerror = () => { tsLoading = null; rej(new Error('Không tải được bước kiểm tra chống spam.')); };
-        document.head.append(sc);
-      });
-    }
-    return tsLoading;
-  }
-
-  function viewRegister(ctx) {
-    const next = safeNext(ctx.q.get('next')) || '/cua-toi';
-    if (me) return go(next);
-    ctx.title('Đăng ký');
-    const user = h('input', { type: 'text', autocomplete: 'username', autocapitalize: 'none', spellcheck: 'false', required: true,
-                              minlength: 3, maxlength: 20, pattern: '[a-z0-9_]{3,20}' });
-    user.addEventListener('input', () => {
-      const v = norm(user.value).replace(/[^a-z0-9_]/g, '');
-      if (v !== user.value) user.value = v;
-    });
-    const name = h('input', { type: 'text', autocomplete: 'nickname', required: true, minlength: 2, maxlength: 40 });
-    const pass = h('input', { type: 'password', autocomplete: 'new-password', required: true, minlength: 8 });
-    const pass2 = h('input', { type: 'password', autocomplete: 'new-password', required: true, minlength: 8 });
-    const agree = h('input', { type: 'checkbox', required: true });
-    const err = h('p', { class: 'err', role: 'alert' });
-    const btn = h('button', { type: 'submit', class: 'btn primary', style: 'width:100%' }, 'Tạo tài khoản');
-    const tsBox = h('div', { style: 'margin-bottom:12px;min-height:65px' });
-    let tsToken = '', tsId = null;
-    if (TURNSTILE_KEY) {
-      loadTurnstile().then((ts) => {
-        if (!ctx.alive()) return;
-        tsId = ts.render(tsBox, { sitekey: TURNSTILE_KEY, language: 'vi', callback: (t) => { tsToken = t; },
-                                  'expired-callback': () => { tsToken = ''; } });
-      }).catch((e) => { tsBox.textContent = e.message; });
-    } else tsBox.hidden = true;
-
-    ctx.mount(h('div', { class: 'form' }, h('div', { class: 'card' },
-      h('h1', { style: 'margin-top:0;font-size:1.4rem' }, 'Tạo tài khoản'),
-      h('p', { class: 'muted small', style: 'margin-top:-6px' }, 'Có tài khoản là đăng truyện, thả bình luận được.'),
-      h('form', { onsubmit: async (e) => {
-        e.preventDefault();
-        err.textContent = '';
-        if (pass.value !== pass2.value) { err.textContent = 'Hai lần nhập mật khẩu chưa giống nhau.'; return; }
-        if (TURNSTILE_KEY && !tsToken) { err.textContent = 'Bạn đợi bước kiểm tra chống spam xong đã nhé.'; return; }
-        btn.disabled = true;
-        try {
-          const u = user.value.trim().toLowerCase();
-          const d = await api('/auth/register', { method: 'POST',
-            body: { username: u, name: name.value, pass: await passHash(u, pass.value), ts: tsToken } });
-          setSession(d.token, d.user);
-          toast('Chào mừng ' + d.user.name + ' 💗');
-          go(next);
-        } catch (e2) {
-          err.textContent = e2.message;
-          btn.disabled = false;
-          if (tsId != null && window.turnstile) { window.turnstile.reset(tsId); tsToken = ''; }
-        }
-      } },
-        h('label', { class: 'field' }, h('span', null, 'Tên đăng nhập'), user,
-          h('small', null, '3–20 ký tự: chữ thường không dấu, số, dấu _. Dùng để đăng nhập, không đổi được.')),
-        h('label', { class: 'field' }, h('span', null, 'Bút danh'), name, h('small', null, 'Tên hiện trên truyện và bình luận, đổi được sau.')),
-        h('label', { class: 'field' }, h('span', null, 'Mật khẩu'), pass, h('small', null, 'Ít nhất 8 ký tự.')),
-        h('label', { class: 'field' }, h('span', null, 'Nhập lại mật khẩu'), pass2),
-        h('label', { class: 'check' }, agree, h('span', null,
-          'Mình sẽ không đăng nội dung xúc phạm Lena, Miu hay người khác, không lấy truyện của người khác khi chưa xin phép, và gắn đúng nhãn độ tuổi.')),
-        tsBox, err, btn),
-      h('p', { class: 'small muted', style: 'margin:16px 0 0;text-align:center' }, 'Đã có tài khoản? ', h('a', { href: '#/dang-nhap' }, 'Đăng nhập')))));
+      h('p', { class: 'small muted', style: 'margin:16px 0 0;text-align:center' },
+        'Tài khoản do người duyệt cấp. Quên mật khẩu thì nhắn người duyệt để được đặt lại nhé.'))));
     user.focus();
   }
 
@@ -1821,9 +1749,66 @@
       paint();
       return li;
     };
-    ctx.mount(head, tabs,
-      h('p', { class: 'muted small' }, fmt(users.length) + ' thành viên. "Tin cậy" = đăng truyện là hiện luôn, không cần chờ duyệt (bạn vẫn ẩn / xoá được).'),
-      h('ul', { class: 'people' }, users.map(row)));
+    const list = h('ul', { class: 'people' }, users.map(row));
+    const countLine = () => fmt(users.length) + ' thành viên. "Tin cậy" = đăng truyện là hiện luôn, không cần chờ duyệt (bạn vẫn ẩn / xoá được).';
+    const count = h('p', { class: 'muted small' }, countLine());
+
+    // Tạo tài khoản: trang không cho tự đăng ký, chỉ người duyệt tạo rồi gửi tên đăng nhập + mật khẩu cho người viết
+    const nu = h('input', { type: 'text', autocomplete: 'off', autocapitalize: 'none', spellcheck: 'false', required: true,
+                            minlength: 3, maxlength: 20, placeholder: 'vd: banhbao' });
+    nu.addEventListener('input', () => { const v = norm(nu.value).replace(/[^a-z0-9_]/g, ''); if (v !== nu.value) nu.value = v; });
+    const nn = h('input', { type: 'text', autocomplete: 'off', required: true, minlength: 2, maxlength: 40, placeholder: 'Tên hiện trên truyện' });
+    const np = h('input', { type: 'text', autocomplete: 'off', spellcheck: 'false', required: true, minlength: 8, maxlength: 64 });
+    const genPass = () => {
+      const abc = 'abcdefghjkmnpqrstuvwxyz23456789';          // bỏ chữ dễ nhầm (l, o, 0, 1, i)
+      const a = new Uint8Array(10);
+      crypto.getRandomValues(a);
+      np.value = [...a].map((x) => abc[x % abc.length]).join('');
+    };
+    genPass();
+    const nr = h('select', null, h('option', { value: 'user' }, 'Thành viên (đăng phải chờ duyệt)'),
+      h('option', { value: 'trusted' }, 'Tin cậy (đăng là hiện luôn)'));
+    const result = h('div', { class: 'notice good', hidden: true, style: 'margin:16px 0 0' });
+    const createBtn = h('button', { type: 'submit', class: 'btn primary' }, 'Tạo tài khoản');
+    const form = h('form', { class: 'card', style: 'margin-bottom:22px', onsubmit: async (e) => {
+      e.preventDefault();
+      createBtn.disabled = true;
+      try {
+        const username = nu.value.trim().toLowerCase();
+        const pass = np.value;
+        const d = await api('/admin/users', { method: 'POST',
+          body: { username, name: nn.value, pass: await passHash(username, pass), role: nr.value } });
+        const msg = 'Tài khoản đăng truyện LenaMiu Fanfic của bạn:\nTên đăng nhập: ' + username + '\nMật khẩu: ' + pass +
+          '\nĐăng nhập tại: https://lenamiu.xyz/fanfic/#/dang-nhap\n(Vào mục Tài khoản để đổi mật khẩu nhé)';
+        fill(result, h('b', null, 'Đã tạo tài khoản cho ' + d.user.name + '!'), ' Gửi nội dung này cho họ:',
+          h('pre', { class: 'creds' }, msg),
+          h('button', { type: 'button', class: 'btn sm', onclick: async () => {
+            try { await navigator.clipboard.writeText(msg); toast('Đã chép, dán vào tin nhắn gửi cho ' + d.user.name + ' nhé.'); }
+            catch (er) { toast('Không chép được, bạn bôi đen đoạn trên để chép nhé.', true); }
+          } }, '📋 Chép'));
+        result.hidden = false;
+        const u = Object.assign({ banned: false, created: new Date().toISOString(), stories: 0, comments: 0 }, d.user);
+        users.unshift(u);
+        list.prepend(row(u));
+        count.textContent = countLine();
+        nu.value = ''; nn.value = ''; genPass();
+      } catch (e2) { toast(e2.message, true); }
+      createBtn.disabled = false;
+    } },
+      h('h2', { style: 'margin-top:0;font-size:1.1rem' }, '➕ Tạo tài khoản'),
+      h('p', { class: 'muted small', style: 'margin-top:-4px' }, 'Trang không cho tự đăng ký. Bạn tạo tài khoản ở đây rồi gửi tên đăng nhập + mật khẩu cho người viết.'),
+      h('div', { class: 'grid2' },
+        h('label', { class: 'field' }, h('span', null, 'Tên đăng nhập'), nu, h('small', null, 'Chữ thường không dấu, số, dấu _. Không đổi được.')),
+        h('label', { class: 'field' }, h('span', null, 'Bút danh'), nn, h('small', null, 'Người viết tự đổi được sau.'))),
+      h('div', { class: 'grid2' },
+        h('div', { class: 'field' }, h('span', null, 'Mật khẩu'),
+          h('div', { class: 'row', style: 'flex-wrap:nowrap' }, np,
+            h('button', { type: 'button', class: 'btn sm', title: 'Tạo mật khẩu khác', 'aria-label': 'Tạo mật khẩu khác', onclick: genPass }, '🎲')),
+          h('small', null, 'Mật khẩu tạo ngẫu nhiên, đổi tuỳ ý (ít nhất 8 ký tự).')),
+        h('label', { class: 'field' }, h('span', null, 'Quyền'), nr)),
+      createBtn, result);
+
+    ctx.mount(head, tabs, form, count, list);
   }
 
   async function adminStories(ctx, head, tabs) {
