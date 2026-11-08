@@ -66,10 +66,14 @@ CREATE TABLE IF NOT EXISTS hearts (
   PRIMARY KEY (chapter_id, who)
 );
 
+-- Bình luận: không cần tài khoản, chỉ cần tên + email. Ai đã đăng nhập thì gắn thêm user_id (để hiện nhãn "Tác giả").
 CREATE TABLE IF NOT EXISTS comments (
   id         INTEGER PRIMARY KEY,
   chapter_id INTEGER NOT NULL,
-  user_id    INTEGER NOT NULL,
+  user_id    INTEGER,                        -- NULL = khách (chưa đăng nhập)
+  name       TEXT    NOT NULL,               -- tên hiện trên bình luận
+  email      TEXT    NOT NULL DEFAULT '',    -- chỉ người duyệt thấy, KHÔNG BAO GIỜ trả ra công khai
+  ip         TEXT    NOT NULL DEFAULT '',    -- mã băm IP (để chặn spam), không lưu IP thật
   body       TEXT    NOT NULL,
   created    TEXT    NOT NULL
 );

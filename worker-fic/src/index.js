@@ -5,7 +5,7 @@
                GET  /stories/:id             thông tin truyện + mục lục
                GET  /chapters/:id?u=         nội dung chương (u = mã người đọc, để biết đã thả tim chưa)
                POST /chapters/:id/heart      thả / bỏ tim               POST /read   đếm lượt đọc
-               GET|POST /chapters/:id/comments   bình luận (đăng bình luận cần đăng nhập)
+               GET|POST /chapters/:id/comments   bình luận (khách chỉ cần tên + email, email không hiện công khai)
                DELETE /comments/:id
    Viết truyện /my/...                       truyện của tôi: tạo, sửa, thêm chương, gửi duyệt
    Duyệt       /admin/...                    hàng chờ duyệt, thành viên, ẩn / xoá truyện (chỉ người duyệt)
@@ -367,28 +367,49 @@ route('POST', '/read', async (c) => {
   return { counted: true };
 });
 
+// Bình luận: khách để lại tên + email là được (không cần tài khoản). Email chỉ người duyệt thấy.
 route('GET', '/chapters/:id/comments', async (c) => {
-  const { results } = await c.db.prepare(`SELECT cm.id, cm.body, cm.created, u.id AS uid, u.name, u.username, u.role
-      FROM comments cm JOIN users u ON u.id = cm.user_id
-      WHERE cm.chapter_id = ?1 AND u.banned = 0 ORDER BY cm.id LIMIT 500`).bind(idOf(c)).all();
+  const viewer = await currentUser(c);
+  const admin = !!viewer && viewer.role === 'admin';
+  const { results } = await c.db.prepare(`SELECT cm.id, cm.body, cm.created, cm.name, cm.email, cm.user_id, u.name AS uname, u.role
+      FROM comments cm LEFT JOIN users u ON u.id = cm.user_id
+      WHERE cm.chapter_id = ?1 AND (cm.user_id IS NULL OR u.banned = 0) ORDER BY cm.id LIMIT 500`).bind(idOf(c)).all();
   return {
-    comments: results.map((r) => ({ id: r.id, body: r.body, created: r.created,
-                                    user: { id: r.uid, name: r.name, username: r.username, role: r.role } }))
+    comments: results.map((r) => ({
+      id: r.id, body: r.body, created: r.created, name: r.uname || r.name,
+      user: r.user_id ? { id: r.user_id, role: r.role } : null,
+      ...(admin && r.email ? { email: r.email } : {})
+    }))
   };
 });
 
+const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/;
 route('POST', '/chapters/:id/comments', async (c) => {
-  const u = await needUser(c);
+  fromSite(c);
+  const u = await currentUser(c);
   const id = idOf(c);
-  const body = clean((await readJson(c)).body, MAX.comment, true);
+  const b = await readJson(c);
+  if (b.website) fail(400, 'Không gửi được bình luận.');      // ô ẩn: người thật không thấy nên không điền, máy spam thì điền
+  const body = clean(b.body, MAX.comment, true);
   if (body === null) fail(400, 'Bình luận dài quá (tối đa 1.000 ký tự).');
   if (!body) fail(400, 'Bạn chưa viết gì cả.');
+  if ((body.match(/https?:\/\/|www\./gi) || []).length > 2) fail(400, 'Bình luận có nhiều link quá, bạn bớt link đi nhé.');
+  let name, email = '';
+  if (u) {
+    name = u.name;                                             // đã đăng nhập: dùng bút danh, không cần email
+  } else {
+    name = clean(b.name, MAX.name);
+    if (!name || name.length < 2) fail(400, 'Bạn để lại tên (2–40 ký tự) nhé.');
+    email = String(b.email || '').trim().toLowerCase();
+    if (email.length > 120 || !EMAIL_RE.test(email)) fail(400, 'Email chưa đúng, bạn kiểm tra lại nhé.');
+  }
   await publishedChapter(c, id);
-  await limit(c, 'cmt:' + u.id, 20, 3600, 'Bạn bình luận nhanh quá, nghỉ tay chút rồi viết tiếp nha.');
+  const ipk = await ipKey(c);
+  await limit(c, u ? 'cmt:' + u.id : 'cmt-ip:' + ipk, u ? 20 : 8, 3600, 'Bạn bình luận nhanh quá, nghỉ tay chút rồi viết tiếp nha.');
   const t = nowIso();
-  const r = await c.db.prepare('INSERT INTO comments (chapter_id, user_id, body, created) VALUES (?1, ?2, ?3, ?4)')
-    .bind(id, u.id, body, t).run();
-  return { comment: { id: r.meta.last_row_id, body, created: t, user: pubUser(u) } };
+  const r = await c.db.prepare(`INSERT INTO comments (chapter_id, user_id, name, email, ip, body, created)
+      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`).bind(id, u ? u.id : null, name, email, ipk, body, t).run();
+  return { comment: { id: r.meta.last_row_id, body, created: t, name, user: u ? { id: u.id, role: u.role } : null } };
 });
 
 route('DELETE', '/comments/:id', async (c) => {

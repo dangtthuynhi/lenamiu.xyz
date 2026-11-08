@@ -169,7 +169,7 @@
   .field { display: block; margin-bottom: 16px; }
   .field > span { display: block; margin-bottom: 6px; font-size: .9rem; font-weight: 600; }
   .field small { display: block; margin-top: 5px; color: var(--muted); font-size: .8rem; }
-  input[type="text"], input[type="password"], input[type="search"], select, textarea {
+  input[type="text"], input[type="password"], input[type="search"], input[type="email"], select, textarea {
     width: 100%; min-height: 44px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line);
     background: var(--surface); color: var(--text); font: inherit; font-size: 16px;
   }
@@ -306,6 +306,10 @@
   .cmt-head .del { margin-left: auto; border: 0; background: none; color: var(--muted); font: inherit; font-size: .8rem; cursor: pointer; }
   .cmt-head .del:hover { color: var(--danger); }
   .cmt-body { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .cmt-who { display: grid; gap: 0 12px; grid-template-columns: 1fr; }
+  .cmt-who .field { margin-bottom: 12px; }
+  @media (min-width: 560px) { .cmt-who { grid-template-columns: 1fr 1fr; } }
+  .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
   /* ---------- truyện của tôi / soạn truyện ---------- */
   .page-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0 18px; }
@@ -1018,10 +1022,12 @@
     const title = h('h2', null, 'Bình luận');
     const box = h('section', { class: 'comments', id: 'binh-luan' }, title, list);
     const item = (c) => {
-      const tagText = c.user.id === ch.story.authorId ? 'Tác giả' : c.user.role === 'admin' ? 'Người duyệt' : null;
-      const canDel = me && (me.id === c.user.id || me.id === ch.story.authorId || me.role === 'admin');
+      // nhãn chỉ gắn cho người đã đăng nhập (khách tự đặt tên nên không gắn được)
+      const tagText = !c.user ? null : c.user.id === ch.story.authorId ? 'Tác giả' : c.user.role === 'admin' ? 'Người duyệt' : null;
+      const canDel = me && ((c.user && me.id === c.user.id) || me.id === ch.story.authorId || me.role === 'admin');
       const li = h('li', { class: 'cmt' },
-        h('div', { class: 'cmt-head' }, h('b', null, c.user.name), tagText ? h('span', { class: 'badge b-acc' }, tagText) : null,
+        h('div', { class: 'cmt-head' }, h('b', null, c.name), tagText ? h('span', { class: 'badge b-acc' }, tagText) : null,
+          c.email ? h('span', { class: 'muted small', title: 'Chỉ người duyệt thấy email' }, c.email) : null,
           timeEl(c.created),
           canDel ? h('button', { type: 'button', class: 'del', onclick: async () => {
             if (!confirm('Xoá bình luận này?')) return;
@@ -1039,27 +1045,40 @@
       if (!d.comments.length) list.replaceChildren(h('li', { class: 'muted small', style: 'padding:6px 0 0' }, 'Chưa có bình luận nào. Bạn là người đầu tiên nhé!'));
     }).catch(() => list.replaceChildren(h('li', { class: 'muted small' }, 'Chưa tải được bình luận.')));
 
-    if (!me) {
-      box.append(h('p', { class: 'muted' }, h('a', { href: '#/dang-nhap?next=' + encodeURIComponent('/doc/' + ch.id) }, 'Đăng nhập'), ' để bình luận cho tác giả nha.'));
-      return box;
-    }
-    const ta = h('textarea', { rows: 3, maxlength: 1000, placeholder: 'Viết đôi lời cho tác giả…', 'aria-label': 'Bình luận' });
+    // Ô bình luận: khách để lại tên + email (nhớ trên máy cho lần sau). Đã đăng nhập thì dùng luôn bút danh.
+    const saved = ls.json('fic_commenter', {});
+    const nameIn = h('input', { type: 'text', maxlength: 40, autocomplete: 'name', required: true, value: saved.name || '' });
+    const emailIn = h('input', { type: 'email', maxlength: 120, autocomplete: 'email', required: true, value: saved.email || '' });
+    const trap = h('input', { type: 'text', name: 'website', tabindex: '-1', autocomplete: 'off' });   // ô bẫy máy spam
+    const ta = h('textarea', { rows: 3, maxlength: 1000, required: true, placeholder: 'Viết đôi lời cho tác giả…', 'aria-label': 'Bình luận' });
     const left = h('span', { class: 'muted small' }, '0/1.000');
     ta.addEventListener('input', () => { left.textContent = fmt(ta.value.length) + '/1.000'; });
     const send = h('button', { type: 'submit', class: 'btn primary sm' }, 'Gửi bình luận');
-    box.append(h('form', { onsubmit: async (e) => {
+    box.append(h('form', { class: 'cmt-form', onsubmit: async (e) => {
       e.preventDefault();
       if (!ta.value.trim()) return ta.focus();
       send.disabled = true;
       try {
-        const d = await api('/chapters/' + ch.id + '/comments', { method: 'POST', body: { body: ta.value } });
+        const body = { body: ta.value, website: trap.value };
+        if (!me) {
+          body.name = nameIn.value;
+          body.email = emailIn.value;
+          ls.put('fic_commenter', { name: nameIn.value.trim(), email: emailIn.value.trim() });
+        }
+        const d = await api('/chapters/' + ch.id + '/comments', { method: 'POST', body });
         if (!n) list.replaceChildren();
         list.append(item(d.comment));
         setCount(1);
         ta.value = ''; left.textContent = '0/1.000';
       } catch (err) { toast(err.message, true); }
       send.disabled = false;
-    } }, ta, h('div', { class: 'row', style: 'justify-content:space-between;margin-top:8px' }, left, send)));
+    } },
+      me ? h('p', { class: 'muted small', style: 'margin:0 0 8px' }, 'Bình luận với tên ', h('b', null, me.name))
+         : h('div', { class: 'cmt-who' },
+             h('label', { class: 'field' }, h('span', null, 'Tên'), nameIn),
+             h('label', { class: 'field' }, h('span', null, 'Email'), emailIn, h('small', null, 'Không hiện công khai.'))),
+      h('label', { class: 'hp', 'aria-hidden': 'true' }, 'Đừng điền ô này', trap),
+      ta, h('div', { class: 'row', style: 'justify-content:space-between;margin-top:8px' }, left, send)));
     return box;
   }
 
