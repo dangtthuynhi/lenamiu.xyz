@@ -28,6 +28,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400;1,600&display=swap"
       media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400;1,600&display=swap"></noscript>
+<!-- phần dùng chung mọi trang: đầu trang, dải chữ chạy, hộp donate (đi cùng ../site.js) -->
+<link rel="stylesheet" href="../site.css">
 <style>
   :root {
     color-scheme: light;
@@ -77,7 +79,7 @@
     -webkit-font-smoothing: antialiased;
   }
   .wrap {
-    max-width: 1040px; margin: 0 auto;
+    max-width: 1120px; margin: 0 auto;
     padding-left: max(16px, env(safe-area-inset-left));
     padding-right: max(16px, env(safe-area-inset-right));
   }
@@ -91,19 +93,7 @@
   .muted { color: var(--muted); }
   .small { font-size: .85rem; }
 
-  /* ---------- đầu trang ---------- */
-  .top {
-    display: flex; align-items: center; justify-content: space-between; gap: 8px 16px;
-    padding-top: 16px; padding-bottom: 14px;
-  }
-  .brand {
-    display: inline-flex; align-items: center; gap: 10px; min-width: 0;
-    font-size: 1.2rem; font-weight: 700; color: var(--text); text-decoration: none; white-space: nowrap;
-  }
-  .brand img { width: 30px; height: 30px; flex: none; }
-  .brand span { overflow: hidden; text-overflow: ellipsis; }
-  .brand b { color: var(--accent); }
-  .nav { display: flex; align-items: center; gap: 4px; flex: none; }
+  /* ---------- nút tài khoản ở góc đầu trang (đầu trang + dải chữ chạy dùng chung: ../site.css) ---------- */
   .nav-a {
     display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 6px 12px;
     border-radius: 999px; color: var(--text); text-decoration: none; font-size: .9rem; font-weight: 600;
@@ -130,10 +120,7 @@
   .me-name { max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
   @media (max-width: 560px) {
     .hide-sm { display: none; }
-    .top { gap: 8px; }
-    .brand { gap: 8px; }
-    .brand span { font-size: 1.05rem; }
-    .nav-a { padding: 6px 10px; }
+    .nav-a { padding: 6px 10px; min-height: 36px; }
     .me-name { max-width: 96px; }
   }
 
@@ -418,15 +405,16 @@
 </head>
 <body>
 <div class="progress" id="progress" hidden></div>
-<header class="top wrap">
-  <a class="brand" href="#/"><img src="../favicon.svg" alt="" width="30" height="30"><span>LenaMiu <b>Fanfic</b></span></a>
-  <nav class="nav" id="nav" aria-label="Trang"></nav>
-</header>
+<script>
+  // Dải chữ chạy + đầu trang + hộp donate: dùng chung với mọi trang (../site.js, cấu hình ở ../videos.js)
+  (function () { var v = Date.now(); document.write('<script src="../videos.js?v=' + v + '"><\/script><script src="../site.js?v=' + v + '"><\/script>'); })();
+</script>
 
 <main class="wrap" id="app" tabindex="-1"></main>
 
 <footer class="foot wrap">
   <p>Truyện do fan viết, thuộc về tác giả của từng truyện. Nhân vật dựa trên người thật: viết với sự tôn trọng nhé.</p>
+  <p data-donate-wrap hidden><a href="#" class="donate-link" data-donate></a></p>
   <p><a href="../">← Về trang video LenaMiu Vietsub</a></p>
 </footer>
 
@@ -448,7 +436,7 @@
   const ROLE = { admin: 'Người duyệt', trusted: 'Tin cậy', user: 'Thành viên' };
 
   const app = document.getElementById('app');
-  const nav = document.getElementById('nav');
+  const nav = document.getElementById('topExtra');      // chỗ trống ở cuối đầu trang dùng chung (site.js)
   const bar = document.getElementById('progress');
 
   /* ================= tiện ích ================= */
@@ -584,7 +572,7 @@
   const canPublish = () => me && (me.role === 'admin' || me.role === 'trusted');
 
   function renderNav() {
-    const items = [h('a', { class: 'nav-a hide-sm', href: '../' }, '🎬 Video')];
+    const items = [];                // 🎬 Video · 📖 Fanfic · 🍼 Nuôi Lumi đã có ở đầu trang dùng chung
     if (me) {
       // nút đăng truyện chỉ hiện khi đã đăng nhập
       items.push(h('a', { class: 'nav-a', href: '#/viet', title: 'Đăng truyện', 'aria-label': 'Đăng truyện' },
