@@ -1,0 +1,18 @@
+# Máy chủ trang Fanfic (tài khoản, truyện, duyệt, tim, bình luận). Chạy lệnh trong thư mục worker-fic/.
+#   Thử trong máy:   npx wrangler d1 execute lenamiu-fic --local --file schema.sql   (lần đầu)
+#                    npx wrangler dev --port 8789
+#   Đưa lên mạng:    npx wrangler d1 create lenamiu-fic   → dán database_id bên dưới
+#                    npx wrangler d1 execute lenamiu-fic --remote --file schema.sql
+#                    npx wrangler secret put FIC_SALT           (một chuỗi ngẫu nhiên bất kỳ)
+#                    npx wrangler secret put TURNSTILE_SECRET   (khoá bí mật Turnstile, chống tạo tài khoản ảo)
+#                    npx wrangler deploy
+# Cho tài khoản thành người duyệt:
+#   npx wrangler d1 execute lenamiu-fic --remote --command "UPDATE users SET role='admin' WHERE username='ten_dang_nhap'"
+name = "lenamiu-fic"
+main = "src/index.js"
+compatibility_date = "2025-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "lenamiu-fic"
+database_id = "c6c219fa-0cb5-4b16-88ab-d32d6be70ef9"
