@@ -809,7 +809,7 @@
         ? h('div', { class: 'hero' }, h('h1', null, 'Truyện của ' + authorName), h('p', null, h('a', { href: '#/' }, '← Xem tất cả truyện')))
         : h('div', { class: 'hero' },
             h('h1', null, 'Fanfic LenaMiu'),
-            h('p', null, 'Truyện do fan viết về Lena và Miu. Đọc miễn phí. Có tài khoản là đăng được, người duyệt xem qua rồi truyện sẽ hiện lên.'),
+            h('p', null, 'Truyện do fan viết về Lena và Miu'),
             h('a', { class: 'btn primary', href: me ? '#/viet' : '#/dang-nhap?next=' + encodeURIComponent('/viet') }, '✍️ Đăng truyện của bạn')),
       conts.length && !author ? [h('h2', { class: 'section-title' }, 'Đang đọc dở'), ...conts] : null,
       stories.length ? h('div', { class: 'tools' }, search, sort) : null,
