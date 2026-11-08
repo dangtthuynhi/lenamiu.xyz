@@ -91,6 +91,15 @@ window.VIETSUB = {
 
   videos: [
     {
+      title: 'Katanyu Tonight – Part 2',
+      video: 'katanyu-tonight-part-2.mp4',
+      youtube: '',
+      drive: '',
+      group: 'Katanyu Tonight',
+      date: '2026-11-08',
+      note: ''
+    },
+    {
       title: 'Katanyu Tonight – Part 1',
       video: 'katanyu-tonight-part-1.mp4',
       youtube: '',
