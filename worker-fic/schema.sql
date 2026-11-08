@@ -33,11 +33,24 @@ CREATE TABLE IF NOT EXISTS stories (
   edit_meta TEXT,                            -- (JSON) thông tin truyện đã sửa, đang chờ duyệt — truyện đã đăng của người chưa tin cậy
   note      TEXT    NOT NULL DEFAULT '',     -- lời nhắn của người duyệt (vd lý do từ chối bản sửa)
   reads     INTEGER NOT NULL DEFAULT 0,      -- lượt đọc (1 người / 1 truyện / 1 ngày)
+  cover     INTEGER NOT NULL DEFAULT 0,      -- phiên bản ảnh bìa đang hiện (mili giây lúc đổi ảnh), 0 = chưa có ảnh bìa
   created   TEXT    NOT NULL,
   updated   TEXT                             -- lần gần nhất có chương mới được đăng
 );
 CREATE INDEX IF NOT EXISTS stories_author ON stories (author_id);
 CREATE INDEX IF NOT EXISTS stories_status ON stories (status, updated);
+
+-- Ảnh bìa truyện: trình duyệt đã thu nhỏ về khổ 2:3 (tối đa 600×900), mỗi ảnh khoảng 50–150 KB.
+-- Để bảng riêng cho danh sách truyện khỏi phải đọc dữ liệu ảnh.
+-- (Database tạo trước khi có ảnh bìa: chạy thêm file nang-cap-anh-bia.sql một lần.)
+CREATE TABLE IF NOT EXISTS covers (
+  story_id INTEGER NOT NULL,
+  kind     TEXT    NOT NULL,                 -- 'live' (đang hiện) | 'pending' (ảnh mới chờ duyệt: truyện đã đăng của thành viên thường)
+  type     TEXT    NOT NULL,                 -- image/webp | image/jpeg | image/png
+  updated  INTEGER NOT NULL,                 -- mili giây
+  data     BLOB    NOT NULL,
+  PRIMARY KEY (story_id, kind)
+);
 
 CREATE TABLE IF NOT EXISTS chapters (
   id          INTEGER PRIMARY KEY,

@@ -201,11 +201,42 @@
   .section-title { margin: 26px 0 12px; font-size: 1.05rem; }
   .stories { display: grid; gap: 14px; grid-template-columns: 1fr; }
   @media (min-width: 760px) { .stories { grid-template-columns: 1fr 1fr; } }
+
+  /* ---------- ảnh bìa (khổ dọc 2:3) ---------- */
+  .cover {
+    position: relative; overflow: hidden; aspect-ratio: 2 / 3; width: 100%; border-radius: 10px;
+    background: var(--surface-2); box-shadow: 0 1px 2px rgba(0, 0, 0, .1), 0 8px 20px -10px rgba(0, 0, 0, .35);
+  }
+  .cover img, .cover canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
+  /* chưa có ảnh: bìa màu có tên truyện */
+  .cover.ph {
+    display: grid; place-items: center; padding: 14px 9px; text-align: center; color: #fff;
+    background: linear-gradient(155deg, var(--c1, #f4a6c1), var(--c2, #c2457d));
+  }
+  .cover.ph::after { content: "✦"; position: absolute; left: 0; right: 0; bottom: 6%; font-size: .62rem; opacity: .75; }
+  .cover.ph span {
+    font: 600 .8rem/1.3 "Lora", Georgia, serif; text-shadow: 0 1px 3px rgba(0, 0, 0, .25); overflow-wrap: anywhere;
+    display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  /* bìa nhỏ (Truyện của tôi, hàng chờ duyệt): chữ nhỏ, bỏ ngôi sao */
+  .mine .cover.ph, .q-story .cover.ph { padding: 8px 5px; }
+  .mine .cover.ph span, .q-story .cover.ph span { font-size: .6rem; -webkit-line-clamp: 4; overflow-wrap: normal; word-break: normal; }
+  .mine .cover.ph::after, .q-story .cover.ph::after { display: none; }
+  .cover.big.ph { padding: 24px 16px; }
+  .cover.big.ph span { font-size: 1.05rem; -webkit-line-clamp: 6; }
+  .cover-slot { position: relative; }
+  .cover-slot .flag {
+    position: absolute; left: 6px; top: 6px; padding: 1px 8px; border-radius: 999px; font-size: .7rem; font-weight: 700;
+    background: var(--warn, #b7791f); color: #fff;
+  }
+
   .story {
-    display: flex; flex-direction: column; gap: 8px; padding: 18px; border-radius: 16px;
+    display: grid; grid-template-columns: 86px minmax(0, 1fr); gap: 14px; align-items: start; padding: 16px; border-radius: 16px;
     background: var(--surface); border: 1px solid var(--line); color: var(--text); text-decoration: none;
     transition: border-color .15s ease, transform .15s ease;
   }
+  @media (min-width: 760px) { .story { grid-template-columns: 100px minmax(0, 1fr); padding: 18px; } }
+  .story .info { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   .story:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); transform: translateY(-1px); }
   .story h3 { margin: 0; font-size: 1.12rem; }
   .story .by { font-size: .86rem; color: var(--muted); }
@@ -224,7 +255,9 @@
   .cont span { font-size: .84rem; color: var(--muted); }
 
   /* ---------- trang truyện ---------- */
-  .story-head h1 { margin: 10px 0 6px; font-size: clamp(1.5rem, 4vw, 2rem); }
+  .story-head h1 { margin: 0 0 8px; font-size: clamp(1.4rem, 4vw, 2rem); overflow-wrap: anywhere; }
+  .story-top { display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: 16px; align-items: end; margin-top: 12px; }
+  @media (min-width: 600px) { .story-top { grid-template-columns: 168px minmax(0, 1fr); gap: 24px; } }
   .summary { white-space: pre-wrap; margin: 16px 0; }
   .toc { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
   .toc li { border-bottom: 1px solid var(--line); }
@@ -325,8 +358,15 @@
   .page-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0 18px; }
   .page-head h1 { margin: 0; font-size: 1.5rem; }
   .mine { display: grid; gap: 12px; }
-  .mine .card { padding: 16px; }
+  .mine .card { padding: 16px; display: grid; grid-template-columns: 60px minmax(0, 1fr); gap: 14px; align-items: start; }
   .mine h3 { margin: 0 0 6px; font-size: 1.05rem; }
+  /* ô chọn ảnh bìa */
+  .cover-field { display: flex; gap: 16px; align-items: flex-start; }
+  .cover-field .cover-slot { flex: none; width: 112px; }
+  .cover-field .ctl { display: flex; flex-direction: column; gap: 10px; min-width: 0; flex: 1; }
+  .cover-field .ctl small { color: var(--muted); font-size: .8rem; line-height: 1.5; }
+  .cover-field input[type=range] { width: 100%; accent-color: var(--accent); }
+  .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .ch-rows { list-style: none; margin: 0; padding: 0; }
   .ch-rows li {
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
@@ -388,6 +428,9 @@
   .diff dd { margin: 0; white-space: pre-wrap; }
   .diff del { color: var(--danger); }
   .diff ins { color: var(--ok); text-decoration: none; }
+  .cover-diff { display: flex; align-items: center; gap: 12px; margin: 10px 0; font-size: .85rem; color: var(--muted); }
+  .cover-diff .cover { width: 96px; flex: none; }
+  .q-story { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 14px; align-items: start; }
   .people { list-style: none; margin: 0; padding: 0; }
   .people li { padding: 14px 0; border-bottom: 1px solid var(--line); }
   .gate { max-width: 460px; margin: 40px auto; text-align: center; }
@@ -519,14 +562,16 @@
   let me = token ? ls.json('fic_me', null) : null;
   let queue = 0;
 
-  async function api(path, { method = 'GET', body } = {}) {
+  // raw: gửi thẳng một file (ảnh bìa) thay vì JSON
+  async function api(path, { method = 'GET', body, raw } = {}) {
     const headers = {};
     if (token) headers.Authorization = 'Bearer ' + token;
-    if (body !== undefined) headers['Content-Type'] = 'application/json';
+    if (raw) headers['Content-Type'] = raw.type || 'application/octet-stream';
+    else if (body !== undefined) headers['Content-Type'] = 'application/json';
     let r;
     try {
       r = await fetch(API + path, { method, headers, cache: 'no-store',
-                                    body: body === undefined ? undefined : JSON.stringify(body) });
+                                    body: raw || (body === undefined ? undefined : JSON.stringify(body)) });
     } catch (e) {
       throw new Error('Không kết nối được máy chủ, bạn kiểm tra mạng rồi thử lại nhé.');
     }
@@ -805,6 +850,171 @@
         h('a', { class: 'btn', href: '#/' }, 'Quay lại')));
   }
 
+  /* ================= ảnh bìa ================= */
+  // Bìa màu (khi truyện chưa có ảnh): chọn theo mã truyện để mỗi truyện giữ một màu
+  const PH_COLORS = [['#f4a6c1', '#c2457d'], ['#f7c59f', '#cf6440'], ['#b9a7ef', '#6a4cc2'],
+                     ['#9ad6cc', '#2c8c82'], ['#a8c6f3', '#3b69bf'], ['#e6b3dc', '#8d4aa3']];
+  const coverSrc = (s) => (s.cover ? API + '/covers/' + s.id + '?v=' + s.cover : null);
+  // Ảnh bìa của truyện. src: link ảnh (mặc định: ảnh công khai của truyện, null = không dùng);
+  // priv 'live' | 'pending': tải ảnh riêng của tác giả (truyện chưa đăng / ảnh đang chờ duyệt) bằng phiên đăng nhập.
+  // Truyện 18+ khi người xem chưa xác nhận đủ tuổi: chỉ hiện bìa màu.
+  function coverBox(s, { big = false, src, priv } = {}) {
+    const box = h('div', { class: 'cover' + (big ? ' big' : '') });
+    const ph = () => {
+      const [c1, c2] = PH_COLORS[Math.abs(Number(s.id) || 0) % PH_COLORS.length];
+      box.classList.add('ph');
+      box.style.setProperty('--c1', c1);
+      box.style.setProperty('--c2', c2);
+      fill(box, h('span', null, s.title || 'Truyện mới'));
+    };
+    const show = (url) => {
+      const img = h('img', { alt: '', decoding: 'async', loading: big ? null : 'lazy' });
+      img.addEventListener('error', ph, { once: true });
+      img.src = url;
+      box.classList.remove('ph');
+      fill(box, img);
+    };
+    const url = src === undefined ? coverSrc(s) : src;
+    if (!priv && !ageOk(s.rating)) ph();
+    else if (url) show(url);
+    else {
+      ph();
+      if (priv) privateCover(s.id, priv === 'pending').then((u) => { if (u) show(u); });
+    }
+    return box;
+  }
+  async function privateCover(id, pending) {
+    try {
+      const r = await fetch(API + '/my/stories/' + id + '/cover' + (pending ? '?pending=1' : ''),
+                            { headers: { Authorization: 'Bearer ' + token }, cache: 'no-store' });
+      if (!r.ok) return null;
+      const url = URL.createObjectURL(await r.blob());
+      cleanups.push(() => URL.revokeObjectURL(url));
+      return url;
+    } catch (e) { return null; }
+  }
+
+  // Ảnh tác giả chọn được cắt về khổ 2:3 và thu nhỏ còn tối đa 600×900 ngay trong trình duyệt (gửi lên chỉ ~50–150 KB)
+  const COVER_W = 600;
+  function loadImageFile(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Không mở được ảnh này, bạn thử ảnh JPG hoặc PNG khác nhé.')); };
+      img.src = url;
+    });
+  }
+  // Thu nhỏ trước một lần (mỗi lần giảm một nửa cho ảnh khỏi răng cưa) để kéo chỉnh vị trí cắt được mượt
+  function workingCopy(img) {
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    const k = Math.min(1, (COVER_W * 2) / Math.min(iw, ih * 2 / 3));
+    const tw = Math.max(1, Math.round(iw * k)), th = Math.max(1, Math.round(ih * k));
+    let src = img, w = iw, hh = ih;
+    const step = (nw, nh) => {
+      const c = document.createElement('canvas');
+      c.width = nw; c.height = nh;
+      const g = c.getContext('2d');
+      g.imageSmoothingQuality = 'high';
+      g.drawImage(src, 0, 0, nw, nh);
+      src = c; w = nw; hh = nh;
+    };
+    while (w / 2 > tw) step(Math.round(w / 2), Math.round(hh / 2));
+    if (w !== tw) step(tw, th);
+    return { src, w, h: hh, small: Math.min(iw, ih * 2 / 3) < 300 };
+  }
+  // pos 0–1: vị trí cắt theo chiều ảnh bị dư (ảnh ngang: trái → phải, ảnh dọc dài: trên → dưới)
+  function drawCover(canvas, work, pos) {
+    let sw = work.w, sh = work.h, sx = 0, sy = 0;
+    if (work.w * 3 > work.h * 2) { sw = work.h * 2 / 3; sx = (work.w - sw) * pos; } else { sh = work.w * 1.5; sy = (work.h - sh) * pos; }
+    const w = Math.max(1, Math.round(Math.min(COVER_W, sw)));
+    canvas.width = w;
+    canvas.height = Math.round(w * 1.5);
+    const g = canvas.getContext('2d');
+    g.fillStyle = '#fff';                                  // ảnh PNG trong suốt: lót nền trắng
+    g.fillRect(0, 0, canvas.width, canvas.height);
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(work.src, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+  }
+  const canvasToBlob = (canvas, type, q) => new Promise((resolve) => canvas.toBlob(resolve, type, q));
+  async function coverBlob(canvas) {
+    let b = await canvasToBlob(canvas, 'image/webp', 0.86);
+    if (!b || b.type !== 'image/webp') b = await canvasToBlob(canvas, 'image/jpeg', 0.86);   // Safari cũ không xuất được WebP
+    if (b && b.size > 380000) b = await canvasToBlob(canvas, 'image/jpeg', 0.72);
+    if (!b) throw new Error('Không xử lý được ảnh này, bạn thử ảnh khác nhé.');
+    return b;
+  }
+
+  // Ô "Ảnh bìa" trong form thông tin truyện. Ảnh chỉ được gửi lên khi bấm lưu form (save).
+  function coverPicker(st, titleInput) {
+    const state = { work: null, removed: false };
+    const had = !!(st && (st.cover || st.pendingCover));
+    const slot = h('div', { class: 'cover-slot' });
+    const canvas = h('canvas', { role: 'img', 'aria-label': 'Xem trước ảnh bìa' });
+    const file = h('input', { type: 'file', accept: 'image/*', class: 'vh', tabindex: '-1', 'aria-hidden': 'true' });
+    const pick = h('button', { type: 'button', class: 'btn sm', onclick: () => file.click() });
+    const remove = h('button', { type: 'button', class: 'btn sm danger', onclick: () => { state.work = null; state.removed = had; draw(); } }, 'Bỏ ảnh');
+    const sliderLbl = h('span');
+    const slider = h('input', { type: 'range', min: '0', max: '100', value: '50', step: '1' });
+    const sliderBox = h('label', { class: 'field', style: 'margin:0', hidden: true }, sliderLbl, slider);
+    const tip = h('small');
+
+    function draw() {
+      const hasNew = !!state.work, hasOld = had && !state.removed;
+      if (hasNew) fill(slot, h('div', { class: 'cover' }, canvas));
+      else if (hasOld && st.pendingCover) fill(slot, coverBox(st, { src: null, priv: 'pending' }), h('span', { class: 'flag' }, 'Chờ duyệt'));
+      else if (hasOld) fill(slot, coverBox(st, st.status === 'published' ? {} : { src: null, priv: 'live' }));
+      else fill(slot, coverBox({ id: st ? st.id : 0, title: titleInput.value.trim() }, { src: null }));
+      pick.textContent = hasNew || hasOld ? 'Đổi ảnh…' : 'Chọn ảnh…';
+      remove.hidden = !(hasNew || hasOld);
+      sliderBox.hidden = !hasNew || state.exact;
+      tip.textContent = hasNew
+        ? (state.work.small ? 'Ảnh hơi nhỏ nên bìa có thể bị mờ. ' : '') + 'Ảnh sẽ được lưu khi bạn bấm nút lưu bên dưới.'
+        : 'Ảnh dọc tỉ lệ 2:3 (vd 600×900) là đẹp nhất. Ảnh khác tỉ lệ sẽ được cắt, bạn kéo thanh để chọn phần giữ lại.';
+    }
+    file.addEventListener('change', async () => {
+      const f = file.files[0];
+      file.value = '';
+      if (!f) return;
+      if (f.type && !/^image\//.test(f.type)) return toast('Bạn chọn file ảnh nhé (JPG, PNG, WebP).', true);
+      if (f.size > 30e6) return toast('Ảnh nặng quá (trên 30 MB), bạn chọn ảnh nhỏ hơn nhé.', true);
+      try {
+        const img = await loadImageFile(f);
+        const ratio = img.naturalWidth / img.naturalHeight;
+        state.work = workingCopy(img);
+        state.exact = Math.abs(ratio - 2 / 3) < 0.02;
+        state.removed = false;
+        sliderLbl.textContent = ratio > 2 / 3 ? 'Dịch ảnh sang trái / phải' : 'Dịch ảnh lên / xuống';
+        slider.value = '50';
+        drawCover(canvas, state.work, 0.5);
+        draw();
+      } catch (e) { toast(e.message, true); }
+    });
+    let raf = 0;
+    slider.addEventListener('input', () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => { if (state.work) drawCover(canvas, state.work, slider.value / 100); });
+    });
+    // bìa màu đổi theo tên truyện đang gõ
+    titleInput.addEventListener('input', () => { if (!state.work && !(had && !state.removed)) draw(); });
+    draw();
+
+    return {
+      el: h('div', { class: 'field' }, h('span', null, 'Ảnh bìa'),
+        h('div', { class: 'cover-field' }, slot,
+          h('div', { class: 'ctl' }, h('div', { class: 'row' }, pick, remove), sliderBox, tip, file))),
+      // gửi ảnh lên sau khi đã lưu truyện; trả true nếu ảnh mới đang chờ duyệt
+      async save(id) {
+        if (state.work) {
+          const d = await api('/my/stories/' + id + '/cover', { method: 'PUT', raw: await coverBlob(canvas) });
+          return !!d.pending;
+        }
+        if (state.removed) await api('/my/stories/' + id + '/cover', { method: 'DELETE' });
+        return false;
+      }
+    };
+  }
+
   /* ================= định tuyến ================= */
   let seq = 0;
   let cleanups = [];
@@ -940,15 +1150,17 @@
   }
   function storyCard(s) {
     return h('a', { class: 'story', href: '#/truyen/' + s.id },
-      h('h3', null, s.title),
-      h('div', { class: 'row' }, h('span', { class: 'by' }, 'của ' + s.author.name), ratingBadge(s.rating),
-        s.done ? h('span', { class: 'badge b-ok' }, 'Hoàn') : h('span', { class: 'badge' }, 'Đang viết')),
-      s.summary ? h('p', { class: 'sum' }, s.summary) : null,
-      s.tags.length ? h('div', { class: 'tags' }, s.tags.map((t) => h('span', { class: 'tag' }, t))) : null,
-      h('div', { class: 'stats' },
-        h('span', null, s.chapters + ' chương'), h('span', null, fmt(s.words) + ' chữ'),
-        h('span', { title: 'Lượt đọc' }, '👁 ' + fmt(s.reads)), h('span', { title: 'Tim' }, '💗 ' + fmt(s.hearts)),
-        h('span', null, 'cập nhật ' + ago(s.updated))));
+      coverBox(s),
+      h('div', { class: 'info' },
+        h('h3', null, s.title),
+        h('div', { class: 'row' }, h('span', { class: 'by' }, 'của ' + s.author.name), ratingBadge(s.rating),
+          s.done ? h('span', { class: 'badge b-ok' }, 'Hoàn') : h('span', { class: 'badge' }, 'Đang viết')),
+        s.summary ? h('p', { class: 'sum' }, s.summary) : null,
+        s.tags.length ? h('div', { class: 'tags' }, s.tags.map((t) => h('span', { class: 'tag' }, t))) : null,
+        h('div', { class: 'stats' },
+          h('span', null, s.chapters + ' chương'), h('span', null, fmt(s.words) + ' chữ'),
+          h('span', { title: 'Lượt đọc' }, '👁 ' + fmt(s.reads)), h('span', { title: 'Tim' }, '💗 ' + fmt(s.hearts)),
+          h('span', null, 'cập nhật ' + ago(s.updated)))));
   }
 
   /* ================= trang truyện ================= */
@@ -970,10 +1182,13 @@
     ctx.mount(h('article', { class: 'narrow', style: 'margin:0 auto' },
       h('div', { class: 'story-head' },
         h('a', { href: '#/', class: 'small' }, '← Tất cả truyện'),
-        h('h1', null, s.title),
-        h('div', { class: 'row' },
-          h('span', null, 'của ', h('a', { href: '#/?tac-gia=' + encodeURIComponent(s.author.username) }, s.author.name)),
-          ratingBadge(s.rating), s.done ? h('span', { class: 'badge b-ok' }, 'Hoàn') : h('span', { class: 'badge' }, 'Đang viết'))),
+        h('div', { class: 'story-top' },
+          coverBox(s, { big: true }),
+          h('div', null,
+            h('h1', null, s.title),
+            h('div', { class: 'row' },
+              h('span', null, 'của ', h('a', { href: '#/?tac-gia=' + encodeURIComponent(s.author.username) }, s.author.name)),
+              ratingBadge(s.rating), s.done ? h('span', { class: 'badge b-ok' }, 'Hoàn') : h('span', { class: 'badge' }, 'Đang viết'))))),
       s.summary ? h('p', { class: 'summary' }, s.summary) : null,
       s.tags.length ? h('div', { class: 'tags', style: 'margin-bottom:14px' },
         s.tags.map((t) => h('a', { class: 'tag', href: '#/?the=' + encodeURIComponent(t) }, t))) : null,
@@ -1311,14 +1526,16 @@
       !canPublish() ? h('p', { class: 'notice' }, 'Truyện và chương mới của bạn sẽ được người duyệt xem qua trước khi hiện lên trang (thường trong ngày).') : null,
       stories.length
         ? h('div', { class: 'mine' }, stories.map((s) => h('div', { class: 'card' },
-            h('div', { class: 'row', style: 'justify-content:space-between' }, h('h3', null, s.title), badge(s.status)),
-            h('p', { class: 'muted small', style: 'margin:0 0 6px' }, sumLine(s) + (s.status === 'published' ? ' · 👁 ' + fmt(s.reads) + ' · 💗 ' + fmt(s.hearts) : '')),
-            s.rejected ? h('p', { class: 'small', style: 'margin:0 0 6px;color:var(--danger)' }, s.rejected + ' mục bị từ chối, mở "Quản lý" để xem lý do.') : null,
-            s.metaWaiting ? h('p', { class: 'small', style: 'margin:0 0 6px;color:var(--warn)' }, 'Thông tin truyện đã sửa đang chờ duyệt.') : null,
-            h('div', { class: 'row', style: 'margin-top:10px' },
-              h('a', { class: 'btn sm primary', href: '#/truyen/' + s.id + '/sua' }, 'Quản lý'),
-              h('a', { class: 'btn sm', href: '#/truyen/' + s.id + '/chuong-moi' }, '+ Chương mới'),
-              s.status === 'published' && s.published ? h('a', { class: 'btn sm', href: '#/truyen/' + s.id }, 'Xem trên trang') : null))))
+            coverBox(s, { src: null, priv: s.cover ? 'live' : null }),
+            h('div', null,
+              h('div', { class: 'row', style: 'justify-content:space-between' }, h('h3', null, s.title), badge(s.status)),
+              h('p', { class: 'muted small', style: 'margin:0 0 6px' }, sumLine(s) + (s.status === 'published' ? ' · 👁 ' + fmt(s.reads) + ' · 💗 ' + fmt(s.hearts) : '')),
+              s.rejected ? h('p', { class: 'small', style: 'margin:0 0 6px;color:var(--danger)' }, s.rejected + ' mục bị từ chối, mở "Quản lý" để xem lý do.') : null,
+              s.metaWaiting ? h('p', { class: 'small', style: 'margin:0 0 6px;color:var(--warn)' }, 'Thông tin truyện đã sửa đang chờ duyệt.') : null,
+              h('div', { class: 'row', style: 'margin-top:10px' },
+                h('a', { class: 'btn sm primary', href: '#/truyen/' + s.id + '/sua' }, 'Quản lý'),
+                h('a', { class: 'btn sm', href: '#/truyen/' + s.id + '/chuong-moi' }, '+ Chương mới'),
+                s.status === 'published' && s.published ? h('a', { class: 'btn sm', href: '#/truyen/' + s.id }, 'Xem trên trang') : null)))))
         : h('div', { class: 'empty card' }, h('p', null, 'Bạn chưa có truyện nào.'), h('a', { class: 'btn primary', href: '#/viet' }, 'Viết truyện đầu tiên')));
   }
 
@@ -1335,6 +1552,7 @@
     const tags = h('input', { type: 'text', value: (src.tags || []).join(', '), placeholder: 'vd: ngọt, học đường, AU, oneshot' });
     const rating = h('select', null, Object.entries(RATING).map(([v, t]) => h('option', { value: v, selected: (src.rating || 'all') === v }, t)));
     const done = h('input', { type: 'checkbox', checked: !!(st && st.done) });
+    const cover = coverPicker(st, title);
     const btn = h('button', { type: 'submit', class: 'btn primary' }, st ? 'Lưu thông tin' : 'Tiếp tục: viết chương 1 →');
     const form = h('form', { class: 'card', onsubmit: async (e) => {
       e.preventDefault();
@@ -1343,16 +1561,22 @@
       try {
         if (st) {
           const d = await api('/my/stories/' + st.id, { method: 'PUT', body });
-          toast(d.pending ? 'Đã gửi thông tin mới, chờ người duyệt xem nhé.' : 'Đã lưu thông tin truyện.');
           listCache = null;
+          try {
+            const coverWait = await cover.save(st.id);
+            toast(d.pending || coverWait ? 'Đã gửi thông tin mới, chờ người duyệt xem nhé.' : 'Đã lưu thông tin truyện.');
+          } catch (e3) { toast('Đã lưu thông tin nhưng chưa lưu được ảnh bìa: ' + e3.message, true); }
           render();
         } else {
           const d = await api('/my/stories', { method: 'POST', body });
+          try { await cover.save(d.id); }
+          catch (e3) { toast('Đã tạo truyện nhưng chưa lưu được ảnh bìa (' + e3.message + '). Bạn thêm lại ở mục Quản lý nhé.', true); }
           go('/truyen/' + d.id + '/chuong-moi');
         }
       } catch (e2) { toast(e2.message, true); btn.disabled = false; }
     } },
       h('label', { class: 'field' }, h('span', null, 'Tên truyện'), title),
+      cover.el,
       h('label', { class: 'field' }, h('span', null, 'Tóm tắt'), summary),
       h('label', { class: 'field' }, h('span', null, 'Thẻ'), tags, h('small', null, 'Ngăn cách bằng dấu phẩy, tối đa 8 thẻ. Người đọc bấm vào thẻ để tìm truyện cùng loại.')),
       h('div', { class: 'row', style: 'gap:16px;margin-bottom:16px' },
@@ -1389,8 +1613,8 @@
       h('a', { href: '#/cua-toi', class: 'small' }, '← Truyện của tôi'),
       h('div', { class: 'page-head' }, h('h1', null, st.title), badge(st.status)),
       st.status === 'hidden' ? h('p', { class: 'notice bad' }, 'Người duyệt đã ẩn truyện này' + (st.note ? ': ' + st.note : '.')) : null,
-      st.pendingMeta ? h('p', { class: 'notice warn' }, 'Thông tin bạn sửa đang chờ duyệt. Trên trang vẫn hiện thông tin cũ cho tới khi được duyệt.') : null,
-      !st.pendingMeta && st.note && st.status !== 'hidden' ? h('p', { class: 'notice bad' }, 'Thông tin sửa lần trước không được duyệt: ' + st.note) : null,
+      st.pendingMeta || st.pendingCover ? h('p', { class: 'notice warn' }, 'Thông tin bạn sửa đang chờ duyệt. Trên trang vẫn hiện thông tin cũ cho tới khi được duyệt.') : null,
+      !st.pendingMeta && !st.pendingCover && st.note && st.status !== 'hidden' ? h('p', { class: 'notice bad' }, 'Thông tin sửa lần trước không được duyệt: ' + st.note) : null,
       st.status === 'draft' && data.chapters.length ? h('p', { class: 'notice' }, 'Truyện chưa gửi duyệt. Mở một chương và bấm "' + (data.canPublish ? 'Đăng ngay' : 'Gửi duyệt') + '" để gửi.') : null,
       h('div', { class: 'page-head', style: 'margin-top:8px' }, h('h2', { style: 'margin:0;font-size:1.15rem' }, 'Các chương'),
         h('a', { class: 'btn primary sm', href: '#/truyen/' + st.id + '/chuong-moi' }, '+ Viết chương mới')),
@@ -1669,19 +1893,28 @@
       if (it.kind === 'meta') {
         const rows = [];
         const diff = (label, a, b) => { if ((a || '') !== (b || '')) rows.push(h('dt', null, label), h('dd', null, h('del', null, a || '(trống)'), h('br'), h('ins', null, b || '(trống)'))); };
-        diff('Tên', s.title, it.next.title);
-        diff('Tóm tắt', s.summary, it.next.summary);
-        diff('Thẻ', s.tags.join(', '), (it.next.tags || []).join(', '));
-        diff('Độ tuổi', RATING[s.rating], RATING[it.next.rating]);
-        content = [h('h3', null, s.title), h('dl', { class: 'diff' }, rows)];
+        if (it.next) {
+          diff('Tên', s.title, it.next.title);
+          diff('Tóm tắt', s.summary, it.next.summary);
+          diff('Thẻ', s.tags.join(', '), (it.next.tags || []).join(', '));
+          diff('Độ tuổi', RATING[s.rating], RATING[it.next.rating]);
+        }
+        content = [
+          h('h3', null, s.title),
+          it.nextCover ? h('div', { class: 'cover-diff' },
+            coverBox(s, { src: null, priv: s.cover ? 'live' : null }), h('span', null, '→ ảnh bìa mới'),
+            coverBox(s, { src: null, priv: 'pending' })) : null,
+          rows.length ? h('dl', { class: 'diff' }, rows) : null];
       } else {
         content = [
           h('h3', null, s.title),
           h('p', { class: 'small', style: 'margin:0' }, 'Chương ' + it.pos + ': ' + (it.title || '(không tên)') +
             (it.kind === 'edit' && it.oldTitle !== it.title ? ' (tên cũ: ' + (it.oldTitle || 'không tên') + ')' : '') + ' · ' + fmt(it.words) + ' chữ'),
-          it.kind === 'story' ? h('div', { style: 'margin-top:8px' },
-            h('div', { class: 'row' }, ratingBadge(s.rating) || h('span', { class: 'badge' }, RATING.all), s.tags.map((t) => h('span', { class: 'tag' }, t))),
-            s.summary ? h('p', { class: 'small muted', style: 'white-space:pre-wrap;margin:6px 0 0' }, s.summary) : null) : null,
+          it.kind === 'story' ? h('div', { class: s.cover ? 'q-story' : null, style: 'margin-top:8px' },
+            s.cover ? coverBox(s, { src: null, priv: 'live' }) : null,
+            h('div', null,
+              h('div', { class: 'row' }, ratingBadge(s.rating) || h('span', { class: 'badge' }, RATING.all), s.tags.map((t) => h('span', { class: 'tag' }, t))),
+              s.summary ? h('p', { class: 'small muted', style: 'white-space:pre-wrap;margin:6px 0 0' }, s.summary) : null)) : null,
           h('details', null, h('summary', null, it.kind === 'edit' ? 'Đọc bản sửa' : 'Đọc nội dung'), h('div', { class: 'prose' }, renderBody(it.body)))
         ];
       }
