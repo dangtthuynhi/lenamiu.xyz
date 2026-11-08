@@ -373,7 +373,39 @@
     margin-left: 6px; padding: 2px 10px; font: inherit; font-size: .8rem; font-weight: 600; cursor: pointer;
     border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--text);
   }
+  /* dải chữ chạy ở trên cùng trang */
+  .ticker {
+    display: block; overflow: hidden; white-space: nowrap; padding: 7px 0;
+    background: linear-gradient(90deg, var(--team-a), var(--team-b)); color: #fff;
+    font-size: .85rem; font-weight: 700; text-decoration: none;
+  }
+  .ticker:focus-visible { outline: 3px solid var(--text); outline-offset: -3px; }
+  .ticker-track { display: inline-flex; animation: ticker var(--dur, 40s) linear infinite; will-change: transform; }
+  .ticker-item { padding-right: 56px; }
+  .ticker:hover .ticker-track, .ticker:focus-visible .ticker-track { animation-play-state: paused; }
+  .ticker.flash { animation: ticker-flash .5s ease 4; }
+  @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes ticker-flash { 50% { filter: brightness(1.35) saturate(1.3); } }
+
+  /* tung bông tung hoa khi có người donate (cho cả trang) */
+  .confetti { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 10000; pointer-events: none; }
+  .cele-banner {
+    position: fixed; top: 18px; left: 50%; z-index: 10001; max-width: calc(100% - 24px);
+    padding: 10px 20px; border-radius: 999px; color: #fff; font-size: 1rem; font-weight: 800;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none;
+    box-shadow: 0 12px 30px -10px rgba(0, 0, 0, .45); transform: translateX(-50%);
+    animation: cele-in .55s cubic-bezier(.2, 1.4, .4, 1), cele-out .4s ease 4.8s forwards;
+  }
+  .cele-banner.a { background: linear-gradient(90deg, #ff7aa8, var(--team-a)); }
+  .cele-banner.b { background: linear-gradient(90deg, var(--team-b), #a98bff); }
+  @keyframes cele-in { from { opacity: 0; transform: translate(-50%, -30px) scale(.7); } }
+  @keyframes cele-out { to { opacity: 0; transform: translate(-50%, -20px); } }
+
   @media (prefers-reduced-motion: reduce) {
+    .ticker-track { animation: none; }
+    .ticker-item + .ticker-item { display: none; }
+    .ticker { white-space: normal; padding-left: 16px; padding-right: 16px; }
+    .ticker.flash, .cele-banner { animation: none; }
     .pk-fill::after, .pk-spark, .pk-vs, .pk-side.lead .crown, .pk.hit .pk-bar,
     .pk.hit-a .pk-side.a .pk-pct, .pk.hit-b .pk-side.b .pk-pct { animation: none; }
     .pk-fill.a, .pk-spark { transition: none; }
@@ -400,6 +432,11 @@
 </style>
 </head>
 <body>
+
+<!-- dải chữ chạy: tỉ lệ PK, lượt donate gần nhất, rủ tiếp sức. Bấm vào là mở hộp chọn phe -->
+<a class="ticker" id="ticker" href="#lumi" hidden>
+  <span class="ticker-track" aria-hidden="true"><span class="ticker-item" id="tickerA"></span><span class="ticker-item" id="tickerB"></span></span>
+</a>
 
 <header class="top wrap">
   <a class="brand" href="./"><img src="favicon.svg" alt="" width="32" height="32"><span>LenaMiu <b>Vietsub</b></span></a>
@@ -801,6 +838,9 @@
     let seen = null;          // id các lượt đã thấy, để nhận ra lượt mới vừa vào
     let newsTimer = 0;
     let preloaded = false;    // đã tải sẵn ảnh QR hai phe chưa
+    let pkFast = false;       // hộp donate đang mở → hỏi máy chủ PK nhanh hơn
+    let lastPk = null;        // số liệu PK mới nhất
+    let tickerText = '';
 
     openDonate = () => {
       if (typeof dd.showModal === 'function') { if (!dd.open) dd.showModal(); }
@@ -844,7 +884,9 @@
         $('dMemoCopy').textContent = 'Đã chép ✓';
         setTimeout(() => { $('dMemoCopy').textContent = 'Chép'; }, 2000);
       });
+      $('ticker').addEventListener('click', (e) => { e.preventDefault(); openDonate(); });
       showButtons();
+      pkSchedule(0);                    // bắt đầu theo dõi PK cho cả trang (dải chữ chạy + tung hoa)
     }
 
     function renderQr() {
@@ -928,32 +970,64 @@
       }
     }
 
-    function pkStart() {
-      if (!PK_API || pkTimer) return;
-      pkFetch();
-      pkTimer = setInterval(() => { if (!document.hidden) pkFetch(); }, 5000);
+    /* --- hỏi máy chủ PK cho cả trang: 30 giây/lần, 5 giây/lần khi hộp donate đang mở,
+           ngừng khi người xem chuyển qua tab khác (đỡ tốn lượt gọi miễn phí) --- */
+    function pkSchedule(ms) {
+      clearTimeout(pkTimer);
+      if (PK_API && AUTO_QR) pkTimer = setTimeout(pkTick, ms);
     }
-    function pkStop() { clearInterval(pkTimer); pkTimer = 0; }
-    async function pkFetch() {
-      try {
-        const r = await fetch(PK_API + '/pk', { cache: 'no-store' });
-        if (r.ok) renderPk(await r.json());
-      } catch (e) { /* mạng chập chờn: giữ số cũ, lần sau hỏi lại */ }
+    async function pkTick() {
+      if (!document.hidden) {
+        try {
+          const r = await fetch(PK_API + '/pk', { cache: 'no-store' });
+          if (r.ok) onPk(await r.json());
+        } catch (e) { /* mạng chập chờn: giữ số cũ, lần sau hỏi lại */ }
+      }
+      pkSchedule(pkFast ? 5000 : 30000);
     }
-    function renderPk(d) {
+    function pkStart() {               // mở hộp donate: vẽ ngay số đang có, rồi hỏi nhanh hơn
+      pkFast = true;
+      if (lastPk) renderPk(lastPk, []);
+      pkSchedule(0);
+    }
+    function pkStop() { pkFast = false; }
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) pkSchedule(0); });
+
+    function onPk(d) {
+      lastPk = d;
+      const recent = Array.isArray(d && d.recent) ? d.recent : [];
+      const fresh = seen ? recent.filter((x) => !seen.has(x.id)) : [];   // lần đầu tải trang: chưa tính là mới
+      seen = new Set([...(seen || []), ...recent.map((x) => x.id)]);
+      renderTicker(d);
+      if (dd.open) renderPk(d, fresh);
+      // Chỉ tung hoa cho lượt vừa vào trong vài phút (quay lại tab sau lâu thì thôi, khỏi báo "vừa" sai)
+      if (fresh.length && minutesAgo(fresh[0].at) < 10) celebrate(fresh[0].team);
+    }
+
+    function minutesAgo(at) {
+      const t = new Date(String(at || '').replace(' ', 'T') + '+07:00');
+      return isNaN(t) ? Infinity : (Date.now() - t.getTime()) / 60000;
+    }
+
+    // % mỗi phe (máy chủ bản cũ còn trả số tiền thì tự tính %)
+    function pkNums(d) {
       const t = (d && d.teams) || {};
       const A = t.LenaMiu || {};
       const B = t.MiuLena || {};
       let pa;
       let started;
       if (typeof A.pct === 'number') { pa = A.pct; started = !!d.started; }
-      else {                                   // máy chủ bản cũ còn trả số tiền: tự tính %
+      else {
         const a = Number(A.total) || 0, b = Number(B.total) || 0;
         pa = a + b ? (a / (a + b)) * 100 : 50;
         started = a + b > 0;
       }
       pa = Math.min(100, Math.max(0, Math.round(pa * 10) / 10));
-      const pb = Math.round((100 - pa) * 10) / 10;
+      return { pa, pb: Math.round((100 - pa) * 10) / 10, started };
+    }
+
+    function renderPk(d, fresh) {
+      const { pa, pb, started } = pkNums(d);
 
       // Thanh: phe nào có lượt thì vẫn chừa ít nhất 3% bề ngang cho thấy được
       const w = pa > 0 && pa < 3 ? 3 : pa < 100 && pa > 97 ? 97 : pa;
@@ -966,8 +1040,6 @@
         : 'LenaMiu ' + fmtPct(pa) + ', MiuLena ' + fmtPct(pb));
 
       const recent = Array.isArray(d && d.recent) ? d.recent : [];
-      const fresh = seen ? recent.filter((x) => !seen.has(x.id)) : [];
-      seen = new Set([...(seen || []), ...recent.map((x) => x.id)]);
       if (fresh.length) {
         const x = fresh[0];
         $('pkNews').setAttribute('aria-live', 'polite');   // chỉ đọc to khi có lượt mới
@@ -993,7 +1065,8 @@
 
     // Câu báo lượt donate gần nhất, viết như câu nói bình thường. Giờ theo giờ Việt Nam
     // (SePay ghi dạng "2026-11-08 10:21:51"), đúng cả khi máy người xem ở múi giờ khác.
-    function lastText(x) {
+    // fixed = true: luôn ghi giờ cụ thể (dải chữ chạy dùng, để chữ khỏi đổi mỗi phút làm giật)
+    function lastText(x, fixed) {
       const icon = x.team === 'LenaMiu' ? '💗 ' : '💜 ';
       const t = new Date(String(x.at || '').replace(' ', 'T') + '+07:00');
       if (isNaN(t)) return icon + 'Lần donate gần nhất là cho phe ' + x.team;
@@ -1002,11 +1075,124 @@
       const two = (n) => String(n).padStart(2, '0');
       const hm = two(v.getUTCHours()) + ':' + two(v.getUTCMinutes());
       const mins = Math.floor((Date.now() - t.getTime()) / 60000);
-      if (mins < 1) return icon + 'Phe ' + x.team + ' vừa được donate xong!';
-      if (mins < 60) return icon + 'Phe ' + x.team + ' vừa được donate cách đây ' + mins + ' phút';
+      if (!fixed && mins < 1) return icon + 'Phe ' + x.team + ' vừa được donate xong!';
+      if (!fixed && mins < 60) return icon + 'Phe ' + x.team + ' vừa được donate cách đây ' + mins + ' phút';
       const today = v.toISOString().slice(0, 10) === vn(new Date()).toISOString().slice(0, 10);
       return icon + 'Lần donate gần nhất là cho phe ' + x.team + ', lúc ' + hm +
              (today ? ' hôm nay' : ' ngày ' + two(v.getUTCDate()) + '/' + two(v.getUTCMonth() + 1));
+    }
+
+    /* --- dải chữ chạy ở trên cùng trang: tỉ lệ PK + lượt donate gần nhất + rủ tiếp sức --- */
+    function renderTicker(d) {
+      const tk = $('ticker');
+      const { pa, pb, started } = pkNums(d);
+      const recent = Array.isArray(d && d.recent) ? d.recent : [];
+      const parts = [label + ': LenaMiu ' + fmtPct(pa) + ' ⚡ ' + fmtPct(pb) + ' MiuLena'];
+      if (recent[0]) parts.push(lastText(recent[0], true));
+      if (!started) parts.push('Chưa ai mở màn, bạn làm người đầu tiên nha!');
+      else if (Math.abs(pa - pb) < 5) parts.push('🔥 Hai phe đang sát nút, ai sẽ thắng đây?');
+      else {
+        const behind = pa < pb ? 'LenaMiu' : 'MiuLena';
+        const icon = behind === 'LenaMiu' ? '💗' : '💜';
+        parts.push(Math.abs(pa - pb) < 15
+          ? icon + ' Phe ' + behind + ' đang bị dẫn trước, tiếp sức để lật kèo nào!'
+          : icon + ' Phe ' + behind + ' ơi, đang bị bỏ xa rồi, tiếp sức ngay nào!');
+      }
+      parts.push('👉 Bấm vào đây, chọn phe rồi quét mã để tiếp sức nha');
+      const text = parts.join('     ✦     ');
+      if (text === tickerText) return;            // chữ không đổi thì để yên, khỏi giật
+      tickerText = text;
+      $('tickerA').textContent = text;
+      $('tickerB').textContent = text;            // chép 2 lần để chạy vòng liền mạch
+      tk.setAttribute('aria-label', parts.join('. '));
+      tk.hidden = false;
+      // chữ dài hay ngắn cũng chạy cùng tốc độ, khoảng 70px mỗi giây
+      requestAnimationFrame(() => tk.style.setProperty('--dur', Math.max(15, $('tickerA').offsetWidth / 70) + 's'));
+    }
+
+    /* --- tung bông tung hoa cho phe vừa được donate --- */
+    function celebrate(t) {
+      // Hộp donate đang mở (nằm lớp trên cùng) thì vẽ bên trong hộp, không thì vẽ trên cả trang
+      const host = dd.open ? dd : document.body;
+      const banner = el('div', 'cele-banner ' + (t === 'LenaMiu' ? 'a' : 'b'),
+                        '🎉 Phe ' + t + ' vừa được tiếp sức! ' + (t === 'LenaMiu' ? '💗' : '💜'));
+      banner.setAttribute('role', 'status');
+      host.append(banner);
+      setTimeout(() => banner.remove(), 5400);
+      const tk = $('ticker');
+      tk.classList.remove('flash'); void tk.offsetWidth; tk.classList.add('flash');
+      if (!reduced) confetti(host, t);
+    }
+
+    function confetti(host, t) {
+      const cv = document.createElement('canvas');
+      cv.className = 'confetti';
+      cv.setAttribute('aria-hidden', 'true');
+      const W = innerWidth, H = innerHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
+      cv.width = W * dpr; cv.height = H * dpr;
+      host.append(cv);
+      const g = cv.getContext('2d');
+      g.scale(dpr, dpr);
+      const colors = t === 'LenaMiu' ? ['#ff7aa8', '#d63a78', '#ffc2d6', '#ffffff', '#ffd166']
+                                     : ['#8c62ee', '#b89cff', '#6a3fd8', '#ffffff', '#ffd166'];
+      const emojis = t === 'LenaMiu' ? ['🌸', '💗', '🌷', '💐'] : ['💜', '🌸', '💐', '✨'];
+      const rand = (a, b) => a + Math.random() * (b - a);
+      const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+      const P = [];
+      const add = (x, y, vx, vy, emoji) => P.push({
+        x, y, vx, vy, rot: rand(0, 6.28), vr: rand(-0.2, 0.2), flip: rand(0, 6.28), phase: rand(0, 6.28),
+        w: rand(7, 13), h: rand(4, 8), color: pick(colors), shape: Math.random() < 0.3 ? 'dot' : 'rect',
+        emoji: emoji ? pick(emojis) : '', size: rand(18, 30)
+      });
+      // Pháo bắn chéo lên từ 2 góc dưới
+      const n = W < 600 ? 55 : 85;
+      for (let i = 0; i < n; i++) {
+        const sL = rand(11, 21) * (H / 800 + 0.4), aL = rand(-1.4, -0.85);
+        add(0, H, Math.cos(aL) * sL, Math.sin(aL) * sL, i % 7 === 0);
+        const sR = rand(11, 21) * (H / 800 + 0.4), aR = rand(-2.3, -1.75);
+        add(W, H, Math.cos(aR) * sR, Math.sin(aR) * sR, i % 7 === 0);
+      }
+      // Hoa + pháo giấy rơi từ trên xuống
+      for (let i = 0; i < (W < 600 ? 22 : 36); i++) add(rand(0, W), rand(-H * 0.5, -20), rand(-1, 1), rand(1, 3), i % 3 === 0);
+
+      const start = performance.now();
+      let prev = start;
+      const step = (now) => {
+        const dt = Math.min(3, (now - prev) / 16.7);   // máy 120Hz hay 60Hz cũng rơi cùng tốc độ
+        prev = now;
+        const age = now - start;
+        g.clearRect(0, 0, W, H);
+        g.globalAlpha = age > 4200 ? Math.max(0, 1 - (age - 4200) / 800) : 1;
+        let alive = 0;
+        for (const p of P) {
+          p.vx *= Math.pow(0.985, dt);
+          p.vy = p.vy * Math.pow(0.985, dt) + 0.32 * dt;
+          if (p.vy > 4.5) p.vy = 4.5;                   // rơi chậm lại như giấy bay
+          p.x += (p.vx + Math.sin(age / 260 + p.phase) * 0.7) * dt;
+          p.y += p.vy * dt;
+          p.rot += p.vr * dt;
+          p.flip += 0.12 * dt;
+          if (p.y > H + 40) continue;
+          alive++;
+          g.save();
+          g.translate(p.x, p.y);
+          g.rotate(p.rot);
+          if (p.emoji) {
+            g.font = p.size + 'px serif';
+            g.textAlign = 'center';
+            g.textBaseline = 'middle';
+            g.fillText(p.emoji, 0, 0);
+          } else {
+            g.fillStyle = p.color;
+            if (p.shape === 'dot') { g.beginPath(); g.arc(0, 0, p.h * 0.6, 0, 6.28); g.fill(); }
+            else g.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.flip)) + 1);   // lật như giấy thật
+          }
+          g.restore();
+        }
+        if (age < 5000 && alive) requestAnimationFrame(step);
+        else cv.remove();
+      };
+      requestAnimationFrame(step);
     }
 
     $('donateBtn').addEventListener('click', openDonate);
