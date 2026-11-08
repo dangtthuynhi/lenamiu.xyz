@@ -101,6 +101,7 @@ window.VIETSUB = {
     },
     {
       title: 'Khoảnh khắc đặc biệt của tụi mình ở Biarritz',
+      video: 'lenamiu-biarritz.mp4',
       youtube: '',
       odysee: 'https://odysee.com/LenaMiu-Biarritz-(Vietsub):c4c77f27387570b5353b3ebb2d864631586f760f',
       drive: '',
