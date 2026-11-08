@@ -91,6 +91,16 @@ window.VIETSUB = {
 
   videos: [
     {
+      title: 'Eat Trip Ship – Lena & Miu hẹn hò ở Siam Square',
+      id: 'eat-trip-ship',
+      video: 'lenamiu-eat-trip-ship.mp4',
+      youtube: '',
+      drive: '',
+      group: 'Vlog',
+      date: '2026-11-08',
+      note: ''
+    },
+    {
       title: 'Katanyu Tonight – Part 2',
       video: 'katanyu-tonight-part-2.mp4',
       youtube: '',
