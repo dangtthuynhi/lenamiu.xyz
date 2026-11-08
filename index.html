@@ -506,6 +506,7 @@
 
 <footer class="foot wrap">
   <p id="footText"></p>
+  <p id="visits" hidden></p>
   <p id="donateFoot" hidden><a href="#lumi" class="donate-link" id="donateLink"></a></p>
   <p>Kênh của tụi mình:
      <a href="https://www.youtube.com/@dangtthuynhi" target="_blank" rel="noopener">YouTube</a></p>
@@ -533,6 +534,11 @@
   // Địa chỉ máy chủ phát video (Cloudflare Worker + kho R2), vd https://lenamiu-video.xxx.workers.dev/
   const VIDEO_BASE = String(SITE.videoBase || '').trim().replace(/\/*$/, '/');
   const SRC_KEY = 'vietsub_src';
+  // Lượt truy cập + lượt xem: máy chủ đếm là Cloudflare Worker (statsApi trong videos.js)
+  const STATS_API = String(SITE.statsApi || '').trim().replace(/\/+$/, '');
+  const views = {};          // id video → số lượt xem
+  let statsReady = false;    // đã lấy được số liệu từ máy chủ chưa
+  let siteVisits = 0;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const $ = (id) => document.getElementById(id);
 
@@ -1027,12 +1033,12 @@
     if (v.thumb) thumb.append(thumbImg(v.thumb, true));
     thumb.append(badges);
 
-    const meta = [v.group, fmtDate(v.date)].filter(Boolean).join(' · ');
-    a.append(thumb, el('span', 'c-title', v.title));
-    if (meta) a.append(el('span', 'c-meta', meta));
+    const metaEl = el('span', 'c-meta');   // nhóm · ngày · lượt xem
+    a.append(thumb, el('span', 'c-title', v.title), metaEl);
     li.append(a);
     $('grid').append(li);
-    v.li = li; v.card = a;
+    v.li = li; v.card = a; v.metaEl = metaEl;
+    paintMeta(v);
   });
 
   // Lấy ảnh bìa cho các video Odysee qua API của Odysee, có ảnh rồi thì gắn vào thẻ video
@@ -1139,6 +1145,7 @@
     const box = $('player');
     box.textContent = '';
     const linkOut = src === 'dailymotion' && !DM_PLAYER;
+    if (play) countView(cur);
     if (play && src === 'file') {
       // Trình phát gốc của trình duyệt: không quảng cáo, không giao diện lạ, iPhone phát trong trang
       const vd = el('video');
@@ -1170,6 +1177,7 @@
       b.target = '_blank';
       b.rel = 'noopener';
       b.setAttribute('aria-label', 'Mở video trên Dailymotion: ' + cur.title);
+      b.addEventListener('click', () => countView(cur));
     } else {
       b.type = 'button';
       b.setAttribute('aria-label', 'Phát video: ' + cur.title + ' (' + LABEL[src] + ')');
@@ -1186,9 +1194,7 @@
     const pref = store(SRC_KEY);
     src = has(cur, pref) ? pref : sourcesOf(cur)[0];
 
-    const kicker = [cur.group, fmtDate(cur.date)].filter(Boolean).join(' · ');
-    $('watchKicker').textContent = kicker;
-    $('watchKicker').hidden = !kicker;
+    paintKicker();
     $('watchTitle').textContent = cur.title;
     $('watchNote').textContent = cur.note;
     $('watchNote').hidden = !cur.note;
@@ -1358,8 +1364,77 @@
     setTimeout(() => { btn.textContent = 'Chép nội dung'; }, 2000);
   });
 
+  /* ---------- lượt truy cập + lượt xem ---------- */
+  // 1 người chỉ được tính 1 lượt truy cập / ngày và 1 lượt xem mỗi video / ngày (máy chủ kiểm tra lại lần nữa)
+  const fmtNum = (n) => Number(n).toLocaleString('vi-VN');
+  function viewsText(v) { return statsReady && views[v.id] ? fmtNum(views[v.id]) + ' lượt xem' : ''; }
+  function metaText(v) { return [v.group, fmtDate(v.date), viewsText(v)].filter(Boolean).join(' · '); }
+  function paintMeta(v) {
+    v.metaEl.textContent = metaText(v);
+    v.metaEl.hidden = !v.metaEl.textContent;
+    if (v === cur) paintKicker();
+  }
+  function paintKicker() {
+    const k = metaText(cur);
+    $('watchKicker').textContent = k;
+    $('watchKicker').hidden = !k;
+  }
+  function paintVisits() {
+    if (!statsReady || !siteVisits) return;
+    $('visits').textContent = '👀 ' + fmtNum(siteVisits) + ' lượt truy cập';
+    $('visits').hidden = false;
+  }
+
+  // Mã ngẫu nhiên cho mỗi trình duyệt (không chứa thông tin cá nhân), để đếm "mỗi người 1 lượt"
+  function visitorId() {
+    let id = store('lm_vid');
+    if (!/^[a-f0-9]{16,32}$/.test(id || '')) {
+      const a = new Uint8Array(12);
+      crypto.getRandomValues(a);
+      id = [...a].map((b) => b.toString(16).padStart(2, '0')).join('');
+      store('lm_vid', id);
+    }
+    return id;
+  }
+  // Gửi 1 lượt đếm. Hôm nay đã gửi rồi thì thôi (đỡ tốn lượt gọi máy chủ). Trả về true nếu được tính.
+  function hit(name) {
+    if (!STATS_API || !/^https?:$/.test(location.protocol)) return Promise.resolve(false);
+    const day = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+    let done;
+    try { done = JSON.parse(store('lm_hits') || 'null'); } catch (e) { done = null; }
+    if (!done || done.d !== day || !Array.isArray(done.n)) done = { d: day, n: [] };
+    if (done.n.includes(name)) return Promise.resolve(false);
+    done.n.push(name);
+    store('lm_hits', JSON.stringify(done));
+    return fetch(STATS_API + '/hit', { method: 'POST', body: JSON.stringify({ k: name, u: visitorId() }), keepalive: true })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => !!(d && d.counted))
+      .catch(() => false);
+  }
+  function countView(v) {
+    hit('v:' + v.id).then((ok) => {
+      if (ok && statsReady) { views[v.id] = (views[v.id] || 0) + 1; paintMeta(v); }
+    });
+  }
+  async function loadStats() {
+    if (!STATS_API) return;
+    const countedSite = await hit('site');
+    try {
+      const r = await fetch(STATS_API + '/stats', { cache: 'no-store' });
+      if (!r.ok) return;
+      const d = await r.json();
+      siteVisits = Number(d.site) || 0;
+      if (countedSite && !siteVisits) siteVisits = 1;
+      Object.assign(views, d.videos || {});
+      statsReady = true;
+    } catch (e) { return; }
+    paintVisits();
+    videos.forEach(paintMeta);
+  }
+
   applyFilter();
   select(idFromHash(), false);
+  loadStats();
 })();
 </script>
 

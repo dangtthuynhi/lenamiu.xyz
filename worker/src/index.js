@@ -4,7 +4,11 @@
                 Nội dung chuyển khoản có chữ "LenaMiu" hoặc "MiuLena" thì cộng tiền cho phe đó.
    GET  /pk     Trang lenamiu.xyz hỏi % mỗi phe + vài lượt gần nhất (không có số tiền, không có tên người chuyển).
 
+   POST /hit    Đếm lượt truy cập trang ('site') hoặc lượt xem video ('v:<id>'): 1 người / 1 lượt / ngày.
+   GET  /stats  Trả số lượt truy cập + lượt xem từng video.
+
    Bí mật SEPAY_SECRET đặt bằng lệnh `npx wrangler secret put SEPAY_SECRET`, KHÔNG ghi vào file này.
+   STATS_SALT (mã trộn khi băm IP) cũng đặt bằng `npx wrangler secret put STATS_SALT`.
    Dữ liệu nằm trong Cloudflare D1 (bảng tx, xem schema.sql). id giao dịch của SePay là khoá chính,
    nên SePay có gửi lại cùng một giao dịch thì cũng không bị cộng hai lần.
 */
@@ -113,17 +117,70 @@ async function onPk(env, cors) {
   }, 200, { ...cors, 'Cache-Control': 'public, max-age=3' });
 }
 
+/* ---------- đếm lượt truy cập / lượt xem ---------- */
+// Chỉ nhận lượt đếm gửi từ các trang này (trang khác không "bơm" lượt xem qua trình duyệt người xem được)
+const STATS_ORIGINS = ['https://lenamiu.xyz', 'https://www.lenamiu.xyz', 'https://dangtthuynhi.github.io'];
+const LOCAL_ORIGIN = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+const HITS_PER_IP_PER_DAY = 300;   // một mạng (IP) tối đa bấy nhiêu lượt đếm mỗi ngày, chặn bơm số
+
+function vnDay(offsetDays = 0) {
+  return new Date(Date.now() + 7 * 3600e3 + offsetDays * 86400e3).toISOString().slice(0, 10);
+}
+
+async function sha256hex(s) {
+  return hex(await crypto.subtle.digest('SHA-256', enc.encode(s)));
+}
+
+async function onHit(request, env, ctx, cors) {
+  const origin = request.headers.get('Origin') || '';
+  if (!STATS_ORIGINS.includes(origin) && !LOCAL_ORIGIN.test(origin)) return json({ ok: false }, 403, cors);
+  let body;
+  try { body = JSON.parse(await request.text()); } catch (e) { return json({ ok: false }, 400, cors); }
+  const name = String((body && body.k) || '');
+  const visitor = String((body && body.u) || '');
+  if (!/^(site|v:[a-z0-9-]{1,80})$/.test(name) || !/^[a-f0-9]{16,32}$/.test(visitor)) {
+    return json({ ok: false }, 400, cors);
+  }
+  const day = vnDay();
+  const ip = (await sha256hex((env.STATS_SALT || '') + '|' + day + '|' + (request.headers.get('CF-Connecting-IP') || ''))).slice(0, 16);
+  const used = await env.DB.prepare('SELECT COUNT(*) AS c FROM seen WHERE ip = ?1 AND day = ?2').bind(ip, day).first('c');
+  if (used >= HITS_PER_IP_PER_DAY) return json({ ok: true, counted: false }, 200, cors);
+
+  const r = await env.DB.prepare('INSERT OR IGNORE INTO seen (k, ip, day) VALUES (?1, ?2, ?3)')
+    .bind(day + '|' + visitor + '|' + name, ip, day).run();
+  const counted = r.meta.changes > 0;
+  if (counted) {
+    await env.DB.prepare('INSERT INTO counters (name, n) VALUES (?1, 1) ON CONFLICT(name) DO UPDATE SET n = n + 1')
+      .bind(name).run();
+  }
+  // Thỉnh thoảng dọn dữ liệu "đã đếm" cũ hơn 2 ngày cho bảng khỏi phình
+  if (Math.random() < 0.02) ctx.waitUntil(env.DB.prepare('DELETE FROM seen WHERE day < ?1').bind(vnDay(-2)).run());
+  return json({ ok: true, counted }, 200, cors);
+}
+
+async function onStats(env, cors) {
+  const { results } = await env.DB.prepare('SELECT name, n FROM counters').all();
+  const out = { site: 0, videos: {} };
+  for (const r of results) {
+    if (r.name === 'site') out.site = r.n;
+    else if (r.name.startsWith('v:')) out.videos[r.name.slice(2)] = r.n;
+  }
+  return json(out, 200, { ...cors, 'Cache-Control': 'public, max-age=15' });
+}
+
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     // Số liệu PK là công khai, chỉ đọc → cho trang nào đọc cũng được (kể cả khi thử trong máy)
     const cors = { 'Access-Control-Allow-Origin': '*' };
 
     if (url.pathname === '/sepay' && request.method === 'POST') return onSepay(request, env);
     if (url.pathname === '/pk' && request.method === 'GET') return onPk(env, cors);
+    if (url.pathname === '/hit' && request.method === 'POST') return onHit(request, env, ctx, cors);
+    if (url.pathname === '/stats' && request.method === 'GET') return onStats(env, cors);
     if (url.pathname === '/pk' && request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: { ...cors, 'Access-Control-Allow-Methods': 'GET' } });
     }
-    return json({ ok: true, routes: ['GET /pk', 'POST /sepay'] }, url.pathname === '/' ? 200 : 404);
+    return json({ ok: true, routes: ['GET /pk', 'POST /sepay', 'POST /hit', 'GET /stats'] }, url.pathname === '/' ? 200 : 404);
   }
 };

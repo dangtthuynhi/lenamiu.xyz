@@ -39,6 +39,10 @@ window.VIETSUB = {
     // Máy chủ phát video riêng (Cloudflare Worker + kho R2, xem thư mục worker-video/)
     videoBase: 'https://lenamiu-video.dangthithuynhi2000.workers.dev/',
 
+    // Máy chủ đếm lượt truy cập + lượt xem (dùng chung máy chủ thanh PK, thư mục worker/).
+    // Để trống thì không đếm, không hiện số.
+    statsApi: 'https://lenamiu-pk.dangthithuynhi2000.workers.dev',
+
     // Nút mở hộp mã QR (ở đầu trang + chân trang).
     //   button       chữ trên nút
     //   buttonShort  chữ trên nút khi xem bằng điện thoại (màn hình hẹp), nên ngắn

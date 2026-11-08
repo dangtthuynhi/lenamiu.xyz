@@ -8,3 +8,18 @@ CREATE TABLE IF NOT EXISTS tx (
   at     TEXT    NOT NULL       -- thời gian giao dịch theo SePay
 );
 CREATE INDEX IF NOT EXISTS tx_at ON tx (at);
+
+-- Bộ đếm lượt truy cập ('site') và lượt xem từng video ('v:<id video>')
+CREATE TABLE IF NOT EXISTS counters (
+  name TEXT    PRIMARY KEY,
+  n    INTEGER NOT NULL DEFAULT 0
+);
+-- Ai đã được đếm hôm nay (để 1 người chỉ tính 1 lượt / ngày). Không lưu IP thật, chỉ lưu mã băm
+-- có trộn mã bí mật + ngày, nên không suy ngược ra IP được. Dữ liệu cũ hơn 2 ngày tự xoá.
+CREATE TABLE IF NOT EXISTS seen (
+  k   TEXT PRIMARY KEY,         -- ngày | mã người xem | tên bộ đếm
+  ip  TEXT NOT NULL,            -- mã băm IP (để giới hạn số lượt mỗi mạng mỗi ngày)
+  day TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS seen_ip_day ON seen (ip, day);
+CREATE INDEX IF NOT EXISTS seen_day ON seen (day);
