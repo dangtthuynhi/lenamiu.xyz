@@ -100,7 +100,8 @@
     position: relative; aspect-ratio: 16 / 9; background: #000;
     border-radius: 14px; overflow: hidden; box-shadow: var(--shadow);
   }
-  .player iframe, .facade { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .player iframe, .player video, .facade { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .player video { background: #000; object-fit: contain; }
   .facade {
     display: block; padding: 0; margin: 0; background: #000; cursor: pointer;
     color: #fff; font: inherit; text-decoration: none;
@@ -521,12 +522,16 @@
 
   const DATA = window.VIETSUB || {};
   const SITE = Object.assign(
-    { title: 'LenaMiu Vietsub', tagline: '', footer: '', dailymotionPlayerId: '' }, DATA.site);
-  // Thứ tự ưu tiên khi một video có nhiều nguồn. Drive xếp sau Odysee vì trình phát
-  // Drive trên iPhone bị hai bộ nút chồng nhau.
-  const SOURCES = ['youtube', 'odysee', 'drive', 'dailymotion'];
-  const LABEL = { youtube: 'YouTube', odysee: 'Odysee', drive: 'Google Drive', dailymotion: 'Dailymotion' };
-  const BADGE = { youtube: 'YouTube', odysee: 'Odysee', drive: 'Drive', dailymotion: 'Dailymotion' };
+    { title: 'LenaMiu Vietsub', tagline: '', footer: '', dailymotionPlayerId: '', videoBase: '' }, DATA.site);
+  // Thứ tự ưu tiên khi một video có nhiều nguồn. Video trên máy chủ riêng (kho R2) xếp đầu:
+  // phát bằng trình phát gốc của trình duyệt nên nhanh nhất, iPhone xem mượt.
+  // Drive xếp sau Odysee vì trình phát Drive trên iPhone bị hai bộ nút chồng nhau.
+  const SOURCES = ['file', 'youtube', 'odysee', 'drive', 'dailymotion'];
+  const LABEL = { file: 'Máy chủ riêng', youtube: 'YouTube', odysee: 'Odysee', drive: 'Google Drive',
+                  dailymotion: 'Dailymotion' };
+  const BADGE = { file: 'Nhanh', youtube: 'YouTube', odysee: 'Odysee', drive: 'Drive', dailymotion: 'Dailymotion' };
+  // Địa chỉ máy chủ phát video (Cloudflare Worker + kho R2), vd https://lenamiu-video.xxx.workers.dev/
+  const VIDEO_BASE = String(SITE.videoBase || '').trim().replace(/\/*$/, '/');
   const SRC_KEY = 'vietsub_src';
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const $ = (id) => document.getElementById(id);
@@ -591,6 +596,17 @@
     m = s.match(/^lbry:\/\/(.+)$/);
     return m ? m[1].replace(/#/g, ':') : '';
   }
+  // Video trên máy chủ riêng: tên file trên kho R2 (vd 'pls-love-ep2.mp4') hoặc nguyên link https://...mp4
+  function fileUrl(s) {
+    s = String(s || '').trim();
+    if (!s) return '';
+    if (/^https?:\/\//i.test(s)) return s;
+    if (!VIDEO_BASE || VIDEO_BASE === '/') {
+      console.warn('[vietsub] Có video "' + s + '" nhưng chưa điền videoBase trong videos.js.');
+      return '';
+    }
+    return VIDEO_BASE + s.replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/');
+  }
   function odyseePath(p) {
     return p.split('/').map((seg) => encodeURIComponent(seg).replace(/%3A/gi, ':').replace(/%40/g, '@')).join('/');
   }
@@ -603,11 +619,11 @@
   /* ---------- đọc danh sách video ---------- */
   const used = new Set();
   const videos = (DATA.videos || []).map((v, i) => {
-    const ids = { youtube: ytId(v.youtube), odysee: odyseeId(v.odysee), drive: driveId(v.drive),
-                  dailymotion: dmId(v.dailymotion) };
+    const ids = { file: fileUrl(v.video), youtube: ytId(v.youtube), odysee: odyseeId(v.odysee),
+                  drive: driveId(v.drive), dailymotion: dmId(v.dailymotion) };
     if (!SOURCES.some((s) => ids[s])) {
       console.warn('[vietsub] Bỏ qua video thứ ' + (i + 1) + ' "' + (v.title || '') +
-                   '": không đọc được link video nào (YouTube, Odysee, Google Drive, Dailymotion).');
+                   '": không đọc được link video nào (video, YouTube, Odysee, Google Drive, Dailymotion).');
       return null;
     }
     const base = slug(v.id || v.title) || 'video-' + (i + 1);
@@ -619,12 +635,14 @@
       title: v.title || 'Video chưa đặt tên',
       group: v.group || '', date: v.date || '', note: v.note || '', hashtags: v.hashtags || '',
       thumb: v.thumb ||
-        (ids.youtube ? 'https://i.ytimg.com/vi/' + ids.youtube + '/hqdefault.jpg'
+        // lệnh up-video tải kèm ảnh bìa .jpg cùng tên với video
+        (ids.file && /\.mp4(\?|$)/i.test(ids.file) ? ids.file.replace(/\.mp4(\?|$)/i, '.jpg$1')
+        : ids.youtube ? 'https://i.ytimg.com/vi/' + ids.youtube + '/hqdefault.jpg'
         : ids.drive ? 'https://drive.google.com/thumbnail?id=' + ids.drive + '&sz=w640'
         : ids.dailymotion ? 'https://www.dailymotion.com/thumbnail/video/' + ids.dailymotion
         : ''),
       // Odysee không có link ảnh bìa cố định → hỏi API của Odysee sau (fillOdyseeThumbs)
-      needThumb: !v.thumb && !ids.youtube && !!ids.odysee,
+      needThumb: !v.thumb && !ids.file && !ids.youtube && !!ids.odysee,
       text: norm([v.title, v.group, v.note, fmtDate(v.date)].join(' ')),
       visible: true
     };
@@ -1041,7 +1059,7 @@
           const old = box.querySelector('img');
           if (old) old.remove();
           box.prepend(thumbImg(t, true));
-          if (v === cur && !$('player').querySelector('iframe')) showPlayer(false);
+          if (v === cur && !$('player').querySelector('iframe, video')) showPlayer(false);
         });
       })
       .catch(() => {});   // không lấy được thì để khung màu
@@ -1109,6 +1127,7 @@
   }
 
   function watchUrl(v, s) {
+    if (s === 'file') return v.ids.file;
     if (s === 'youtube') return 'https://www.youtube.com/watch?v=' + v.ids.youtube;
     if (s === 'odysee') return 'https://odysee.com/' + odyseePath(v.ids.odysee);
     if (s === 'drive') return 'https://drive.google.com/file/d/' + v.ids.drive + '/view';
@@ -1120,6 +1139,21 @@
     const box = $('player');
     box.textContent = '';
     const linkOut = src === 'dailymotion' && !DM_PLAYER;
+    if (play && src === 'file') {
+      // Trình phát gốc của trình duyệt: không quảng cáo, không giao diện lạ, iPhone phát trong trang
+      const vd = el('video');
+      vd.controls = true;
+      vd.playsInline = true;
+      vd.setAttribute('playsinline', '');
+      vd.preload = 'metadata';
+      if (cur.thumb) vd.poster = cur.thumb;
+      vd.title = cur.title;
+      vd.src = cur.ids.file;
+      box.append(vd);
+      const p = vd.play();
+      if (p && p.catch) p.catch(() => {});   // trình duyệt chặn tự phát thì người xem bấm nút phát
+      return;
+    }
     if (play && !linkOut) {
       const f = el('iframe');
       f.src = embedUrl(cur, src);
@@ -1199,7 +1233,7 @@
     src = b.dataset.src;
     store(SRC_KEY, src);
     updateSources();
-    showPlayer(!!$('player').querySelector('iframe'));   // đang phát thì phát tiếp bằng nguồn mới
+    showPlayer(!!$('player').querySelector('iframe, video'));   // đang phát thì phát tiếp bằng nguồn mới
   });
 
   // Trước / sau: đi trong danh sách đang lọc, nếu video đang xem nằm trong đó

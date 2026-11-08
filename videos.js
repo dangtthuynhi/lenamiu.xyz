@@ -4,6 +4,9 @@
    Mỗi video là một khối { ... }. Video để trên cùng sẽ hiện đầu tiên.
 
      title        Tên video (bắt buộc)
+     video        Tên file video trên máy chủ riêng (kho Cloudflare R2), vd 'pls-love-ep2.mp4'.
+                  Up video bằng lệnh: node tools/up-video.mjs "đường-dẫn-video.mp4"
+                  (lệnh in sẵn dòng video: '...' để dán vào đây). Nhanh nhất, iPhone xem mượt nhất.
      youtube      Link YouTube, dán nguyên link là được. Không có thì để ''
      odysee       Link Odysee (odysee.com/...), dán nguyên link là được. Không có thì để ''
      drive        Link Google Drive, dán nguyên link là được. Không có thì để ''
@@ -19,7 +22,7 @@
                   cũ hết dùng được, nên video nào hay gửi link thì đặt id luôn.
 
    Mỗi video cần ít nhất một link. Có nhiều link thì người xem bấm đổi qua lại được,
-   trang tự chọn theo thứ tự YouTube → Odysee → Drive.
+   trang tự chọn theo thứ tự video (máy chủ riêng) → YouTube → Odysee → Drive.
    (Vẫn nhận thêm dailymotion: '...' nếu sau này cần.)
 */
 window.VIETSUB = {
@@ -32,6 +35,9 @@ window.VIETSUB = {
     // Chỉ cần nếu có video Dailymotion: Dailymotion Studio → Embeds → Players → tạo player,
     // rồi dán Player ID (dạng 'x1abc') vào đây. Để trống thì video Dailymotion mở qua trang Dailymotion.
     dailymotionPlayerId: '',
+
+    // Máy chủ phát video riêng (Cloudflare Worker + kho R2, xem thư mục worker-video/)
+    videoBase: 'https://lenamiu-video.dangthithuynhi2000.workers.dev/',
 
     // Nút mở hộp mã QR (ở đầu trang + chân trang).
     //   button       chữ trên nút

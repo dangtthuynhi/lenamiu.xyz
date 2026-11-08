@@ -1,0 +1,11 @@
+# Máy chủ phát video từ kho R2. Chạy lệnh trong thư mục worker-video/.
+#   Thử trong máy:   npx wrangler dev
+#   Đưa lên mạng:    npx wrangler deploy
+# Up video thì dùng: node tools/up-video.mjs "đường-dẫn-video.mp4"   (chạy ở thư mục gốc lenamiu.xyz)
+name = "lenamiu-video"
+main = "src/index.js"
+compatibility_date = "2025-10-01"
+
+[[r2_buckets]]
+binding = "VIDEOS"
+bucket_name = "lenamiu-videos"
