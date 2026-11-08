@@ -1,0 +1,1608 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LenaMiu Fanfic</title>
+<meta name="description" content="Fanfic LenaMiu do fan viết. Đọc miễn phí, có tài khoản là đăng được truyện.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="LenaMiu Vietsub">
+<meta property="og:locale" content="vi_VN">
+<meta property="og:title" content="LenaMiu Fanfic">
+<meta property="og:description" content="Fanfic LenaMiu do fan viết. Đọc miễn phí, có tài khoản là đăng được truyện.">
+<meta property="og:url" content="https://lenamiu.xyz/fanfic/">
+<meta property="og:image" content="https://lenamiu.xyz/og-image.png?v=2">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://lenamiu.xyz/fanfic/">
+<link rel="icon" href="../favicon.ico" sizes="48x48">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="manifest" href="../site.webmanifest">
+<meta name="theme-color" content="#faf7f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121014" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Be Vietnam Pro cho giao diện, Lora (có chân) cho chữ truyện. Tải song song, không bắt trang chờ. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400;1,600&display=swap"
+      media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400;1,600&display=swap"></noscript>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #faf7f6; --surface: #ffffff; --surface-2: #f1ecec;
+    --text: #1d1a1f; --muted: #6c6570; --line: rgba(29, 26, 31, .10);
+    --accent: #c13a6c; --on-accent: #ffffff; --danger: #c62828;
+    --ok: #1f7a4d; --warn: #9a6200;
+    --shadow: 0 1px 2px rgba(29, 26, 31, .06), 0 10px 28px -14px rgba(29, 26, 31, .28);
+    --rd-size: 19px; --rd-lh: 1.8; --rd-font: "Lora", Georgia, "Times New Roman", serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #121014; --surface: #1b181e; --surface-2: #26222a;
+      --text: #f3eff4; --muted: #a39ca8; --line: rgba(255, 255, 255, .09);
+      --accent: #f06d9b; --on-accent: #1a0d13; --danger: #ff7b72;
+      --ok: #5fd39a; --warn: #f0b75a;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 12px 32px -14px rgba(0, 0, 0, .8);
+    }
+  }
+  /* nền đọc truyện người đọc tự chọn (chỉ áp dụng ở trang đọc) */
+  :root.rd-light {
+    color-scheme: light;
+    --bg: #faf7f6; --surface: #ffffff; --surface-2: #f1ecec;
+    --text: #1d1a1f; --muted: #6c6570; --line: rgba(29, 26, 31, .10);
+    --accent: #c13a6c; --on-accent: #ffffff;
+  }
+  :root.rd-paper {
+    color-scheme: light;
+    --bg: #f3ead7; --surface: #faf4e6; --surface-2: #eadfc6;
+    --text: #3a2e22; --muted: #7a6a56; --line: rgba(58, 46, 34, .14);
+    --accent: #a8456a; --on-accent: #ffffff;
+  }
+  :root.rd-dark {
+    color-scheme: dark;
+    --bg: #0f0e10; --surface: #19171b; --surface-2: #242126;
+    --text: #e6e0e8; --muted: #9a93a0; --line: rgba(255, 255, 255, .09);
+    --accent: #f06d9b; --on-accent: #1a0d13;
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 400 16px/1.6 "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1040px; margin: 0 auto;
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  .narrow { max-width: 760px; }
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
+  textarea:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  h1, h2, h3 { line-height: 1.3; letter-spacing: -.01em; text-wrap: balance; }
+  .muted { color: var(--muted); }
+  .small { font-size: .85rem; }
+
+  /* ---------- đầu trang ---------- */
+  .top {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px 16px;
+    padding-top: 16px; padding-bottom: 14px;
+  }
+  .brand {
+    display: inline-flex; align-items: center; gap: 10px; min-width: 0;
+    font-size: 1.2rem; font-weight: 700; color: var(--text); text-decoration: none; white-space: nowrap;
+  }
+  .brand img { width: 30px; height: 30px; flex: none; }
+  .brand span { overflow: hidden; text-overflow: ellipsis; }
+  .brand b { color: var(--accent); }
+  .nav { display: flex; align-items: center; gap: 4px; flex: none; }
+  .nav-a {
+    display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 6px 12px;
+    border-radius: 999px; color: var(--text); text-decoration: none; font-size: .9rem; font-weight: 600;
+    cursor: pointer; white-space: nowrap; list-style: none;
+  }
+  .nav-a::-webkit-details-marker { display: none; }
+  .nav-a:hover { background: var(--surface-2); }
+  .nav-a.strong { color: var(--accent); background: color-mix(in srgb, var(--accent) 11%, var(--surface)); }
+  .dot {
+    min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--on-accent);
+    font-size: .72rem; font-weight: 700; display: inline-grid; place-items: center;
+  }
+  .menu { position: relative; }
+  .menu-list {
+    position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 220px; padding: 6px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow);
+  }
+  .menu-list a, .menu-list button {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;
+    padding: 9px 12px; border: 0; border-radius: 10px; background: none; color: var(--text);
+    font: inherit; font-size: .92rem; text-align: left; text-decoration: none; cursor: pointer;
+  }
+  .menu-list a:hover, .menu-list button:hover { background: var(--surface-2); }
+  .me-name { max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 560px) {
+    .hide-sm { display: none; }
+    .top { gap: 8px; }
+    .brand { gap: 8px; }
+    .brand span { font-size: 1.05rem; }
+    .nav-a { padding: 6px 10px; }
+    .me-name { max-width: 96px; }
+  }
+
+  /* ---------- nút, nhãn, ô nhập ---------- */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    min-height: 42px; padding: 8px 18px; border-radius: 999px; border: 1px solid var(--line);
+    background: var(--surface); color: var(--text); font: inherit; font-size: .92rem; font-weight: 600;
+    text-decoration: none; cursor: pointer; white-space: nowrap;
+  }
+  .btn:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .btn.primary:hover { filter: brightness(1.06); }
+  .btn.danger { color: var(--danger); }
+  .btn.sm { min-height: 34px; padding: 5px 13px; font-size: .84rem; }
+  .btn:disabled { opacity: .55; cursor: wait; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .badge {
+    display: inline-flex; align-items: center; padding: 1px 9px; border-radius: 999px; font-size: .74rem;
+    font-weight: 700; background: var(--surface-2); color: var(--muted); white-space: nowrap;
+  }
+  .b-ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 13%, var(--surface)); }
+  .b-wait { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, var(--surface)); }
+  .b-no { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, var(--surface)); }
+  .b-acc { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+  .tag {
+    display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: .78rem; color: var(--muted);
+    border: 1px solid var(--line); text-decoration: none; background: transparent; font-family: inherit; cursor: pointer;
+  }
+  .tag[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .field { display: block; margin-bottom: 16px; }
+  .field > span { display: block; margin-bottom: 6px; font-size: .9rem; font-weight: 600; }
+  .field small { display: block; margin-top: 5px; color: var(--muted); font-size: .8rem; }
+  input[type="text"], input[type="password"], input[type="search"], select, textarea {
+    width: 100%; min-height: 44px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--surface); color: var(--text); font: inherit; font-size: 16px;
+  }
+  textarea { resize: vertical; line-height: 1.6; }
+  .check { display: flex; gap: 10px; align-items: flex-start; font-size: .9rem; margin-bottom: 16px; }
+  .check input { width: 18px; height: 18px; margin-top: 3px; flex: none; accent-color: var(--accent); }
+  .form { max-width: 480px; margin: 8px auto 0; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px;
+    box-shadow: var(--shadow);
+  }
+  .notice {
+    padding: 12px 14px; border-radius: 12px; margin: 0 0 16px; font-size: .9rem;
+    background: var(--surface-2); border-left: 3px solid var(--muted);
+  }
+  .notice.warn { border-color: var(--warn); }
+  .notice.bad { border-color: var(--danger); }
+  .notice.good { border-color: var(--ok); }
+  .err { color: var(--danger); font-size: .88rem; margin: 0 0 12px; min-height: 1.2em; }
+
+  .loading { padding: 64px 0; text-align: center; color: var(--muted); }
+  .empty { padding: 40px 16px; text-align: center; color: var(--muted); }
+  .empty p { margin: 0 0 14px; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom)); z-index: 60;
+    transform: translateX(-50%); max-width: calc(100% - 32px); padding: 11px 18px; border-radius: 12px;
+    background: var(--text); color: var(--bg); font-size: .92rem; font-weight: 500; box-shadow: var(--shadow);
+    animation: toast-in .2s ease;
+  }
+  .toast.bad { background: var(--danger); color: #fff; }
+  @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } }
+
+  /* ---------- trang chủ ---------- */
+  .hero { padding: 18px 0 8px; }
+  .hero h1 { margin: 0 0 6px; font-size: clamp(1.6rem, 4vw, 2.2rem); }
+  .hero p { margin: 0 0 16px; color: var(--muted); max-width: 60ch; }
+  .tools { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 12px; }
+  .tools input { flex: 1 1 240px; }
+  .tools select { flex: 0 0 auto; width: auto; }
+  .filter-tags { margin-bottom: 18px; }
+  .section-title { margin: 26px 0 12px; font-size: 1.05rem; }
+  .stories { display: grid; gap: 14px; grid-template-columns: 1fr; }
+  @media (min-width: 760px) { .stories { grid-template-columns: 1fr 1fr; } }
+  .story {
+    display: flex; flex-direction: column; gap: 8px; padding: 18px; border-radius: 16px;
+    background: var(--surface); border: 1px solid var(--line); color: var(--text); text-decoration: none;
+    transition: border-color .15s ease, transform .15s ease;
+  }
+  .story:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); transform: translateY(-1px); }
+  .story h3 { margin: 0; font-size: 1.12rem; }
+  .story .by { font-size: .86rem; color: var(--muted); }
+  .story .sum {
+    margin: 0; color: var(--muted); font-size: .92rem;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .stats { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .82rem; color: var(--muted); }
+  .cont {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px;
+    border-radius: 14px; background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent); color: var(--text); text-decoration: none;
+  }
+  .cont + .cont { margin-top: 8px; }
+  .cont b { display: block; }
+  .cont span { font-size: .84rem; color: var(--muted); }
+
+  /* ---------- trang truyện ---------- */
+  .story-head h1 { margin: 10px 0 6px; font-size: clamp(1.5rem, 4vw, 2rem); }
+  .summary { white-space: pre-wrap; margin: 16px 0; }
+  .toc { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+  .toc li { border-bottom: 1px solid var(--line); }
+  .toc a {
+    display: flex; justify-content: space-between; gap: 12px; padding: 13px 4px;
+    color: var(--text); text-decoration: none;
+  }
+  .toc a:hover { color: var(--accent); }
+  .toc .now { color: var(--accent); font-weight: 600; }
+  .toc small { color: var(--muted); white-space: nowrap; }
+
+  /* ---------- trang đọc ---------- */
+  .progress {
+    position: fixed; left: 0; top: 0; z-index: 50; height: 3px; width: 0; background: var(--accent);
+    transition: width .1s linear;
+  }
+  .rd-bar {
+    position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 8px 0; background: var(--bg); border-bottom: 1px solid var(--line);
+  }
+  .rd-bar a { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9rem; font-weight: 600; text-decoration: none; }
+  .rd-panel {
+    position: absolute; right: 0; top: calc(100% + 6px); z-index: 25; width: min(320px, calc(100vw - 32px));
+    padding: 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow);
+  }
+  .rd-panel .lbl { font-size: .78rem; font-weight: 700; color: var(--muted); margin: 10px 0 6px; text-transform: uppercase; letter-spacing: .05em; }
+  .rd-panel .lbl:first-child { margin-top: 0; }
+  .seg { display: flex; gap: 4px; padding: 3px; border-radius: 12px; background: var(--surface-2); }
+  .seg button {
+    flex: 1; min-height: 36px; border: 0; border-radius: 9px; background: transparent; color: var(--muted);
+    font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer;
+  }
+  .seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, .14); }
+  .reader { max-width: 700px; margin: 0 auto; }
+  .ch-head { padding: 28px 0 8px; text-align: center; }
+  .ch-head .kicker { margin: 0 0 6px; font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  .ch-head h1 { margin: 0 0 6px; font-family: var(--rd-font); font-weight: 600; font-size: calc(var(--rd-size) * 1.45); }
+  .prose {
+    font-family: var(--rd-font); font-size: var(--rd-size); line-height: var(--rd-lh);
+    overflow-wrap: break-word; padding: 12px 0 8px;
+  }
+  .prose p { margin: 0 0 1.05em; }
+  .prose hr.scene { border: 0; margin: 1.6em 0; text-align: center; color: var(--muted); }
+  .prose hr.scene::before { content: "✻   ✻   ✻"; white-space: pre; font-size: .85em; }
+  .end-box { margin: 28px 0 8px; padding: 22px 16px; text-align: center; border-top: 1px solid var(--line); }
+  .heart {
+    display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 10px 22px; border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); background: var(--surface);
+    color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; transition: transform .15s ease;
+  }
+  .heart[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .heart:active { transform: scale(.96); }
+  .heart.pop { animation: pop .35s ease; }
+  @keyframes pop { 50% { transform: scale(1.12); } }
+  .ch-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 18px 0; }
+  .ch-nav .btn { white-space: normal; text-align: center; }
+  .ch-nav .next { grid-column: 2; }
+  .ch-select { margin: 0 0 8px; }
+
+  .comments { margin: 32px 0 0; padding-top: 8px; border-top: 1px solid var(--line); }
+  .comments h2 { font-size: 1.1rem; }
+  .cmts { list-style: none; margin: 0 0 18px; padding: 0; }
+  .cmt { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .cmt-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: .86rem; }
+  .cmt-head time { color: var(--muted); }
+  .cmt-head .del { margin-left: auto; border: 0; background: none; color: var(--muted); font: inherit; font-size: .8rem; cursor: pointer; }
+  .cmt-head .del:hover { color: var(--danger); }
+  .cmt-body { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+  /* ---------- truyện của tôi / soạn truyện ---------- */
+  .page-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0 18px; }
+  .page-head h1 { margin: 0; font-size: 1.5rem; }
+  .mine { display: grid; gap: 12px; }
+  .mine .card { padding: 16px; }
+  .mine h3 { margin: 0 0 6px; font-size: 1.05rem; }
+  .ch-rows { list-style: none; margin: 0; padding: 0; }
+  .ch-rows li {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 12px 0; border-bottom: 1px solid var(--line);
+  }
+  .ch-rows .t { min-width: 0; flex: 1 1 220px; }
+  .ch-rows .note { display: block; font-size: .82rem; color: var(--danger); }
+  .tb { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
+  .tb button {
+    min-width: 40px; min-height: 36px; padding: 4px 10px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--surface); color: var(--text); font: inherit; font-size: .88rem; cursor: pointer;
+  }
+  .tb .sp { flex: 1; }
+  .ed-body {
+    height: min(68vh, 760px); min-height: 280px; font-family: var(--rd-font); font-size: 17px; line-height: 1.75;
+  }
+  .ed-preview { min-height: 280px; padding: 4px 16px; border: 1px dashed var(--line); border-radius: 12px; }
+  .ed-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; margin: 6px 0 16px; font-size: .8rem; color: var(--muted); }
+  .help { font-size: .82rem; color: var(--muted); margin: 0 0 16px; }
+  .help code { padding: 1px 5px; border-radius: 6px; background: var(--surface-2); font-size: .95em; }
+  .actions-bar {
+    position: sticky; bottom: 0; z-index: 10; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px;
+    padding: 12px 0 max(12px, env(safe-area-inset-bottom)); background: var(--bg); border-top: 1px solid var(--line);
+  }
+  .danger-zone { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--line); }
+
+  /* ---------- duyệt ---------- */
+  .tabs { display: flex; gap: 4px; padding: 3px; border-radius: 999px; background: var(--surface-2); margin: 0 0 18px; width: fit-content; max-width: 100%; overflow-x: auto; }
+  .tabs a { padding: 7px 16px; border-radius: 999px; color: var(--muted); text-decoration: none; font-size: .9rem; font-weight: 600; white-space: nowrap; }
+  .tabs a[aria-current="page"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, .14); }
+  .q-item { margin-bottom: 14px; }
+  .q-item h3 { margin: 6px 0 2px; font-size: 1.05rem; }
+  .q-item details { margin: 12px 0; }
+  .q-item summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: .9rem; }
+  .q-item .prose { --rd-size: 17px; max-height: 60vh; overflow: auto; padding: 12px 14px; margin-top: 8px; border-radius: 12px; background: var(--bg); }
+  .diff { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: .9rem; margin: 10px 0; }
+  .diff dt { color: var(--muted); }
+  .diff dd { margin: 0; white-space: pre-wrap; }
+  .diff del { color: var(--danger); }
+  .diff ins { color: var(--ok); text-decoration: none; }
+  .people { list-style: none; margin: 0; padding: 0; }
+  .people li { padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .gate { max-width: 460px; margin: 40px auto; text-align: center; }
+
+  .foot {
+    margin-top: 56px; padding-top: 16px; padding-bottom: 32px;
+    border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem;
+  }
+  .foot p { margin: 0 0 4px; }
+  .foot a { color: inherit; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="progress" id="progress" hidden></div>
+<header class="top wrap">
+  <a class="brand" href="#/"><img src="../favicon.svg" alt="" width="30" height="30"><span>LenaMiu <b>Fanfic</b></span></a>
+  <nav class="nav" id="nav" aria-label="Trang"></nav>
+</header>
+
+<main class="wrap" id="app" tabindex="-1"></main>
+
+<footer class="foot wrap">
+  <p>Truyện do fan viết, thuộc về tác giả của từng truyện. Nhân vật dựa trên người thật: viết với sự tôn trọng nhé.</p>
+  <p><a href="../">← Về trang video LenaMiu Vietsub</a></p>
+</footer>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ================= cấu hình ================= */
+  const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  // Máy chủ fanfic (thư mục worker-fic/). Mở trang trong máy thì tự dùng máy chủ chạy trong máy.
+  const API = LOCAL ? 'http://' + location.hostname + ':8789' : 'https://lenamiu-fic.dangthithuynhi2000.workers.dev';
+  // Khoá công khai Cloudflare Turnstile (chống tạo tài khoản ảo). Trong máy dùng khoá thử của Cloudflare (luôn qua).
+  const TURNSTILE_KEY = LOCAL ? '1x00000000000000000000AA' : '';
+  const PASS_ITER = 150000;           // số vòng băm mật khẩu trong trình duyệt (đổi là mọi người phải đặt lại mật khẩu)
+  const MAX_BODY = 100000;
+  const RATING = { all: 'Mọi lứa tuổi', 13: '13+', 16: '16+', 18: '18+' };
+  const STATUS = {
+    draft: ['Nháp', ''], pending: ['Chờ duyệt', 'b-wait'], published: ['Đã đăng', 'b-ok'],
+    rejected: ['Bị từ chối', 'b-no'], hidden: ['Bị ẩn', 'b-no']
+  };
+  const ROLE = { admin: 'Người duyệt', trusted: 'Tin cậy', user: 'Thành viên' };
+
+  const app = document.getElementById('app');
+  const nav = document.getElementById('nav');
+  const bar = document.getElementById('progress');
+
+  /* ================= tiện ích ================= */
+  const ls = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* trình duyệt chặn lưu */ } },
+    del(k) { try { localStorage.removeItem(k); } catch (e) { /* bỏ qua */ } },
+    json(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } },
+    put(k, v) { this.set(k, JSON.stringify(v)); }
+  };
+
+  // Tạo phần tử an toàn: chữ của người dùng luôn được gắn dạng chữ (textContent), không bao giờ thành HTML.
+  function h(tag, props, ...kids) {
+    const el = document.createElement(tag);
+    if (props) {
+      for (const k in props) {
+        const v = props[k];
+        if (v == null || v === false) continue;
+        if (k === 'class') el.className = v;
+        else if (k === 'text') el.textContent = v;
+        else if (k === 'value' || k === 'checked') el[k] = v;
+        else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
+        else el.setAttribute(k, v === true ? '' : String(v));
+      }
+    }
+    return addKids(el, kids);
+  }
+  // Gắn con vào phần tử: bỏ qua null / false / '' (chỗ "có thì hiện, không thì thôi"), mảng lồng nhau thì trải ra
+  function addKids(el, kids) {
+    for (const kid of [kids].flat(Infinity)) {
+      if (kid != null && kid !== false && kid !== '') el.append(kid instanceof Node ? kid : String(kid));
+    }
+    return el;
+  }
+  const fill = (el, ...kids) => { el.replaceChildren(); return addKids(el, kids); };
+  const fmt = (n) => Number(n || 0).toLocaleString('vi-VN');
+  function ago(iso) {
+    const t = Date.parse(iso || '');
+    if (!t) return '';
+    const s = (Date.now() - t) / 1000;
+    if (s < 60) return 'vừa xong';
+    if (s < 3600) return Math.floor(s / 60) + ' phút trước';
+    if (s < 86400) return Math.floor(s / 3600) + ' giờ trước';
+    if (s < 86400 * 7) return Math.floor(s / 86400) + ' ngày trước';
+    return dateVN(iso);
+  }
+  function dateVN(iso) {
+    const t = Date.parse(iso || '');
+    return t ? new Date(t).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+  }
+  const timeEl = (iso) => h('time', { datetime: iso, title: iso ? new Date(iso).toLocaleString('vi-VN') : null }, ago(iso));
+  function norm(s) {
+    return String(s || '').normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+  }
+  const badge = (st) => h('span', { class: 'badge ' + (STATUS[st] || ['', ''])[1] }, (STATUS[st] || [st])[0]);
+  const ratingBadge = (r) => (r && r !== 'all' ? h('span', { class: 'badge' + (r === '18' ? ' b-no' : '') }, RATING[r]) : null);
+
+  let toastTimer;
+  function toast(msg, bad) {
+    document.querySelectorAll('.toast').forEach((t) => t.remove());
+    const t = h('div', { class: 'toast' + (bad ? ' bad' : ''), role: bad ? 'alert' : 'status' }, msg);
+    document.body.append(t);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.remove(), bad ? 5000 : 3000);
+  }
+
+  function visitorId() {
+    let id = ls.get('lm_vid');                    // dùng chung mã người xem với trang video
+    if (!/^[a-f0-9]{16,32}$/.test(id || '')) {
+      const a = new Uint8Array(12);
+      crypto.getRandomValues(a);
+      id = [...a].map((b) => b.toString(16).padStart(2, '0')).join('');
+      ls.set('lm_vid', id);
+    }
+    return id;
+  }
+
+  /* ================= máy chủ + tài khoản ================= */
+  let token = ls.get('fic_token') || '';
+  let me = token ? ls.json('fic_me', null) : null;
+  let queue = 0;
+
+  async function api(path, { method = 'GET', body } = {}) {
+    const headers = {};
+    if (token) headers.Authorization = 'Bearer ' + token;
+    if (body !== undefined) headers['Content-Type'] = 'application/json';
+    let r;
+    try {
+      r = await fetch(API + path, { method, headers, cache: 'no-store',
+                                    body: body === undefined ? undefined : JSON.stringify(body) });
+    } catch (e) {
+      throw new Error('Không kết nối được máy chủ, bạn kiểm tra mạng rồi thử lại nhé.');
+    }
+    let d = {};
+    try { d = await r.json(); } catch (e) { /* không phải JSON */ }
+    if (r.status === 401 && token && !path.startsWith('/auth/login')) {
+      setSession(null);
+      const e = new Error('Phiên đăng nhập đã hết, bạn đăng nhập lại nhé.');
+      e.status = 401;
+      throw e;
+    }
+    if (!r.ok) {
+      const e = new Error(d.error || 'Có lỗi xảy ra (' + r.status + '), bạn thử lại nhé.');
+      e.status = r.status;
+      throw e;
+    }
+    return d;
+  }
+
+  function setSession(t, user) {
+    token = t || '';
+    me = token ? user : null;
+    if (token) { ls.set('fic_token', token); ls.put('fic_me', me); } else { ls.del('fic_token'); ls.del('fic_me'); queue = 0; }
+    renderNav();
+  }
+  async function loadMe() {
+    if (!token) return;
+    try {
+      const d = await api('/auth/me');
+      if (d.user) { me = d.user; queue = d.queue || 0; ls.put('fic_me', me); } else setSession(null);
+    } catch (e) { /* mất mạng: tạm dùng thông tin đã lưu */ }
+    renderNav();
+  }
+  // Mật khẩu được băm ngay trong trình duyệt: máy chủ không bao giờ nhận mật khẩu thật.
+  async function passHash(username, password) {
+    if (!crypto.subtle) throw new Error('Trình duyệt này không hỗ trợ đăng nhập an toàn, bạn thử trình duyệt khác nhé.');
+    const te = new TextEncoder();
+    const key = await crypto.subtle.importKey('raw', te.encode(password.normalize('NFC')), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits(
+      { name: 'PBKDF2', hash: 'SHA-256', salt: te.encode('lenamiu-fic:' + username), iterations: PASS_ITER }, key, 256);
+    return [...new Uint8Array(bits)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  }
+  const canPublish = () => me && (me.role === 'admin' || me.role === 'trusted');
+
+  function renderNav() {
+    const items = [h('a', { class: 'nav-a hide-sm', href: '../' }, '🎬 Video')];
+    items.push(h('a', { class: 'nav-a', href: me ? '#/viet' : '#/dang-nhap?next=' + encodeURIComponent('/viet'),
+                        title: 'Đăng truyện', 'aria-label': 'Đăng truyện' }, '✍️', h('span', { class: 'hide-sm' }, 'Đăng truyện')));
+    if (me) {
+      const list = h('div', { class: 'menu-list' },
+        h('a', { href: '#/cua-toi' }, '📚 Truyện của tôi'),
+        me.role === 'admin' ? h('a', { href: '#/duyet' }, '🛡️ Duyệt truyện', queue ? h('span', { class: 'dot' }, queue) : null) : null,
+        h('a', { href: '#/tai-khoan' }, '⚙️ Tài khoản'),
+        h('button', { type: 'button', onclick: logout }, '↩ Đăng xuất'));
+      items.push(h('details', { class: 'menu' },
+        h('summary', { class: 'nav-a strong', 'aria-label': 'Tài khoản của ' + me.name },
+          h('span', { class: 'me-name' }, me.name), me.role === 'admin' && queue ? h('span', { class: 'dot' }, queue) : null),
+        list));
+    } else {
+      items.push(h('a', { class: 'nav-a strong', href: '#/dang-nhap' }, 'Đăng nhập'));
+    }
+    nav.replaceChildren(...items);
+  }
+  async function logout() {
+    try { await api('/auth/logout', { method: 'POST' }); } catch (e) { /* vẫn đăng xuất trong máy */ }
+    setSession(null);
+    toast('Đã đăng xuất.');
+    go('/');
+  }
+  document.addEventListener('click', (e) => {
+    document.querySelectorAll('details.menu[open]').forEach((d) => { if (!d.contains(e.target) || e.target.closest('a')) d.open = false; });
+  });
+
+  /* ================= định dạng chữ truyện ================= */
+  // **đậm**   *nghiêng*   ***đậm nghiêng***   dòng chỉ có *** (hoặc --- , ~~~) = chuyển cảnh
+  const SCENE = /^(\*\s*){3,}$|^-{3,}$|^~{3,}$|^[✻❀✿]+$/;
+  const INLINE = /\*\*\*([^\s*](?:[^*]*?[^\s*])?)\*\*\*|\*\*([^\s*](?:[^*]*?[^\s*])?)\*\*|\*([^\s*](?:[^*]*?[^\s*])?)\*/g;
+  function inline(line) {
+    const out = [];
+    let last = 0, m;
+    INLINE.lastIndex = 0;
+    while ((m = INLINE.exec(line))) {
+      if (m.index > last) out.push(line.slice(last, m.index));
+      if (m[1] != null) out.push(h('strong', null, h('em', null, m[1])));
+      else if (m[2] != null) out.push(h('strong', null, m[2]));
+      else out.push(h('em', null, m[3]));
+      last = INLINE.lastIndex;
+    }
+    if (last < line.length) out.push(line.slice(last));
+    return out;
+  }
+  function renderBody(text) {
+    const frag = document.createDocumentFragment();
+    for (const raw of String(text || '').split('\n')) {
+      const line = raw.trim();
+      if (!line) continue;
+      frag.append(SCENE.test(line) ? h('hr', { class: 'scene' }) : h('p', null, inline(line)));
+    }
+    return frag;
+  }
+  // Dán từ Google Docs / Word: giữ chữ đậm, nghiêng, xuống dòng (đổi thành dấu * / **)
+  function htmlToText(html) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const runs = [];
+    const BLOCK = /^(P|DIV|H[1-6]|LI|BLOCKQUOTE|TR|PRE|SECTION|ARTICLE|UL|OL|TABLE)$/;
+    const nl = () => { if (runs.length && runs[runs.length - 1].t !== '\n') runs.push({ t: '\n' }); };
+    (function walk(node, b, i) {
+      if (node.nodeType === 3) {
+        const t = node.nodeValue.replace(/\s+/g, ' ');
+        if (t) runs.push({ t, b, i });
+        return;
+      }
+      if (node.nodeType !== 1 || /^(STYLE|SCRIPT|HEAD|TITLE|META|LINK|TEMPLATE)$/.test(node.tagName)) return;
+      const tag = node.tagName;
+      if (tag === 'BR') { runs.push({ t: '\n' }); return; }
+      if (tag === 'HR') { nl(); runs.push({ t: '***' }, { t: '\n' }); return; }
+      let nb = b || tag === 'B' || tag === 'STRONG';
+      let ni = i || tag === 'I' || tag === 'EM';
+      const fw = node.style && node.style.fontWeight;   // Google Docs bọc cả bài trong <b style="font-weight:normal">
+      if (fw) nb = fw === 'bold' || fw === 'bolder' || Number(fw) >= 600;
+      const fs = node.style && node.style.fontStyle;
+      if (fs) ni = fs === 'italic' || fs === 'oblique';
+      const block = BLOCK.test(tag);
+      if (block) nl();
+      for (const k of node.childNodes) walk(k, nb, ni);
+      if (block) nl();
+    })(doc.body, false, false);
+    let out = '';
+    for (let k = 0; k < runs.length; k++) {
+      const r = runs[k];
+      if (r.t === '\n') { out += '\n'; continue; }
+      let t = r.t;
+      while (k + 1 < runs.length && runs[k + 1].t !== '\n' && !!runs[k + 1].b === !!r.b && !!runs[k + 1].i === !!r.i) t += runs[++k].t;
+      const core = t.trim();
+      if ((!r.b && !r.i) || !core || core === '***') { out += t; continue; }
+      const mk = r.b && r.i ? '***' : r.b ? '**' : '*';
+      out += t.match(/^\s*/)[0] + mk + core + mk + t.match(/\s*$/)[0];
+    }
+    return out.replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  }
+  function insertText(ta, text) {
+    ta.focus();
+    let done = false;
+    try { done = document.execCommand('insertText', false, text); } catch (e) { done = false; }   // giữ được Ctrl+Z
+    if (!done) {
+      ta.setRangeText(text, ta.selectionStart, ta.selectionEnd, 'end');
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+  function wrapSelection(ta, mk) {
+    const s = ta.selectionStart, e = ta.selectionEnd;
+    const sel = ta.value.slice(s, e);
+    const core = sel.trim();
+    if (!core) {
+      insertText(ta, mk + mk);
+      ta.selectionStart = ta.selectionEnd = s + mk.length;
+      return;
+    }
+    insertText(ta, sel.match(/^\s*/)[0] + mk + core + mk + sel.match(/\s*$/)[0]);
+  }
+  const countWords = (s) => { const t = String(s || '').trim(); return t ? t.split(/\s+/).length : 0; };
+
+  /* ================= cài đặt đọc ================= */
+  const RD_DEFAULT = { size: 19, font: 'serif', lh: 1.8, theme: 'auto' };
+  let rd = Object.assign({}, RD_DEFAULT, ls.json('fic_reader', {}));
+  let reading = false;
+  function applyReader() {
+    const root = document.documentElement;
+    root.style.setProperty('--rd-size', rd.size + 'px');
+    root.style.setProperty('--rd-lh', String(rd.lh));
+    root.style.setProperty('--rd-font', rd.font === 'serif' ? '"Lora", Georgia, "Times New Roman", serif'
+                                                            : '"Be Vietnam Pro", system-ui, -apple-system, sans-serif');
+    for (const t of ['light', 'paper', 'dark']) root.classList.toggle('rd-' + t, reading && rd.theme === t);
+  }
+  function setReading(on) { reading = on; applyReader(); bar.hidden = !on; if (!on) bar.style.width = '0'; }
+  function saveReader() { ls.put('fic_reader', rd); applyReader(); }
+
+  const progressAll = () => ls.json('fic_progress', {});
+  function saveProgress(storyId, data) {
+    const p = progressAll();
+    p[storyId] = Object.assign({}, p[storyId], data, { at: Date.now() });
+    const keys = Object.keys(p).sort((a, b) => p[b].at - p[a].at);
+    for (const k of keys.slice(60)) delete p[k];      // nhớ tối đa 60 truyện
+    ls.put('fic_progress', p);
+  }
+  const ageOk = (r) => r !== '18' || ls.get('fic_18') === '1';
+  function ageGate(onYes) {
+    return h('div', { class: 'gate card' },
+      h('h2', null, 'Truyện dành cho người từ 18 tuổi'),
+      h('p', { class: 'muted' }, 'Tác giả gắn nhãn 18+ cho truyện này. Bạn đã đủ 18 tuổi chưa?'),
+      h('div', { class: 'row', style: 'justify-content:center' },
+        h('button', { type: 'button', class: 'btn primary', onclick: () => { ls.set('fic_18', '1'); onYes(); } }, 'Mình đủ 18 tuổi'),
+        h('a', { class: 'btn', href: '#/' }, 'Quay lại')));
+  }
+
+  /* ================= định tuyến ================= */
+  let seq = 0;
+  let cleanups = [];
+  function go(path) { location.hash = '#' + path; }
+  function parseHash() {
+    const raw = location.hash.replace(/^#/, '');
+    const i = raw.indexOf('?');
+    const path = (i < 0 ? raw : raw.slice(0, i)) || '/';
+    return { path, q: new URLSearchParams(i < 0 ? '' : raw.slice(i + 1)) };
+  }
+  function safeNext(v) { return /^\/[a-z0-9\-/]*$/i.test(v || '') ? v : null; }
+  function needLogin() {
+    if (me) return false;
+    go('/dang-nhap?next=' + encodeURIComponent(parseHash().path));
+    return true;
+  }
+  const loadingBox = () => h('div', { class: 'loading' }, 'Đang tải…');
+  function errorBox(e) {
+    return h('div', { class: 'empty' }, h('p', null, e.message || 'Có lỗi xảy ra.'),
+      h('div', { class: 'row', style: 'justify-content:center' },
+        h('button', { type: 'button', class: 'btn', onclick: render }, 'Thử lại'), h('a', { class: 'btn', href: '#/' }, 'Về trang truyện')));
+  }
+
+  const ROUTES = [
+    [/^\/$/, viewHome],
+    [/^\/truyen\/(\d+)$/, viewStory],
+    [/^\/doc\/(\d+)$/, viewChapter],
+    [/^\/dang-nhap$/, viewLogin],
+    [/^\/dang-ky$/, viewRegister],
+    [/^\/cua-toi$/, viewMine],
+    [/^\/viet$/, viewStoryForm],
+    [/^\/truyen\/(\d+)\/sua$/, viewStoryForm],
+    [/^\/truyen\/(\d+)\/chuong-moi$/, viewEditor],
+    [/^\/chuong\/(\d+)\/sua$/, viewEditor],
+    [/^\/duyet$/, viewAdmin],
+    [/^\/tai-khoan$/, viewAccount]
+  ];
+
+  async function render() {
+    const my = ++seq;
+    cleanups.forEach((f) => f());
+    cleanups = [];
+    const { path, q } = parseHash();
+    setReading(false);
+    document.querySelectorAll('details.menu[open]').forEach((d) => { d.open = false; });
+    document.title = 'LenaMiu Fanfic';
+    const ctx = {
+      q, alive: () => my === seq,
+      mount: (...nodes) => { if (my === seq) fill(app, nodes); },
+      title: (t) => { if (my === seq) document.title = t + ' · LenaMiu Fanfic'; }
+    };
+    const found = ROUTES.find(([re]) => re.test(path));
+    if (!found) { app.replaceChildren(errorBox(new Error('Không có trang này.'))); return; }
+    app.replaceChildren(loadingBox());
+    if (!q.has('tiep')) window.scrollTo(0, 0);
+    try {
+      await found[1](ctx, ...found[0].exec(path).slice(1).map(Number));
+    } catch (e) {
+      if (ctx.alive()) app.replaceChildren(errorBox(e));
+    }
+  }
+  window.addEventListener('hashchange', render);
+
+  /* ================= trang chủ: danh sách truyện ================= */
+  let listCache = null;
+  async function viewHome(ctx) {
+    if (!listCache || Date.now() - listCache.at > 30000) listCache = { at: Date.now(), data: (await api('/stories')).stories };
+    const stories = listCache.data;
+    const author = ctx.q.get('tac-gia');
+    const state = { text: '', tag: ctx.q.get('the') || '', sort: 'new', done: false };
+
+    const tagCount = new Map();
+    for (const s of stories) for (const t of s.tags) tagCount.set(t, (tagCount.get(t) || 0) + 1);
+    const topTags = [...tagCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 14).map((x) => x[0]);
+
+    const list = h('div', { class: 'stories' });
+    const count = h('p', { class: 'muted small', 'aria-live': 'polite' });
+    const search = h('input', { type: 'search', placeholder: 'Tìm tên truyện, tác giả, thẻ…', 'aria-label': 'Tìm truyện',
+                                oninput: () => { state.text = search.value; draw(); } });
+    const sort = h('select', { 'aria-label': 'Sắp xếp', onchange: () => { state.sort = sort.value; draw(); } },
+      h('option', { value: 'new' }, 'Mới cập nhật'), h('option', { value: 'reads' }, 'Đọc nhiều'),
+      h('option', { value: 'hearts' }, 'Nhiều tim'), h('option', { value: 'created' }, 'Truyện mới'));
+    const tagBtns = topTags.map((t) => h('button', { type: 'button', class: 'tag', 'aria-pressed': String(state.tag === t),
+      onclick: (e) => { state.tag = state.tag === t ? '' : t; tagBtns.forEach((b) => b.setAttribute('aria-pressed', String(b.textContent === state.tag))); draw(); } }, t));
+    const doneBtn = h('button', { type: 'button', class: 'tag', 'aria-pressed': 'false',
+      onclick: () => { state.done = !state.done; doneBtn.setAttribute('aria-pressed', String(state.done)); draw(); } }, '✓ Đã hoàn');
+
+    function draw() {
+      const words = norm(state.text).split(/\s+/).filter(Boolean);
+      let items = stories.filter((s) => {
+        if (author && s.author.username !== author) return false;
+        if (state.tag && !s.tags.includes(state.tag)) return false;
+        if (state.done && !s.done) return false;
+        if (!words.length) return true;
+        const hay = norm([s.title, s.author.name, s.summary, s.tags.join(' ')].join(' '));
+        return words.every((w) => hay.includes(w));
+      });
+      const key = { new: (s) => Date.parse(s.updated || s.created), reads: (s) => s.reads, hearts: (s) => s.hearts,
+                    created: (s) => Date.parse(s.created) }[state.sort];
+      items = items.slice().sort((a, b) => key(b) - key(a));
+      list.replaceChildren(...items.map(storyCard));
+      count.textContent = items.length === stories.length ? fmt(items.length) + ' truyện' : 'Tìm thấy ' + fmt(items.length) + ' truyện';
+      if (!items.length) list.replaceChildren(h('div', { class: 'empty' }, stories.length ? 'Không có truyện nào khớp.' : ''));
+    }
+
+    // truyện đang đọc dở
+    const prog = progressAll();
+    const conts = stories.filter((s) => prog[s.id]).sort((a, b) => prog[b.id].at - prog[a.id].at).slice(0, 3).map((s) => {
+      const p = prog[s.id];
+      const left = s.chapters - (p.i + 1);
+      return h('a', { class: 'cont', href: '#/doc/' + p.ch + '?tiep=1' },
+        h('div', null, h('b', null, s.title), h('span', null, 'Đang đọc chương ' + (p.i + 1) + '/' + s.chapters + (left > 0 ? ' · còn ' + left + ' chương mới' : ''))),
+        h('span', { class: 'btn sm primary' }, 'Đọc tiếp'));
+    });
+
+    const authorName = author && (stories.find((s) => s.author.username === author) || { author: { name: '@' + author } }).author.name;
+    ctx.mount(
+      author
+        ? h('div', { class: 'hero' }, h('h1', null, 'Truyện của ' + authorName), h('p', null, h('a', { href: '#/' }, '← Xem tất cả truyện')))
+        : h('div', { class: 'hero' },
+            h('h1', null, 'Fanfic LenaMiu'),
+            h('p', null, 'Truyện do fan viết về Lena và Miu. Đọc miễn phí. Có tài khoản là đăng được, người duyệt xem qua rồi truyện sẽ hiện lên.'),
+            h('a', { class: 'btn primary', href: me ? '#/viet' : '#/dang-nhap?next=' + encodeURIComponent('/viet') }, '✍️ Đăng truyện của bạn')),
+      conts.length && !author ? [h('h2', { class: 'section-title' }, 'Đang đọc dở'), ...conts] : null,
+      stories.length ? h('div', { class: 'tools' }, search, sort) : null,
+      stories.length ? h('div', { class: 'tags filter-tags' }, doneBtn, tagBtns) : null,
+      stories.length ? count : null,
+      stories.length ? list : h('div', { class: 'empty card' },
+        h('p', null, 'Chưa có truyện nào được đăng.'),
+        h('p', null, 'Bạn viết truyện đầu tiên cho fandom nha! 💗'),
+        h('a', { class: 'btn primary', href: me ? '#/viet' : '#/dang-ky' }, 'Đăng truyện đầu tiên')));
+    if (stories.length) draw();
+  }
+  function storyCard(s) {
+    return h('a', { class: 'story', href: '#/truyen/' + s.id },
+      h('h3', null, s.title),
+      h('div', { class: 'row' }, h('span', { class: 'by' }, 'của ' + s.author.name), ratingBadge(s.rating),
+        s.done ? h('span', { class: 'badge b-ok' }, 'Hoàn') : h('span', { class: 'badge' }, 'Đang viết')),
+      s.summary ? h('p', { class: 'sum' }, s.summary) : null,
+      s.tags.length ? h('div', { class: 'tags' }, s.tags.map((t) => h('span', { class: 'tag' }, t))) : null,
+      h('div', { class: 'stats' },
+        h('span', null, s.chapters + ' chương'), h('span', null, fmt(s.words) + ' chữ'),
+        h('span', { title: 'Lượt đọc' }, '👁 ' + fmt(s.reads)), h('span', { title: 'Tim' }, '💗 ' + fmt(s.hearts)),
+        h('span', null, 'cập nhật ' + ago(s.updated))));
+  }
+
+  /* ================= trang truyện ================= */
+  async function viewStory(ctx, id) {
+    const s = (await api('/stories/' + id)).story;
+    if (!ctx.alive()) return;
+    ctx.title(s.title);
+    if (!ageOk(s.rating)) return ctx.mount(ageGate(render));
+    const p = progressAll()[s.id];
+    const first = s.chapters[0];
+    const share = async () => {
+      const url = 'https://lenamiu.xyz/fanfic/#/truyen/' + s.id;
+      try {
+        if (navigator.share) await navigator.share({ title: s.title, url });
+        else { await navigator.clipboard.writeText(url); toast('Đã chép link truyện.'); }
+      } catch (e) { /* người dùng huỷ */ }
+    };
+    const mine = me && (me.id === s.authorId || me.role === 'admin');
+    ctx.mount(h('article', { class: 'narrow', style: 'margin:0 auto' },
+      h('div', { class: 'story-head' },
+        h('a', { href: '#/', class: 'small' }, '← Tất cả truyện'),
+        h('h1', null, s.title),
+        h('div', { class: 'row' },
+          h('span', null, 'của ', h('a', { href: '#/?tac-gia=' + encodeURIComponent(s.author.username) }, s.author.name)),
+          ratingBadge(s.rating), s.done ? h('span', { class: 'badge b-ok' }, 'Hoàn') : h('span', { class: 'badge' }, 'Đang viết'))),
+      s.summary ? h('p', { class: 'summary' }, s.summary) : null,
+      s.tags.length ? h('div', { class: 'tags', style: 'margin-bottom:14px' },
+        s.tags.map((t) => h('a', { class: 'tag', href: '#/?the=' + encodeURIComponent(t) }, t))) : null,
+      h('div', { class: 'stats', style: 'margin-bottom:18px' },
+        h('span', null, s.chapters.length + ' chương'), h('span', null, fmt(s.words) + ' chữ'),
+        h('span', null, '👁 ' + fmt(s.reads) + ' lượt đọc'), h('span', null, '💗 ' + fmt(s.hearts) + ' tim'),
+        h('span', null, 'cập nhật ' + ago(s.updated))),
+      h('div', { class: 'row', style: 'margin-bottom:24px' },
+        p && s.chapters.some((c) => c.id === p.ch)
+          ? h('a', { class: 'btn primary', href: '#/doc/' + p.ch + '?tiep=1' }, 'Đọc tiếp chương ' + (s.chapters.findIndex((c) => c.id === p.ch) + 1))
+          : h('a', { class: 'btn primary', href: '#/doc/' + first.id }, 'Đọc từ đầu'),
+        p ? h('a', { class: 'btn', href: '#/doc/' + first.id }, 'Đọc lại từ đầu') : null,
+        h('button', { type: 'button', class: 'btn', onclick: share }, '🔗 Chia sẻ'),
+        mine ? h('a', { class: 'btn', href: '#/truyen/' + s.id + '/sua' }, '✏️ Sửa truyện') : null),
+      h('h2', { class: 'section-title' }, 'Mục lục'),
+      h('ol', { class: 'toc' }, s.chapters.map((c, i) => h('li', null,
+        h('a', { href: '#/doc/' + c.id, class: p && p.ch === c.id ? 'now' : null },
+          h('span', null, 'Chương ' + (i + 1) + (c.title ? ': ' + c.title : '')),
+          h('small', null, '💗 ' + fmt(c.hearts) + ' · ' + dateVN(c.published))))))));
+  }
+
+  /* ================= trang đọc chương ================= */
+  async function viewChapter(ctx, id) {
+    const ch = (await api('/chapters/' + id + '?u=' + visitorId())).chapter;
+    if (!ctx.alive()) return;
+    const s = ch.story;
+    const show = () => {
+      ctx.title((ch.title || 'Chương ' + (ch.index + 1)) + ' – ' + s.title);
+      setReading(true);
+      const prev = ch.list[ch.index - 1], next = ch.list[ch.index + 1];
+      const label = (c, i) => 'Chương ' + (i + 1) + (c.title ? ': ' + c.title : '');
+
+      // nút "Aa": cài đặt đọc
+      const panel = h('div', { class: 'rd-panel', hidden: true });
+      const seg = (key, opts) => h('div', { class: 'seg' }, opts.map(([v, text]) => h('button', {
+        type: 'button', 'aria-pressed': String(rd[key] === v),
+        onclick: (e) => { rd[key] = v; saveReader(); e.currentTarget.parentNode.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget))); }
+      }, text)));
+      const sizeOut = h('span', { style: 'flex:1;text-align:center;font-weight:600' }, rd.size + 'px');
+      const size = (d) => { rd.size = Math.min(28, Math.max(14, rd.size + d)); sizeOut.textContent = rd.size + 'px'; saveReader(); };
+      panel.append(
+        h('div', { class: 'lbl' }, 'Cỡ chữ'),
+        h('div', { class: 'seg', style: 'align-items:center' },
+          h('button', { type: 'button', 'aria-label': 'Chữ nhỏ hơn', onclick: () => size(-1) }, 'A−'), sizeOut,
+          h('button', { type: 'button', 'aria-label': 'Chữ to hơn', onclick: () => size(1) }, 'A+')),
+        h('div', { class: 'lbl' }, 'Kiểu chữ'), seg('font', [['serif', 'Có chân'], ['sans', 'Không chân']]),
+        h('div', { class: 'lbl' }, 'Giãn dòng'), seg('lh', [[1.6, 'Hẹp'], [1.8, 'Vừa'], [2.05, 'Rộng']]),
+        h('div', { class: 'lbl' }, 'Màu nền'), seg('theme', [['auto', 'Theo máy'], ['light', 'Sáng'], ['paper', 'Giấy'], ['dark', 'Tối']]));
+      const aa = h('button', { type: 'button', class: 'btn sm', 'aria-expanded': 'false', 'aria-label': 'Cài đặt đọc',
+        onclick: () => { panel.hidden = !panel.hidden; aa.setAttribute('aria-expanded', String(!panel.hidden)); } }, 'Aa');
+      const closePanel = (e) => { if (!panel.hidden && !panel.contains(e.target) && e.target !== aa) { panel.hidden = true; aa.setAttribute('aria-expanded', 'false'); } };
+      document.addEventListener('click', closePanel);
+      cleanups.push(() => document.removeEventListener('click', closePanel));
+
+      // tim
+      const heart = h('button', { type: 'button', class: 'heart', 'aria-pressed': String(ch.hearted) });
+      const paintHeart = () => {
+        heart.setAttribute('aria-pressed', String(ch.hearted));
+        heart.replaceChildren(ch.hearted ? '💗 Đã thả tim' : '🤍 Thả tim', h('span', { style: 'opacity:.8' }, '· ' + fmt(ch.hearts)));
+      };
+      heart.addEventListener('click', async () => {
+        const on = !ch.hearted;
+        ch.hearted = on; ch.hearts = Math.max(0, ch.hearts + (on ? 1 : -1));
+        paintHeart();
+        if (on) { heart.classList.remove('pop'); void heart.offsetWidth; heart.classList.add('pop'); }
+        try {
+          const d = await api('/chapters/' + ch.id + '/heart', { method: 'POST', body: { u: visitorId(), on } });
+          ch.hearted = d.hearted; ch.hearts = d.hearts;
+        } catch (e) { ch.hearted = !on; ch.hearts = Math.max(0, ch.hearts + (on ? -1 : 1)); toast(e.message, true); }
+        paintHeart();
+      });
+      paintHeart();
+
+      const select = h('select', { class: 'ch-select', 'aria-label': 'Chọn chương', onchange: () => go('/doc/' + select.value) },
+        ch.list.map((c, i) => h('option', { value: c.id, selected: c.id === ch.id }, label(c, i))));
+      const prose = h('div', { class: 'prose' }, renderBody(ch.body));
+      const mine = me && (me.id === s.authorId || me.role === 'admin');
+
+      ctx.mount(h('div', { class: 'reader' },
+        h('div', { class: 'rd-bar' },
+          h('a', { href: '#/truyen/' + s.id }, '← ' + s.title),
+          h('div', { class: 'row', style: 'position:relative;flex:none' },
+            mine ? h('a', { class: 'btn sm', href: '#/chuong/' + ch.id + '/sua' }, 'Sửa') : null, aa, panel)),
+        h('header', { class: 'ch-head' },
+          h('p', { class: 'kicker' }, 'Chương ' + (ch.index + 1) + ' / ' + ch.list.length),
+          h('h1', null, ch.title || s.title),
+          h('p', { class: 'muted small', style: 'margin:0' }, s.author.name + ' · ' + fmt(ch.words) + ' chữ · ' + dateVN(ch.published))),
+        prose,
+        h('div', { class: 'end-box' },
+          h('p', { class: 'muted small', style: 'margin:0 0 12px' }, ch.hearted ? 'Cảm ơn bạn đã thả tim cho chương này 💗' : 'Thích chương này thì thả tim cho tác giả nha'),
+          heart,
+          h('div', { class: 'ch-nav' },
+            prev ? h('a', { class: 'btn', href: '#/doc/' + prev.id }, '← Chương trước') : null,
+            next ? h('a', { class: 'btn primary next', href: '#/doc/' + next.id }, 'Chương sau →')
+                 : h('a', { class: 'btn next', href: '#/truyen/' + s.id }, 'Về mục lục')),
+          ch.list.length > 1 ? select : null,
+          !next ? h('p', { class: 'muted small', style: 'margin:8px 0 0' }, 'Bạn đã đọc tới chương mới nhất rồi.') : null),
+        commentsBox(ch)));
+
+      // thanh tiến độ + nhớ chỗ đang đọc
+      const saved = progressAll()[s.id];
+      let ticking = false, lastSave = 0;
+      const ratio = () => {
+        const r = prose.getBoundingClientRect();
+        const span = r.height - window.innerHeight * 0.6;
+        return span <= 0 ? 1 : Math.min(1, Math.max(0, -r.top / span));
+      };
+      const onScroll = () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+          ticking = false;
+          const k = ratio();
+          bar.style.width = (k * 100).toFixed(1) + '%';
+          if (Date.now() - lastSave > 800) { lastSave = Date.now(); saveProgress(s.id, { ch: ch.id, i: ch.index, pos: k }); }
+        });
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      cleanups.push(() => window.removeEventListener('scroll', onScroll));
+      saveProgress(s.id, { ch: ch.id, i: ch.index, pos: saved && saved.ch === ch.id ? saved.pos : 0 });
+      if (ctx.q.has('tiep') && saved && saved.ch === ch.id && saved.pos > 0.02) {
+        const jump = () => {
+          const r = prose.getBoundingClientRect();
+          window.scrollTo(0, window.scrollY + r.top + saved.pos * (r.height - window.innerHeight * 0.6));
+        };
+        requestAnimationFrame(jump);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (ctx.alive()) jump(); });
+      } else window.scrollTo(0, 0);
+      onScroll();
+
+      // phím ← → để đổi chương
+      const onKey = (e) => {
+        if (e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
+        if (e.key === 'ArrowLeft' && prev) go('/doc/' + prev.id);
+        if (e.key === 'ArrowRight' && next) go('/doc/' + next.id);
+      };
+      document.addEventListener('keydown', onKey);
+      cleanups.push(() => document.removeEventListener('keydown', onKey));
+
+      countRead(s.id);
+    };
+    if (!ageOk(s.rating)) return ctx.mount(ageGate(show));
+    show();
+  }
+  // 1 lượt đọc / truyện / ngày; hôm nay đã gửi rồi thì thôi khỏi gọi máy chủ
+  function countRead(storyId) {
+    const day = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+    let done = ls.json('fic_reads', null);
+    if (!done || done.d !== day || !Array.isArray(done.s)) done = { d: day, s: [] };
+    if (done.s.includes(storyId)) return;
+    done.s.push(storyId);
+    ls.put('fic_reads', done);
+    api('/read', { method: 'POST', body: { story: storyId, u: visitorId() } }).catch(() => {});
+  }
+
+  function commentsBox(ch) {
+    const list = h('ol', { class: 'cmts' });
+    const title = h('h2', null, 'Bình luận');
+    const box = h('section', { class: 'comments', id: 'binh-luan' }, title, list);
+    const item = (c) => {
+      const tagText = c.user.id === ch.story.authorId ? 'Tác giả' : c.user.role === 'admin' ? 'Người duyệt' : null;
+      const canDel = me && (me.id === c.user.id || me.id === ch.story.authorId || me.role === 'admin');
+      const li = h('li', { class: 'cmt' },
+        h('div', { class: 'cmt-head' }, h('b', null, c.user.name), tagText ? h('span', { class: 'badge b-acc' }, tagText) : null,
+          timeEl(c.created),
+          canDel ? h('button', { type: 'button', class: 'del', onclick: async () => {
+            if (!confirm('Xoá bình luận này?')) return;
+            try { await api('/comments/' + c.id, { method: 'DELETE' }); li.remove(); toast('Đã xoá bình luận.'); setCount(-1); }
+            catch (e) { toast(e.message, true); }
+          } }, 'Xoá') : null),
+        h('p', { class: 'cmt-body' }, c.body));
+      return li;
+    };
+    let n = 0;
+    const setCount = (d) => { n += d; title.textContent = n ? 'Bình luận (' + fmt(n) + ')' : 'Bình luận'; };
+    api('/chapters/' + ch.id + '/comments').then((d) => {
+      list.replaceChildren(...d.comments.map(item));
+      setCount(d.comments.length);
+      if (!d.comments.length) list.replaceChildren(h('li', { class: 'muted small', style: 'padding:6px 0 0' }, 'Chưa có bình luận nào. Bạn là người đầu tiên nhé!'));
+    }).catch(() => list.replaceChildren(h('li', { class: 'muted small' }, 'Chưa tải được bình luận.')));
+
+    if (!me) {
+      box.append(h('p', { class: 'muted' }, h('a', { href: '#/dang-nhap?next=' + encodeURIComponent('/doc/' + ch.id) }, 'Đăng nhập'), ' để bình luận cho tác giả nha.'));
+      return box;
+    }
+    const ta = h('textarea', { rows: 3, maxlength: 1000, placeholder: 'Viết đôi lời cho tác giả…', 'aria-label': 'Bình luận' });
+    const left = h('span', { class: 'muted small' }, '0/1.000');
+    ta.addEventListener('input', () => { left.textContent = fmt(ta.value.length) + '/1.000'; });
+    const send = h('button', { type: 'submit', class: 'btn primary sm' }, 'Gửi bình luận');
+    box.append(h('form', { onsubmit: async (e) => {
+      e.preventDefault();
+      if (!ta.value.trim()) return ta.focus();
+      send.disabled = true;
+      try {
+        const d = await api('/chapters/' + ch.id + '/comments', { method: 'POST', body: { body: ta.value } });
+        if (!n) list.replaceChildren();
+        list.append(item(d.comment));
+        setCount(1);
+        ta.value = ''; left.textContent = '0/1.000';
+      } catch (err) { toast(err.message, true); }
+      send.disabled = false;
+    } }, ta, h('div', { class: 'row', style: 'justify-content:space-between;margin-top:8px' }, left, send)));
+    return box;
+  }
+
+  /* ================= đăng nhập / đăng ký ================= */
+  function viewLogin(ctx) {
+    const next = safeNext(ctx.q.get('next')) || '/';
+    if (me) return go(next);
+    ctx.title('Đăng nhập');
+    const user = h('input', { type: 'text', autocomplete: 'username', autocapitalize: 'none', spellcheck: 'false', required: true });
+    const pass = h('input', { type: 'password', autocomplete: 'current-password', required: true });
+    const err = h('p', { class: 'err', role: 'alert' });
+    const btn = h('button', { type: 'submit', class: 'btn primary', style: 'width:100%' }, 'Đăng nhập');
+    ctx.mount(h('div', { class: 'form' }, h('div', { class: 'card' },
+      h('h1', { style: 'margin-top:0;font-size:1.4rem' }, 'Đăng nhập'),
+      h('form', { onsubmit: async (e) => {
+        e.preventDefault();
+        err.textContent = '';
+        btn.disabled = true;
+        try {
+          const u = user.value.trim().toLowerCase();
+          const d = await api('/auth/login', { method: 'POST', body: { username: u, pass: await passHash(u, pass.value) } });
+          setSession(d.token, d.user);
+          await loadMe();
+          toast('Chào ' + d.user.name + '! 💗');
+          go(next);
+        } catch (e2) { err.textContent = e2.message; btn.disabled = false; }
+      } },
+        h('label', { class: 'field' }, h('span', null, 'Tên đăng nhập'), user),
+        h('label', { class: 'field' }, h('span', null, 'Mật khẩu'), pass),
+        err, btn),
+      h('p', { class: 'small muted', style: 'margin:16px 0 0;text-align:center' }, 'Chưa có tài khoản? ',
+        h('a', { href: '#/dang-ky' + (next !== '/' ? '?next=' + encodeURIComponent(next) : '') }, 'Đăng ký')),
+      h('p', { class: 'small muted', style: 'margin:6px 0 0;text-align:center' }, 'Quên mật khẩu thì nhắn người duyệt để được đặt lại nhé.'))));
+    user.focus();
+  }
+
+  let tsLoading = null;
+  function loadTurnstile() {
+    if (!tsLoading) {
+      tsLoading = new Promise((res, rej) => {
+        const sc = document.createElement('script');
+        sc.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+        sc.async = true;
+        sc.onload = () => res(window.turnstile);
+        sc.onerror = () => { tsLoading = null; rej(new Error('Không tải được bước kiểm tra chống spam.')); };
+        document.head.append(sc);
+      });
+    }
+    return tsLoading;
+  }
+
+  function viewRegister(ctx) {
+    const next = safeNext(ctx.q.get('next')) || '/cua-toi';
+    if (me) return go(next);
+    ctx.title('Đăng ký');
+    const user = h('input', { type: 'text', autocomplete: 'username', autocapitalize: 'none', spellcheck: 'false', required: true,
+                              minlength: 3, maxlength: 20, pattern: '[a-z0-9_]{3,20}' });
+    user.addEventListener('input', () => {
+      const v = norm(user.value).replace(/[^a-z0-9_]/g, '');
+      if (v !== user.value) user.value = v;
+    });
+    const name = h('input', { type: 'text', autocomplete: 'nickname', required: true, minlength: 2, maxlength: 40 });
+    const pass = h('input', { type: 'password', autocomplete: 'new-password', required: true, minlength: 8 });
+    const pass2 = h('input', { type: 'password', autocomplete: 'new-password', required: true, minlength: 8 });
+    const agree = h('input', { type: 'checkbox', required: true });
+    const err = h('p', { class: 'err', role: 'alert' });
+    const btn = h('button', { type: 'submit', class: 'btn primary', style: 'width:100%' }, 'Tạo tài khoản');
+    const tsBox = h('div', { style: 'margin-bottom:12px;min-height:65px' });
+    let tsToken = '', tsId = null;
+    if (TURNSTILE_KEY) {
+      loadTurnstile().then((ts) => {
+        if (!ctx.alive()) return;
+        tsId = ts.render(tsBox, { sitekey: TURNSTILE_KEY, language: 'vi', callback: (t) => { tsToken = t; },
+                                  'expired-callback': () => { tsToken = ''; } });
+      }).catch((e) => { tsBox.textContent = e.message; });
+    } else tsBox.hidden = true;
+
+    ctx.mount(h('div', { class: 'form' }, h('div', { class: 'card' },
+      h('h1', { style: 'margin-top:0;font-size:1.4rem' }, 'Tạo tài khoản'),
+      h('p', { class: 'muted small', style: 'margin-top:-6px' }, 'Có tài khoản là đăng truyện, thả bình luận được.'),
+      h('form', { onsubmit: async (e) => {
+        e.preventDefault();
+        err.textContent = '';
+        if (pass.value !== pass2.value) { err.textContent = 'Hai lần nhập mật khẩu chưa giống nhau.'; return; }
+        if (TURNSTILE_KEY && !tsToken) { err.textContent = 'Bạn đợi bước kiểm tra chống spam xong đã nhé.'; return; }
+        btn.disabled = true;
+        try {
+          const u = user.value.trim().toLowerCase();
+          const d = await api('/auth/register', { method: 'POST',
+            body: { username: u, name: name.value, pass: await passHash(u, pass.value), ts: tsToken } });
+          setSession(d.token, d.user);
+          toast('Chào mừng ' + d.user.name + ' 💗');
+          go(next);
+        } catch (e2) {
+          err.textContent = e2.message;
+          btn.disabled = false;
+          if (tsId != null && window.turnstile) { window.turnstile.reset(tsId); tsToken = ''; }
+        }
+      } },
+        h('label', { class: 'field' }, h('span', null, 'Tên đăng nhập'), user,
+          h('small', null, '3–20 ký tự: chữ thường không dấu, số, dấu _. Dùng để đăng nhập, không đổi được.')),
+        h('label', { class: 'field' }, h('span', null, 'Bút danh'), name, h('small', null, 'Tên hiện trên truyện và bình luận, đổi được sau.')),
+        h('label', { class: 'field' }, h('span', null, 'Mật khẩu'), pass, h('small', null, 'Ít nhất 8 ký tự.')),
+        h('label', { class: 'field' }, h('span', null, 'Nhập lại mật khẩu'), pass2),
+        h('label', { class: 'check' }, agree, h('span', null,
+          'Mình sẽ không đăng nội dung xúc phạm Lena, Miu hay người khác, không lấy truyện của người khác khi chưa xin phép, và gắn đúng nhãn độ tuổi.')),
+        tsBox, err, btn),
+      h('p', { class: 'small muted', style: 'margin:16px 0 0;text-align:center' }, 'Đã có tài khoản? ', h('a', { href: '#/dang-nhap' }, 'Đăng nhập')))));
+    user.focus();
+  }
+
+  /* ================= tài khoản ================= */
+  function viewAccount(ctx) {
+    if (needLogin()) return;
+    ctx.title('Tài khoản');
+    const name = h('input', { type: 'text', value: me.name, maxlength: 40, required: true });
+    const old = h('input', { type: 'password', autocomplete: 'current-password', required: true });
+    const p1 = h('input', { type: 'password', autocomplete: 'new-password', minlength: 8, required: true });
+    const p2 = h('input', { type: 'password', autocomplete: 'new-password', minlength: 8, required: true });
+    ctx.mount(h('div', { class: 'form' },
+      h('h1', { style: 'font-size:1.4rem' }, 'Tài khoản'),
+      h('p', { class: 'muted' }, '@' + me.username + ' · ', h('span', { class: 'badge b-acc' }, ROLE[me.role] || me.role)),
+      h('form', { class: 'card', style: 'margin-bottom:16px', onsubmit: async (e) => {
+        e.preventDefault();
+        try { const d = await api('/auth/me', { method: 'PUT', body: { name: name.value } }); setSession(token, d.user); toast('Đã đổi bút danh.'); }
+        catch (e2) { toast(e2.message, true); }
+      } }, h('label', { class: 'field' }, h('span', null, 'Bút danh'), name), h('button', { class: 'btn primary', type: 'submit' }, 'Lưu bút danh')),
+      h('form', { class: 'card', onsubmit: async (e) => {
+        e.preventDefault();
+        if (p1.value !== p2.value) return toast('Hai lần nhập mật khẩu mới chưa giống nhau.', true);
+        try {
+          await api('/auth/password', { method: 'POST',
+            body: { old: await passHash(me.username, old.value), pass: await passHash(me.username, p1.value) } });
+          old.value = p1.value = p2.value = '';
+          toast('Đã đổi mật khẩu. Các máy khác đã được đăng xuất.');
+        } catch (e2) { toast(e2.message, true); }
+      } },
+        h('h2', { style: 'margin-top:0;font-size:1.1rem' }, 'Đổi mật khẩu'),
+        h('label', { class: 'field' }, h('span', null, 'Mật khẩu hiện tại'), old),
+        h('label', { class: 'field' }, h('span', null, 'Mật khẩu mới'), p1),
+        h('label', { class: 'field' }, h('span', null, 'Nhập lại mật khẩu mới'), p2),
+        h('button', { class: 'btn primary', type: 'submit' }, 'Đổi mật khẩu')),
+      h('p', { style: 'margin-top:20px' }, h('button', { type: 'button', class: 'btn danger', onclick: logout }, 'Đăng xuất'))));
+  }
+
+  /* ================= truyện của tôi ================= */
+  async function viewMine(ctx) {
+    if (needLogin()) return;
+    ctx.title('Truyện của tôi');
+    const { stories } = await api('/my/stories');
+    if (!ctx.alive()) return;
+    const sumLine = (s) => [
+      s.published ? s.published + ' chương đã đăng' : null, s.waiting ? s.waiting + ' chờ duyệt' : null,
+      s.drafts ? s.drafts + ' nháp' : null, !s.total ? 'chưa có chương nào' : null
+    ].filter(Boolean).join(' · ');
+    ctx.mount(
+      h('div', { class: 'page-head' }, h('h1', null, 'Truyện của tôi'), h('a', { class: 'btn primary', href: '#/viet' }, '✍️ Viết truyện mới')),
+      !canPublish() ? h('p', { class: 'notice' }, 'Truyện và chương mới của bạn sẽ được người duyệt xem qua trước khi hiện lên trang (thường trong ngày).') : null,
+      stories.length
+        ? h('div', { class: 'mine' }, stories.map((s) => h('div', { class: 'card' },
+            h('div', { class: 'row', style: 'justify-content:space-between' }, h('h3', null, s.title), badge(s.status)),
+            h('p', { class: 'muted small', style: 'margin:0 0 6px' }, sumLine(s) + (s.status === 'published' ? ' · 👁 ' + fmt(s.reads) + ' · 💗 ' + fmt(s.hearts) : '')),
+            s.rejected ? h('p', { class: 'small', style: 'margin:0 0 6px;color:var(--danger)' }, s.rejected + ' mục bị từ chối, mở "Quản lý" để xem lý do.') : null,
+            s.metaWaiting ? h('p', { class: 'small', style: 'margin:0 0 6px;color:var(--warn)' }, 'Thông tin truyện đã sửa đang chờ duyệt.') : null,
+            h('div', { class: 'row', style: 'margin-top:10px' },
+              h('a', { class: 'btn sm primary', href: '#/truyen/' + s.id + '/sua' }, 'Quản lý'),
+              h('a', { class: 'btn sm', href: '#/truyen/' + s.id + '/chuong-moi' }, '+ Chương mới'),
+              s.status === 'published' && s.published ? h('a', { class: 'btn sm', href: '#/truyen/' + s.id }, 'Xem trên trang') : null))))
+        : h('div', { class: 'empty card' }, h('p', null, 'Bạn chưa có truyện nào.'), h('a', { class: 'btn primary', href: '#/viet' }, 'Viết truyện đầu tiên')));
+  }
+
+  /* ================= thông tin truyện + quản lý chương ================= */
+  async function viewStoryForm(ctx, id) {
+    if (needLogin()) return;
+    let data = null;
+    if (id) { data = await api('/my/stories/' + id); if (!ctx.alive()) return; }
+    const st = data && data.story;
+    const src = (st && st.pendingMeta) || st || {};
+    ctx.title(st ? 'Sửa: ' + st.title : 'Viết truyện mới');
+    const title = h('input', { type: 'text', maxlength: 120, required: true, value: src.title || '' });
+    const summary = h('textarea', { rows: 5, maxlength: 2000, value: src.summary || '', placeholder: 'Vài dòng giới thiệu cho người đọc biết truyện kể gì…' });
+    const tags = h('input', { type: 'text', value: (src.tags || []).join(', '), placeholder: 'vd: ngọt, học đường, AU, oneshot' });
+    const rating = h('select', null, Object.entries(RATING).map(([v, t]) => h('option', { value: v, selected: (src.rating || 'all') === v }, t)));
+    const done = h('input', { type: 'checkbox', checked: !!(st && st.done) });
+    const btn = h('button', { type: 'submit', class: 'btn primary' }, st ? 'Lưu thông tin' : 'Tiếp tục: viết chương 1 →');
+    const form = h('form', { class: 'card', onsubmit: async (e) => {
+      e.preventDefault();
+      btn.disabled = true;
+      const body = { title: title.value, summary: summary.value, tags: tags.value, rating: rating.value, done: done.checked };
+      try {
+        if (st) {
+          const d = await api('/my/stories/' + st.id, { method: 'PUT', body });
+          toast(d.pending ? 'Đã gửi thông tin mới, chờ người duyệt xem nhé.' : 'Đã lưu thông tin truyện.');
+          listCache = null;
+          render();
+        } else {
+          const d = await api('/my/stories', { method: 'POST', body });
+          go('/truyen/' + d.id + '/chuong-moi');
+        }
+      } catch (e2) { toast(e2.message, true); btn.disabled = false; }
+    } },
+      h('label', { class: 'field' }, h('span', null, 'Tên truyện'), title),
+      h('label', { class: 'field' }, h('span', null, 'Tóm tắt'), summary),
+      h('label', { class: 'field' }, h('span', null, 'Thẻ'), tags, h('small', null, 'Ngăn cách bằng dấu phẩy, tối đa 8 thẻ. Người đọc bấm vào thẻ để tìm truyện cùng loại.')),
+      h('div', { class: 'row', style: 'gap:16px;margin-bottom:16px' },
+        h('label', { class: 'field', style: 'margin:0;flex:1 1 180px' }, h('span', null, 'Độ tuổi'), rating),
+        h('label', { class: 'check', style: 'margin:22px 0 0' }, done, h('span', null, 'Truyện đã hoàn'))),
+      btn);
+
+    if (!st) {
+      ctx.mount(h('div', { class: 'narrow', style: 'margin:0 auto' },
+        h('div', { class: 'page-head' }, h('h1', null, 'Viết truyện mới')),
+        !canPublish() ? h('p', { class: 'notice' }, 'Bước 1: điền thông tin truyện. Bước 2: viết chương 1 rồi bấm "Gửi duyệt". Người duyệt xem xong là truyện hiện lên trang.') : null,
+        form));
+      return;
+    }
+
+    const chRow = (c, i) => {
+      const extra = c.status === 'published' && c.editStatus === 'pending' ? h('span', { class: 'badge b-wait' }, 'Bản sửa chờ duyệt')
+        : c.status === 'published' && c.editStatus === 'rejected' ? h('span', { class: 'badge b-no' }, 'Bản sửa bị từ chối') : null;
+      return h('li', null,
+        h('div', { class: 't' },
+          h('div', { class: 'row' }, h('b', null, 'Chương ' + (i + 1) + (c.title ? ': ' + c.title : '')), badge(c.status), extra),
+          h('span', { class: 'muted small' }, fmt(c.words) + ' chữ' + (c.status === 'published' ? ' · 💗 ' + fmt(c.hearts) : '') + ' · sửa ' + ago(c.updated)),
+          c.note ? h('span', { class: 'note' }, 'Lời nhắn người duyệt: ' + c.note) : null),
+        h('div', { class: 'row' },
+          c.status === 'published' ? h('a', { class: 'btn sm', href: '#/doc/' + c.id }, 'Xem') : null,
+          h('a', { class: 'btn sm primary', href: '#/chuong/' + c.id + '/sua' }, 'Sửa'),
+          h('button', { type: 'button', class: 'btn sm danger', onclick: async () => {
+            if (!confirm('Xoá hẳn "Chương ' + (i + 1) + (c.title ? ': ' + c.title : '') + '"? Tim và bình luận của chương cũng mất, không khôi phục được.')) return;
+            try { await api('/my/chapters/' + c.id, { method: 'DELETE' }); toast('Đã xoá chương.'); listCache = null; render(); }
+            catch (e) { toast(e.message, true); }
+          } }, 'Xoá')));
+    };
+    ctx.mount(h('div', { class: 'narrow', style: 'margin:0 auto' },
+      h('a', { href: '#/cua-toi', class: 'small' }, '← Truyện của tôi'),
+      h('div', { class: 'page-head' }, h('h1', null, st.title), badge(st.status)),
+      st.status === 'hidden' ? h('p', { class: 'notice bad' }, 'Người duyệt đã ẩn truyện này' + (st.note ? ': ' + st.note : '.')) : null,
+      st.pendingMeta ? h('p', { class: 'notice warn' }, 'Thông tin bạn sửa đang chờ duyệt. Trên trang vẫn hiện thông tin cũ cho tới khi được duyệt.') : null,
+      !st.pendingMeta && st.note && st.status !== 'hidden' ? h('p', { class: 'notice bad' }, 'Thông tin sửa lần trước không được duyệt: ' + st.note) : null,
+      st.status === 'draft' && data.chapters.length ? h('p', { class: 'notice' }, 'Truyện chưa gửi duyệt. Mở một chương và bấm "' + (data.canPublish ? 'Đăng ngay' : 'Gửi duyệt') + '" để gửi.') : null,
+      h('div', { class: 'page-head', style: 'margin-top:8px' }, h('h2', { style: 'margin:0;font-size:1.15rem' }, 'Các chương'),
+        h('a', { class: 'btn primary sm', href: '#/truyen/' + st.id + '/chuong-moi' }, '+ Viết chương mới')),
+      data.chapters.length ? h('ol', { class: 'ch-rows' }, data.chapters.map(chRow)) : h('p', { class: 'muted' }, 'Chưa có chương nào.'),
+      h('h2', { style: 'font-size:1.15rem;margin-top:32px' }, 'Thông tin truyện'),
+      form,
+      h('div', { class: 'danger-zone' },
+        h('button', { type: 'button', class: 'btn danger', onclick: async () => {
+          if (!confirm('Xoá hẳn truyện "' + st.title + '" cùng tất cả chương, tim và bình luận? Không khôi phục được.')) return;
+          try { await api('/my/stories/' + st.id, { method: 'DELETE' }); toast('Đã xoá truyện.'); listCache = null; go(me.role === 'admin' && st.authorId !== me.id ? '/duyet?tab=truyen' : '/cua-toi'); }
+          catch (e) { toast(e.message, true); }
+        } }, 'Xoá truyện'))));
+  }
+
+  /* ================= soạn chương ================= */
+  async function viewEditor(ctx, id) {
+    if (needLogin()) return;
+    const isNew = /chuong-moi$/.test(parseHash().path);
+    let storyId, storyTitle, chap = null, canPub, pos;
+    if (isNew) {
+      const d = await api('/my/stories/' + id);
+      storyId = d.story.id; storyTitle = d.story.title; canPub = d.canPublish; pos = d.chapters.length + 1;
+    } else {
+      const d = await api('/my/chapters/' + id);
+      chap = d.chapter; storyId = chap.storyId; storyTitle = chap.storyTitle; canPub = d.canPublish;
+    }
+    if (!ctx.alive()) return;
+    ctx.title(isNew ? 'Chương mới – ' + storyTitle : 'Sửa chương – ' + storyTitle);
+    const draftKey = 'fic_draft:' + (isNew ? 'new-' + storyId : chap.id);
+    const status = chap ? chap.status : 'draft';
+    const published = status === 'published';
+
+    const title = h('input', { type: 'text', maxlength: 120, value: chap ? chap.title : '', placeholder: 'Không bắt buộc' });
+    const ta = h('textarea', { class: 'ed-body', value: chap ? chap.body : '', spellcheck: 'true',
+      placeholder: 'Viết truyện ở đây, hoặc dán từ Google Docs / Word (giữ được chữ đậm, nghiêng)…' });
+    const meta = h('div', { class: 'ed-meta' }, h('span'), h('span'));
+    const preview = h('div', { class: 'ed-preview prose', hidden: true });
+    let dirty = false, saveT;
+    const paintMeta = () => {
+      meta.firstChild.textContent = fmt(countWords(ta.value)) + ' chữ · ' + fmt(ta.value.length) + '/' + fmt(MAX_BODY) + ' ký tự';
+      meta.firstChild.style.color = ta.value.length > MAX_BODY ? 'var(--danger)' : '';
+    };
+    const autosave = () => {
+      dirty = true;
+      clearTimeout(saveT);
+      saveT = setTimeout(() => {
+        ls.put(draftKey, { title: title.value, body: ta.value, at: Date.now() });
+        meta.lastChild.textContent = 'Đã lưu tạm trên máy này lúc ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+      }, 700);
+    };
+    ta.addEventListener('input', () => { paintMeta(); autosave(); });
+    title.addEventListener('input', autosave);
+    ta.addEventListener('paste', (e) => {
+      const html = e.clipboardData && e.clipboardData.getData('text/html');
+      if (!html) return;
+      const text = htmlToText(html);
+      if (!text) return;
+      e.preventDefault();
+      insertText(ta, text);
+    });
+    ta.addEventListener('keydown', (e) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k === 'b') { e.preventDefault(); wrapSelection(ta, '**'); }
+      if (k === 'i') { e.preventDefault(); wrapSelection(ta, '*'); }
+    });
+    const onLeave = (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } };
+    window.addEventListener('beforeunload', onLeave);
+    cleanups.push(() => window.removeEventListener('beforeunload', onLeave));
+
+    const prevBtn = h('button', { type: 'button', 'aria-pressed': 'false', onclick: () => {
+      const on = preview.hidden;
+      preview.hidden = !on; ta.hidden = on;
+      prevBtn.textContent = on ? '✎ Viết tiếp' : '👁 Xem thử';
+      if (on) preview.replaceChildren(renderBody(ta.value) );
+    } }, '👁 Xem thử');
+    const toolbar = h('div', { class: 'tb' },
+      h('button', { type: 'button', title: 'Chữ đậm (Ctrl+B)', onclick: () => wrapSelection(ta, '**') }, h('b', null, 'B')),
+      h('button', { type: 'button', title: 'Chữ nghiêng (Ctrl+I)', onclick: () => wrapSelection(ta, '*') }, h('i', null, 'I')),
+      h('button', { type: 'button', title: 'Chuyển cảnh', onclick: () => insertText(ta, '\n\n***\n\n') }, '✻ Chuyển cảnh'),
+      h('span', { class: 'sp' }), prevBtn);
+
+    // bản đang viết dở trên máy này (mất mạng, lỡ đóng tab...) mới hơn bản trên máy chủ thì hỏi khôi phục
+    const local = ls.json(draftKey, null);
+    const serverAt = chap ? Date.parse(chap.updated || 0) : 0;
+    const restoreBox = local && (local.body !== ta.value || local.title !== title.value) && local.body && local.at > serverAt
+      ? h('p', { class: 'notice warn' }, 'Có bản bạn đang viết dở trên máy này (' + ago(new Date(local.at).toISOString()) + '). ',
+          h('button', { type: 'button', class: 'btn sm', onclick: (e) => { title.value = local.title || ''; ta.value = local.body; paintMeta(); dirty = true; e.target.closest('p').remove(); } }, 'Mở lại bản đó'), ' ',
+          h('button', { type: 'button', class: 'btn sm', onclick: (e) => { ls.del(draftKey); e.target.closest('p').remove(); } }, 'Bỏ'))
+      : null;
+
+    const notes = [];
+    if (status === 'rejected' && chap.note) notes.push(h('p', { class: 'notice bad' }, 'Người duyệt nhắn: ' + chap.note + '. Bạn sửa rồi gửi lại nhé.'));
+    if (status === 'pending') notes.push(h('p', { class: 'notice warn' }, 'Chương này đang chờ duyệt. Bạn vẫn sửa được, bấm "Cập nhật bản gửi duyệt" để thay bản đã gửi.'));
+    if (published && chap.editStatus === 'pending') notes.push(h('p', { class: 'notice warn' }, 'Bản sửa của bạn đang chờ duyệt. Người đọc vẫn thấy bản cũ cho tới khi được duyệt.'));
+    if (published && chap.editStatus === 'rejected') notes.push(h('p', { class: 'notice bad' }, 'Bản sửa lần trước không được duyệt' + (chap.note ? ': ' + chap.note : '.')));
+    if (published && !canPub && !chap.editStatus) notes.push(h('p', { class: 'notice' }, 'Chương này đã đăng. Bản sửa sẽ được người duyệt xem trước, trong lúc đó người đọc vẫn thấy bản cũ.'));
+
+    async function save(submit) {
+      if (!ta.value.trim()) { toast('Chương chưa có nội dung.', true); ta.focus(); return; }
+      if (ta.value.length > MAX_BODY) { toast('Chương dài quá 100.000 ký tự, bạn chia thành 2 chương nhé.', true); return; }
+      bar2.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      try {
+        const body = { title: title.value, body: ta.value, submit };
+        const d = isNew ? await api('/my/stories/' + storyId + '/chapters', { method: 'POST', body })
+                        : await api('/my/chapters/' + chap.id, { method: 'PUT', body });
+        dirty = false;
+        clearTimeout(saveT);
+        ls.del(draftKey);
+        listCache = null;
+        const msg = d.editStatus === 'pending' ? 'Đã gửi bản sửa, chờ người duyệt xem nhé.'
+          : d.status === 'published' ? 'Đã đăng! 🎉' : d.status === 'pending' ? 'Đã gửi duyệt. Duyệt xong là chương hiện lên trang 💗' : 'Đã lưu nháp.';
+        toast(msg);
+        go('/truyen/' + storyId + '/sua');
+      } catch (e) {
+        toast(e.message, true);
+        bar2.querySelectorAll('button').forEach((b) => { b.disabled = false; });
+      }
+    }
+    const buttons = [];
+    if (published) {
+      if (chap.editStatus && !canPub) {
+        buttons.push(h('button', { type: 'button', class: 'btn', onclick: async () => {
+          if (!confirm('Huỷ bản sửa, giữ nguyên bản đang hiện trên trang?')) return;
+          try { await api('/my/chapters/' + chap.id + '/cancel-edit', { method: 'POST' }); dirty = false; ls.del(draftKey); toast('Đã huỷ bản sửa.'); go('/truyen/' + storyId + '/sua'); }
+          catch (e) { toast(e.message, true); }
+        } }, 'Huỷ bản sửa'));
+      }
+      buttons.push(h('button', { type: 'button', class: 'btn primary', onclick: () => save(false) }, canPub ? 'Lưu thay đổi' : 'Gửi bản sửa để duyệt'));
+    } else {
+      buttons.push(h('button', { type: 'button', class: 'btn', onclick: () => save(false) }, status === 'pending' ? 'Rút về nháp' : 'Lưu nháp'));
+      buttons.push(h('button', { type: 'button', class: 'btn primary', onclick: () => save(true) },
+        canPub ? 'Đăng ngay' : status === 'pending' ? 'Cập nhật bản gửi duyệt' : 'Gửi duyệt'));
+    }
+    const bar2 = h('div', { class: 'actions-bar' }, h('a', { class: 'btn', href: '#/truyen/' + storyId + '/sua', style: 'margin-right:auto' }, 'Quay lại'), buttons);
+
+    ctx.mount(h('div', { class: 'narrow', style: 'margin:0 auto' },
+      h('a', { href: '#/truyen/' + storyId + '/sua', class: 'small' }, '← ' + storyTitle),
+      h('div', { class: 'page-head' }, h('h1', null, isNew ? 'Chương ' + pos + ' (mới)' : 'Sửa chương'), chap ? badge(status) : null),
+      notes, restoreBox,
+      h('label', { class: 'field' }, h('span', null, 'Tên chương'), title),
+      h('div', { class: 'field' }, h('span', null, 'Nội dung'), toolbar, ta, preview),
+      meta,
+      h('p', { class: 'help' }, 'Mỗi dòng là một đoạn. ', h('code', null, '**chữ đậm**'), ' · ', h('code', null, '*chữ nghiêng*'),
+        ' · dòng chỉ có ', h('code', null, '***'), ' để chuyển cảnh. Dán từ Google Docs / Word giữ được đậm, nghiêng. Bài đang viết được lưu tạm trên máy này.'),
+      bar2));
+    paintMeta();
+    if (isNew) ta.focus();
+  }
+
+  /* ================= người duyệt ================= */
+  async function viewAdmin(ctx) {
+    if (needLogin()) return;
+    if (me.role !== 'admin') throw new Error('Chỉ người duyệt mới vào được trang này.');
+    ctx.title('Duyệt truyện');
+    const tab = ctx.q.get('tab') || 'cho';
+    const tabs = h('nav', { class: 'tabs', 'aria-label': 'Mục duyệt' },
+      [['cho', 'Chờ duyệt' + (queue ? ' (' + queue + ')' : '')], ['thanh-vien', 'Thành viên'], ['truyen', 'Tất cả truyện']].map(([k, t]) =>
+        h('a', { href: '#/duyet' + (k === 'cho' ? '' : '?tab=' + k), 'aria-current': tab === k ? 'page' : null }, t)));
+    const head = h('div', { class: 'page-head' }, h('h1', null, 'Duyệt truyện'));
+    if (tab === 'thanh-vien') return adminUsers(ctx, head, tabs);
+    if (tab === 'truyen') return adminStories(ctx, head, tabs);
+
+    const { items } = await api('/admin/queue');
+    if (!ctx.alive()) return;
+    const box = h('div');
+    const setQueue = (n) => { queue = n; renderNav(); tabs.firstChild.textContent = 'Chờ duyệt' + (n ? ' (' + n + ')' : ''); };
+    setQueue(items.length);
+    const empty = () => h('div', { class: 'empty card' }, h('p', null, 'Hết việc rồi! Không có gì chờ duyệt 🎉'));
+    const KIND = { story: ['🆕 Truyện mới', 'b-acc'], chapter: ['➕ Chương mới', 'b-ok'], edit: ['✏️ Sửa chương', 'b-wait'], meta: ['📝 Sửa thông tin truyện', 'b-wait'] };
+
+    const card = (it) => {
+      const el = h('article', { class: 'card q-item' });
+      const act = async (action, note) => {
+        el.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+        try {
+          const path = it.kind === 'meta' ? '/admin/stories/' + it.id : '/admin/chapters/' + it.id;
+          const d = await api(path, { method: 'POST', body: { action: it.kind === 'meta' ? action + '-meta' : action, note } });
+          el.remove();
+          listCache = null;
+          setQueue(d.queue);
+          toast(action === 'approve' ? 'Đã duyệt ✓' : 'Đã từ chối, tác giả sẽ thấy lời nhắn.');
+          if (!box.children.length) box.append(empty());
+        } catch (e) { toast(e.message, true); el.querySelectorAll('button').forEach((b) => { b.disabled = false; }); }
+      };
+      const reason = h('textarea', { rows: 2, maxlength: 500, placeholder: 'Lý do / lời nhắn cho tác giả (tác giả sẽ thấy)' });
+      const rejectBox = h('div', { hidden: true, style: 'margin-top:10px' }, reason,
+        h('div', { class: 'row', style: 'margin-top:8px' },
+          h('button', { type: 'button', class: 'btn sm danger', onclick: () => act('reject', reason.value) }, 'Gửi từ chối'),
+          h('button', { type: 'button', class: 'btn sm', onclick: () => { rejectBox.hidden = true; } }, 'Thôi')));
+      const s = it.story;
+      let content;
+      if (it.kind === 'meta') {
+        const rows = [];
+        const diff = (label, a, b) => { if ((a || '') !== (b || '')) rows.push(h('dt', null, label), h('dd', null, h('del', null, a || '(trống)'), h('br'), h('ins', null, b || '(trống)'))); };
+        diff('Tên', s.title, it.next.title);
+        diff('Tóm tắt', s.summary, it.next.summary);
+        diff('Thẻ', s.tags.join(', '), (it.next.tags || []).join(', '));
+        diff('Độ tuổi', RATING[s.rating], RATING[it.next.rating]);
+        content = [h('h3', null, s.title), h('dl', { class: 'diff' }, rows)];
+      } else {
+        content = [
+          h('h3', null, s.title),
+          h('p', { class: 'small', style: 'margin:0' }, 'Chương ' + it.pos + ': ' + (it.title || '(không tên)') +
+            (it.kind === 'edit' && it.oldTitle !== it.title ? ' (tên cũ: ' + (it.oldTitle || 'không tên') + ')' : '') + ' · ' + fmt(it.words) + ' chữ'),
+          it.kind === 'story' ? h('div', { style: 'margin-top:8px' },
+            h('div', { class: 'row' }, ratingBadge(s.rating) || h('span', { class: 'badge' }, RATING.all), s.tags.map((t) => h('span', { class: 'tag' }, t))),
+            s.summary ? h('p', { class: 'small muted', style: 'white-space:pre-wrap;margin:6px 0 0' }, s.summary) : null) : null,
+          h('details', null, h('summary', null, it.kind === 'edit' ? 'Đọc bản sửa' : 'Đọc nội dung'), h('div', { class: 'prose' }, renderBody(it.body)))
+        ];
+      }
+      addKids(el, [
+        h('div', { class: 'row' }, h('span', { class: 'badge ' + KIND[it.kind][1] }, KIND[it.kind][0]),
+          h('span', { class: 'muted small' }, 'của ' + it.author.name + ' (@' + it.author.username + ')' + (it.updated ? ' · ' + ago(it.updated) : ''))),
+        content,
+        h('div', { class: 'row', style: 'margin-top:12px' },
+          h('button', { type: 'button', class: 'btn primary sm', onclick: () => act('approve') }, '✓ Duyệt'),
+          h('button', { type: 'button', class: 'btn sm danger', onclick: () => { rejectBox.hidden = false; reason.focus(); } }, '✗ Từ chối')),
+        rejectBox]);
+      return el;
+    };
+    box.append(...(items.length ? items.map(card) : [empty()]));
+    ctx.mount(head, tabs, box);
+  }
+
+  async function adminUsers(ctx, head, tabs) {
+    const { users } = await api('/admin/users');
+    if (!ctx.alive()) return;
+    const row = (u) => {
+      const li = h('li');
+      const paint = () => {
+        const pw = h('input', { type: 'password', autocomplete: 'new-password', minlength: 8, placeholder: 'Mật khẩu mới (ít nhất 8 ký tự)' });
+        const pwBox = h('form', { hidden: true, class: 'row', style: 'margin-top:8px', onsubmit: async (e) => {
+          e.preventDefault();
+          if (pw.value.length < 8) return toast('Mật khẩu cần ít nhất 8 ký tự.', true);
+          try { await api('/admin/users/' + u.id, { method: 'POST', body: { pass: await passHash(u.username, pw.value) } }); toast('Đã đặt lại mật khẩu. Gửi mật khẩu mới cho ' + u.name + ' nhé.'); pwBox.hidden = true; }
+          catch (e2) { toast(e2.message, true); }
+        } }, h('div', { style: 'flex:1 1 220px' }, pw), h('button', { type: 'submit', class: 'btn sm primary' }, 'Lưu'));
+        const set = async (body, msg) => {
+          try { await api('/admin/users/' + u.id, { method: 'POST', body }); Object.assign(u, body); toast(msg); paint(); }
+          catch (e) { toast(e.message, true); }
+        };
+        const self = u.id === me.id, isAdmin = u.role === 'admin';
+        fill(li,
+          h('div', { class: 'row' }, h('b', null, u.name), h('span', { class: 'muted small' }, '@' + u.username),
+            h('span', { class: 'badge ' + (isAdmin ? 'b-acc' : u.role === 'trusted' ? 'b-ok' : '') }, ROLE[u.role]),
+            u.banned ? h('span', { class: 'badge b-no' }, 'Bị khoá') : null),
+          h('div', { class: 'muted small' }, u.stories + ' truyện · ' + u.comments + ' bình luận · tham gia ' + dateVN(u.created)),
+          !self && !isAdmin ? h('div', { class: 'row', style: 'margin-top:8px' },
+            h('a', { class: 'btn sm', href: '#/?tac-gia=' + encodeURIComponent(u.username) }, 'Xem truyện'),
+            h('button', { type: 'button', class: 'btn sm', onclick: () => set({ role: u.role === 'trusted' ? 'user' : 'trusted' },
+              u.role === 'trusted' ? 'Đã bỏ tin cậy: truyện của ' + u.name + ' lại phải chờ duyệt.' : 'Đã bật tin cậy: ' + u.name + ' đăng là hiện luôn.') },
+              u.role === 'trusted' ? 'Bỏ tin cậy' : '⭐ Tin cậy (đăng thẳng)'),
+            h('button', { type: 'button', class: 'btn sm danger', onclick: () => {
+              if (!u.banned && !confirm('Khoá ' + u.name + '? Họ bị đăng xuất, không đăng nhập được, truyện và bình luận bị ẩn.')) return;
+              set({ banned: !u.banned }, u.banned ? 'Đã mở khoá.' : 'Đã khoá tài khoản.');
+            } }, u.banned ? 'Mở khoá' : 'Khoá'),
+            h('button', { type: 'button', class: 'btn sm', onclick: () => { pwBox.hidden = !pwBox.hidden; if (!pwBox.hidden) pw.focus(); } }, 'Đặt lại mật khẩu')) : null,
+          pwBox);
+      };
+      paint();
+      return li;
+    };
+    ctx.mount(head, tabs,
+      h('p', { class: 'muted small' }, fmt(users.length) + ' thành viên. "Tin cậy" = đăng truyện là hiện luôn, không cần chờ duyệt (bạn vẫn ẩn / xoá được).'),
+      h('ul', { class: 'people' }, users.map(row)));
+  }
+
+  async function adminStories(ctx, head, tabs) {
+    const { stories } = await api('/admin/stories');
+    if (!ctx.alive()) return;
+    const row = (s) => {
+      const li = h('li');
+      const act = async (action, msg) => {
+        try {
+          const d = await api('/admin/stories/' + s.id, { method: 'POST', body: { action } });
+          listCache = null; queue = d.queue; renderNav(); toast(msg);
+          if (action === 'delete') li.remove(); else render();
+        } catch (e) { toast(e.message, true); }
+      };
+      li.append(
+        h('div', { class: 'row' }, h('b', null, s.title), badge(s.status), s.author.banned ? h('span', { class: 'badge b-no' }, 'Tác giả bị khoá') : null),
+        h('div', { class: 'muted small' }, 'của ' + s.author.name + ' (@' + s.author.username + ') · ' + s.published + '/' + s.total + ' chương đã đăng · 👁 ' + fmt(s.reads) + ' · tạo ' + dateVN(s.created)),
+        h('div', { class: 'row', style: 'margin-top:8px' },
+          s.status === 'published' && s.published ? h('a', { class: 'btn sm', href: '#/truyen/' + s.id }, 'Xem') : null,
+          h('a', { class: 'btn sm', href: '#/truyen/' + s.id + '/sua' }, 'Sửa'),
+          s.status === 'hidden'
+            ? h('button', { type: 'button', class: 'btn sm', onclick: () => act('unhide', 'Đã hiện lại truyện.') }, 'Hiện lại')
+            : h('button', { type: 'button', class: 'btn sm', onclick: () => { if (confirm('Ẩn truyện "' + s.title + '" khỏi trang?')) act('hide', 'Đã ẩn truyện.'); } }, 'Ẩn'),
+          h('button', { type: 'button', class: 'btn sm danger', onclick: () => {
+            if (confirm('Xoá hẳn truyện "' + s.title + '" cùng mọi chương, tim, bình luận? Không khôi phục được.')) act('delete', 'Đã xoá truyện.');
+          } }, 'Xoá')));
+      return li;
+    };
+    ctx.mount(head, tabs, stories.length ? h('ul', { class: 'people' }, stories.map(row)) : h('div', { class: 'empty card' }, 'Chưa có truyện nào.'));
+  }
+
+  /* ================= khởi động ================= */
+  applyReader();
+  renderNav();
+  loadMe().then(render);
+  // quay lại tab sau một lúc thì cập nhật số mục chờ duyệt
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && me && me.role === 'admin') loadMe(); });
+})();
+</script>
+</body>
+</html>
