@@ -91,6 +91,15 @@ window.VIETSUB = {
 
   videos: [
     {
+      title: 'Katanyu Tonight – Part 1',
+      video: 'katanyu-tonight-part-1.mp4',
+      youtube: '',
+      drive: '',
+      group: 'Katanyu Tonight',
+      date: '2026-11-08',
+      note: ''
+    },
+    {
       title: 'Khoảnh khắc đặc biệt của tụi mình ở Biarritz',
       youtube: '',
       odysee: 'https://odysee.com/LenaMiu-Biarritz-(Vietsub):c4c77f27387570b5353b3ebb2d864631586f760f',
