@@ -539,9 +539,10 @@
 
   function renderNav() {
     const items = [h('a', { class: 'nav-a hide-sm', href: '../' }, '🎬 Video')];
-    items.push(h('a', { class: 'nav-a', href: me ? '#/viet' : '#/dang-nhap?next=' + encodeURIComponent('/viet'),
-                        title: 'Đăng truyện', 'aria-label': 'Đăng truyện' }, '✍️', h('span', { class: 'hide-sm' }, 'Đăng truyện')));
     if (me) {
+      // nút đăng truyện chỉ hiện khi đã đăng nhập
+      items.push(h('a', { class: 'nav-a', href: '#/viet', title: 'Đăng truyện', 'aria-label': 'Đăng truyện' },
+        '✍️', h('span', { class: 'hide-sm' }, 'Đăng truyện')));
       const list = h('div', { class: 'menu-list' },
         h('a', { href: '#/cua-toi' }, '📚 Truyện của tôi'),
         me.role === 'admin' ? h('a', { href: '#/duyet' }, '🛡️ Duyệt truyện', queue ? h('span', { class: 'dot' }, queue) : null) : null,
@@ -560,7 +561,7 @@
     try { await api('/auth/logout', { method: 'POST' }); } catch (e) { /* vẫn đăng xuất trong máy */ }
     setSession(null);
     toast('Đã đăng xuất.');
-    go('/');
+    if (parseHash().path === '/') render(); else go('/');   // đang ở trang chủ thì vẽ lại cho ẩn nút đăng truyện
   }
   document.addEventListener('click', (e) => {
     document.querySelectorAll('details.menu[open]').forEach((d) => { if (!d.contains(e.target) || e.target.closest('a')) d.open = false; });
@@ -810,15 +811,15 @@
         : h('div', { class: 'hero' },
             h('h1', null, 'Fanfic LenaMiu'),
             h('p', null, 'Truyện do fan viết về Lena và Miu'),
-            h('a', { class: 'btn primary', href: me ? '#/viet' : '#/dang-nhap?next=' + encodeURIComponent('/viet') }, '✍️ Đăng truyện của bạn')),
+            me ? h('a', { class: 'btn primary', href: '#/viet' }, '✍️ Đăng truyện của bạn') : null),
       conts.length && !author ? [h('h2', { class: 'section-title' }, 'Đang đọc dở'), ...conts] : null,
       stories.length ? h('div', { class: 'tools' }, search, sort) : null,
       stories.length ? h('div', { class: 'tags filter-tags' }, doneBtn, tagBtns) : null,
       stories.length ? count : null,
       stories.length ? list : h('div', { class: 'empty card' },
         h('p', null, 'Chưa có truyện nào được đăng.'),
-        h('p', null, 'Bạn viết truyện đầu tiên cho fandom nha! 💗'),
-        h('a', { class: 'btn primary', href: me ? '#/viet' : '#/dang-ky' }, 'Đăng truyện đầu tiên')));
+        me ? h('p', null, 'Bạn viết truyện đầu tiên cho fandom nha! 💗') : null,
+        me ? h('a', { class: 'btn primary', href: '#/viet' }, 'Đăng truyện đầu tiên') : null));
     if (stories.length) draw();
   }
   function storyCard(s) {
