@@ -110,6 +110,7 @@ window.VIETSUB = {
     },
     {
       title: 'Pls Love Reaction EP 2',
+      video: 'pls-love-reaction-ep-2.mp4',
       youtube: '',
       odysee: 'https://odysee.com/PLS-Love-Reaction-EP.2-(Vietsub):f0ba0e0126dd0a6658d00f57afed7503a3b2623f',
       drive: 'https://drive.google.com/file/d/1azHXoRmIEKz26vlqoA57jroFKLPtGxMc/view?usp=sharing',

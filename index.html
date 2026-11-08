@@ -970,6 +970,7 @@
       seen = new Set([...(seen || []), ...recent.map((x) => x.id)]);
       if (fresh.length) {
         const x = fresh[0];
+        $('pkNews').setAttribute('aria-live', 'polite');   // chỉ đọc to khi có lượt mới
         $('pkNews').textContent = (x.team === 'LenaMiu' ? '💗' : '💜') + ' Phe ' + x.team + ' vừa được tiếp sức!';
         $('pkNews').classList.add('fresh');
         const pk = $('pk');
@@ -982,11 +983,30 @@
         clearTimeout(newsTimer);
         newsTimer = setTimeout(() => { $('pkNews').classList.remove('fresh'); }, 8000);
       } else if (!$('pkNews').classList.contains('fresh')) {
-        const n = (Number(A.count) || 0) + (Number(B.count) || 0);
-        $('pkNews').textContent = !started ? 'Chưa có lượt nào, mở màn đi nào!'
-          : pa === pb ? 'Hai phe đang hoà!' + (n ? ' · ' + n + ' lượt' : '')
-          : '👑 ' + (pa > pb ? 'LenaMiu' : 'MiuLena') + ' đang dẫn' + (n ? ' · ' + n + ' lượt' : '');
+        // Lượt donate gần nhất: phe nào + lúc nào (số nhập tay không tính, máy chủ đã lọc)
+        const last = recent[0];
+        const textNow = last ? lastText(last) : !started ? 'Chưa có lượt nào, mở màn đi nào!' : '';
+        $('pkNews').setAttribute('aria-live', 'off');     // "N phút trước" đổi liên tục, khỏi đọc to mỗi phút
+        if ($('pkNews').textContent !== textNow) $('pkNews').textContent = textNow;
       }
+    }
+
+    // Câu báo lượt donate gần nhất, viết như câu nói bình thường. Giờ theo giờ Việt Nam
+    // (SePay ghi dạng "2026-11-08 10:21:51"), đúng cả khi máy người xem ở múi giờ khác.
+    function lastText(x) {
+      const icon = x.team === 'LenaMiu' ? '💗 ' : '💜 ';
+      const t = new Date(String(x.at || '').replace(' ', 'T') + '+07:00');
+      if (isNaN(t)) return icon + 'Lần donate gần nhất là cho phe ' + x.team;
+      const vn = (d) => new Date(d.getTime() + 7 * 3600e3);
+      const v = vn(t);
+      const two = (n) => String(n).padStart(2, '0');
+      const hm = two(v.getUTCHours()) + ':' + two(v.getUTCMinutes());
+      const mins = Math.floor((Date.now() - t.getTime()) / 60000);
+      if (mins < 1) return icon + 'Phe ' + x.team + ' vừa được donate xong!';
+      if (mins < 60) return icon + 'Phe ' + x.team + ' vừa được donate cách đây ' + mins + ' phút';
+      const today = v.toISOString().slice(0, 10) === vn(new Date()).toISOString().slice(0, 10);
+      return icon + 'Lần donate gần nhất là cho phe ' + x.team + ', lúc ' + hm +
+             (today ? ' hôm nay' : ' ngày ' + two(v.getUTCDate()) + '/' + two(v.getUTCMonth() + 1));
     }
 
     $('donateBtn').addEventListener('click', openDonate);
@@ -1191,8 +1211,10 @@
 
   function select(id, play) {
     cur = videos.find((v) => v.id === id) || videos[0];
+    // Video có trên máy chủ riêng thì luôn mở bằng nguồn đó trước (nhanh nhất), kể cả khi lần trước
+    // người xem đã chọn nguồn khác. Video không có thì mới dùng nguồn đã chọn lần trước.
     const pref = store(SRC_KEY);
-    src = has(cur, pref) ? pref : sourcesOf(cur)[0];
+    src = has(cur, 'file') ? 'file' : has(cur, pref) ? pref : sourcesOf(cur)[0];
 
     paintKicker();
     $('watchTitle').textContent = cur.title;
