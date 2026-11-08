@@ -315,6 +315,14 @@
   .cmt-head .del { margin-left: auto; border: 0; background: none; color: var(--muted); font: inherit; font-size: .8rem; cursor: pointer; }
   .cmt-head .del:hover { color: var(--danger); }
   .cmt-body { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .replies { list-style: none; margin: 8px 0 0; padding: 0 0 0 14px; border-left: 2px solid color-mix(in srgb, var(--accent) 35%, var(--line)); }
+  .replies:empty { display: none; }
+  .cmt.reply { padding: 8px 0 6px; border-bottom: 0; }
+  .reply-btn {
+    margin-top: 4px; padding: 4px 0; border: 0; background: none; color: var(--accent);
+    font: inherit; font-size: .84rem; font-weight: 600; cursor: pointer;
+  }
+  .reply-form { margin: 8px 0 4px 16px; }
   .cmt-who { display: grid; gap: 0 12px; grid-template-columns: 1fr; }
   .cmt-who .field { margin-bottom: 12px; }
   @media (min-width: 560px) { .cmt-who { grid-template-columns: 1fr 1fr; } }
@@ -1133,26 +1141,62 @@
     const list = h('ol', { class: 'cmts' });
     const title = h('h2', null, 'Bình luận');
     const box = h('section', { class: 'comments', id: 'binh-luan' }, title, list);
+    // tác giả truyện (và người duyệt) trả lời được từng bình luận; câu trả lời hiện thụt vào dưới bình luận gốc
+    const canReply = !!me && (me.id === ch.story.authorId || me.role === 'admin');
+    const repliesOf = new Map();                 // id bình luận gốc → danh sách câu trả lời
     const item = (c) => {
+      const isReply = !!c.parent;
       // nhãn chỉ gắn cho người đã đăng nhập (khách tự đặt tên nên không gắn được)
       const tagText = !c.user ? null : c.user.id === ch.story.authorId ? 'Tác giả' : c.user.role === 'admin' ? 'Người duyệt' : null;
       const canDel = me && ((c.user && me.id === c.user.id) || me.id === ch.story.authorId || me.role === 'admin');
-      const li = h('li', { class: 'cmt' },
+      const li = h('li', { class: 'cmt' + (isReply ? ' reply' : '') },
         h('div', { class: 'cmt-head' }, h('b', null, c.name), tagText ? h('span', { class: 'badge b-acc' }, tagText) : null,
           c.email ? h('span', { class: 'muted small', title: 'Chỉ người duyệt thấy email' }, c.email) : null,
           timeEl(c.created),
           canDel ? h('button', { type: 'button', class: 'del', onclick: async () => {
-            if (!confirm('Xoá bình luận này?')) return;
-            try { await api('/comments/' + c.id, { method: 'DELETE' }); li.remove(); toast('Đã xoá bình luận.'); setCount(-1); }
-            catch (e) { toast(e.message, true); }
+            const hasReplies = !isReply && repliesOf.get(c.id) && repliesOf.get(c.id).children.length;
+            if (!confirm(hasReplies ? 'Xoá bình luận này cùng các câu trả lời bên dưới?' : 'Xoá bình luận này?')) return;
+            try {
+              const d = await api('/comments/' + c.id, { method: 'DELETE' });
+              li.remove();
+              toast('Đã xoá bình luận.');
+              setCount(-(d.removed || 1));
+            } catch (e) { toast(e.message, true); }
           } }, 'Xoá') : null),
         h('p', { class: 'cmt-body' }, c.body));
+      if (!isReply) {
+        const ol = h('ol', { class: 'replies' });
+        repliesOf.set(c.id, ol);
+        if (canReply) li.append(h('button', { type: 'button', class: 'reply-btn', onclick: () => openReply(c, li, ol) }, '↩ Trả lời'));
+        li.append(ol);
+      }
       return li;
     };
+    function openReply(c, li, ol) {
+      const open = li.querySelector(':scope > .reply-form');
+      if (open) { open.querySelector('textarea').focus(); return; }
+      const rta = h('textarea', { rows: 2, maxlength: 1000, required: true, placeholder: 'Trả lời ' + c.name + '…', 'aria-label': 'Trả lời ' + c.name });
+      const sendR = h('button', { type: 'submit', class: 'btn primary sm' }, 'Gửi trả lời');
+      const form = h('form', { class: 'reply-form', onsubmit: async (e) => {
+        e.preventDefault();
+        if (!rta.value.trim()) return rta.focus();
+        sendR.disabled = true;
+        try {
+          const d = await api('/chapters/' + ch.id + '/comments', { method: 'POST', body: { body: rta.value, parent: c.id } });
+          ol.append(item(d.comment));
+          setCount(1);
+          form.remove();
+        } catch (err) { toast(err.message, true); sendR.disabled = false; }
+      } }, rta, h('div', { class: 'row', style: 'justify-content:flex-end;margin-top:6px' },
+        h('button', { type: 'button', class: 'btn sm', onclick: () => form.remove() }, 'Huỷ'), sendR));
+      li.append(form);
+      rta.focus();
+    }
     let n = 0;
     const setCount = (d) => { n += d; title.textContent = n ? 'Bình luận (' + fmt(n) + ')' : 'Bình luận'; };
     api('/chapters/' + ch.id + '/comments').then((d) => {
-      list.replaceChildren(...d.comments.map(item));
+      list.replaceChildren();
+      for (const c of d.comments) (c.parent && repliesOf.get(c.parent) || list).append(item(c));
       setCount(d.comments.length);
       if (!d.comments.length) list.replaceChildren(h('li', { class: 'muted small', style: 'padding:6px 0 0' }, 'Chưa có bình luận nào. Bạn là người đầu tiên nhé!'));
     }).catch(() => list.replaceChildren(h('li', { class: 'muted small' }, 'Chưa tải được bình luận.')));

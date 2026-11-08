@@ -375,12 +375,12 @@ route('POST', '/read', async (c) => {
 route('GET', '/chapters/:id/comments', async (c) => {
   const viewer = await currentUser(c);
   const admin = !!viewer && viewer.role === 'admin';
-  const { results } = await c.db.prepare(`SELECT cm.id, cm.body, cm.created, cm.name, cm.email, cm.user_id, u.name AS uname, u.role
+  const { results } = await c.db.prepare(`SELECT cm.id, cm.parent_id, cm.body, cm.created, cm.name, cm.email, cm.user_id, u.name AS uname, u.role
       FROM comments cm LEFT JOIN users u ON u.id = cm.user_id
-      WHERE cm.chapter_id = ?1 AND (cm.user_id IS NULL OR u.banned = 0) ORDER BY cm.id LIMIT 500`).bind(idOf(c)).all();
+      WHERE cm.chapter_id = ?1 AND (cm.user_id IS NULL OR u.banned = 0) ORDER BY cm.id LIMIT 1000`).bind(idOf(c)).all();
   return {
     comments: results.map((r) => ({
-      id: r.id, body: r.body, created: r.created, name: r.uname || r.name,
+      id: r.id, parent: r.parent_id || null, body: r.body, created: r.created, name: r.uname || r.name,
       user: r.user_id ? { id: r.user_id, role: r.role } : null,
       ...(admin && r.email ? { email: r.email } : {})
     }))
@@ -407,13 +407,22 @@ route('POST', '/chapters/:id/comments', async (c) => {
     email = String(b.email || '').trim().toLowerCase();
     if (email.length > 120 || !EMAIL_RE.test(email)) fail(400, 'Email chưa đúng, bạn kiểm tra lại nhé.');
   }
-  await publishedChapter(c, id);
+  const ch = await publishedChapter(c, id);
+  // Trả lời bình luận: chỉ tác giả truyện (và người duyệt). Chỉ 1 tầng: trả lời một câu trả lời thì gắn vào bình luận gốc.
+  let parent = null;
+  if (b.parent != null) {
+    if (!u) fail(401, 'Bạn cần đăng nhập để trả lời bình luận.');
+    if (ch.author_id !== u.id && u.role !== 'admin') fail(403, 'Chỉ tác giả truyện mới trả lời bình luận được.');
+    const p = await c.db.prepare('SELECT id, chapter_id, parent_id FROM comments WHERE id = ?1').bind(Number(b.parent) || 0).first();
+    if (!p || p.chapter_id !== id) fail(400, 'Bình luận này không còn nữa.');
+    parent = p.parent_id || p.id;
+  }
   const ipk = await ipKey(c);
   await limit(c, u ? 'cmt:' + u.id : 'cmt-ip:' + ipk, u ? 20 : 8, 3600, 'Bạn bình luận nhanh quá, nghỉ tay chút rồi viết tiếp nha.');
   const t = nowIso();
-  const r = await c.db.prepare(`INSERT INTO comments (chapter_id, user_id, name, email, ip, body, created)
-      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`).bind(id, u ? u.id : null, name, email, ipk, body, t).run();
-  return { comment: { id: r.meta.last_row_id, body, created: t, name, user: u ? { id: u.id, role: u.role } : null } };
+  const r = await c.db.prepare(`INSERT INTO comments (chapter_id, parent_id, user_id, name, email, ip, body, created)
+      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`).bind(id, parent, u ? u.id : null, name, email, ipk, body, t).run();
+  return { comment: { id: r.meta.last_row_id, parent, body, created: t, name, user: u ? { id: u.id, role: u.role } : null } };
 });
 
 route('DELETE', '/comments/:id', async (c) => {
@@ -423,8 +432,9 @@ route('DELETE', '/comments/:id', async (c) => {
   if (!cm) fail(404, 'Bình luận này không còn nữa.');
   // người viết bình luận, tác giả truyện và người duyệt được xoá
   if (cm.user_id !== u.id && cm.author_id !== u.id && u.role !== 'admin') fail(403, 'Bạn không xoá được bình luận này.');
-  await c.db.prepare('DELETE FROM comments WHERE id = ?1').bind(cm.id).run();
-  return { ok: true };
+  // xoá bình luận gốc thì xoá luôn các câu trả lời bên dưới
+  const r = await c.db.prepare('DELETE FROM comments WHERE id = ?1 OR parent_id = ?1').bind(cm.id).run();
+  return { ok: true, removed: r.meta.changes };
 });
 
 /* ===== truyện của tôi ===== */

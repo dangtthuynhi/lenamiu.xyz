@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS comments (
   id         INTEGER PRIMARY KEY,
   chapter_id INTEGER NOT NULL,
   user_id    INTEGER,                        -- NULL = khách (chưa đăng nhập)
+  parent_id  INTEGER,                        -- trả lời bình luận nào (chỉ tác giả truyện / người duyệt); NULL = bình luận gốc
   name       TEXT    NOT NULL,               -- tên hiện trên bình luận
   email      TEXT    NOT NULL DEFAULT '',    -- chỉ người duyệt thấy, KHÔNG BAO GIỜ trả ra công khai
   ip         TEXT    NOT NULL DEFAULT '',    -- mã băm IP (để chặn spam), không lưu IP thật
@@ -78,6 +79,7 @@ CREATE TABLE IF NOT EXISTS comments (
   created    TEXT    NOT NULL
 );
 CREATE INDEX IF NOT EXISTS comments_chapter ON comments (chapter_id, id);
+CREATE INDEX IF NOT EXISTS comments_parent ON comments (parent_id);
 
 -- Ai đã được tính lượt đọc hôm nay (ngày | mã người đọc | id truyện). Cũ hơn 2 ngày tự xoá.
 CREATE TABLE IF NOT EXISTS seen (
