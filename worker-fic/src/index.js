@@ -5,12 +5,14 @@
    Đọc truyện  GET  /stories                 danh sách truyện đã đăng
                GET  /stories/:id             thông tin truyện + mục lục
                GET  /covers/:id?v=           ảnh bìa (truyện đã đăng; v = phiên bản ảnh để trình duyệt lưu lâu)
+               GET  /chapter-images/:id?v=   ảnh ngang đầu chương (chương đã đăng)
                GET  /chapters/:id?u=         nội dung chương (u = mã người đọc, để biết đã thả tim chưa)
                POST /chapters/:id/heart      thả / bỏ tim               POST /read   đếm lượt đọc
                GET|POST /chapters/:id/comments   bình luận (khách chỉ cần tên + email, email không hiện công khai)
                DELETE /comments/:id
    Viết truyện /my/...                       truyện của tôi: tạo, sửa, thêm chương, gửi duyệt
                PUT|DELETE /my/stories/:id/cover   đổi / bỏ ảnh bìa (gửi thẳng file ảnh, không bọc JSON)
+               PUT|DELETE /my/chapters/:id/image  đổi / bỏ ảnh đầu chương
    Duyệt       /admin/...                    hàng chờ duyệt, thành viên, ẩn / xoá truyện (chỉ người duyệt)
 
    Quy tắc duyệt:
@@ -174,8 +176,10 @@ async function needAdmin(c) {
   if (u.role !== 'admin') fail(403, 'Chỉ người duyệt mới làm được việc này.');
   return u;
 }
-// Hàng chờ duyệt: chương mới chờ duyệt + bản sửa của chương đã đăng (truyện bị ẩn / người bị khoá thì bỏ qua)
-const QUEUE_WHERE = `(ch.status = 'pending' OR ch.edit_status = 'pending') AND s.status != 'hidden' AND u.banned = 0`;
+// Chương đã đăng có ảnh đầu chương mới đang chờ duyệt
+const IMG_WAIT = `EXISTS (SELECT 1 FROM ch_images ci WHERE ci.chapter_id = ch.id AND ci.kind = 'pending')`;
+// Hàng chờ duyệt: chương mới chờ duyệt + bản sửa / ảnh mới của chương đã đăng (truyện bị ẩn / người bị khoá thì bỏ qua)
+const QUEUE_WHERE = `(ch.status = 'pending' OR ch.edit_status = 'pending' OR ${IMG_WAIT}) AND s.status != 'hidden' AND u.banned = 0`;
 // Truyện có ảnh bìa mới đang chờ duyệt
 const COVER_WAIT = `EXISTS (SELECT 1 FROM covers cv WHERE cv.story_id = s.id AND cv.kind = 'pending')`;
 // ... và thông tin truyện (tên, tóm tắt, thẻ, độ tuổi, ảnh bìa) đã sửa đang chờ duyệt
@@ -189,6 +193,7 @@ async function queueCount(c) {
 
 /* ---------- ảnh bìa ---------- */
 const COVER_MAX = 400_000;     // trình duyệt đã thu nhỏ ảnh về 600×900 nên thường chỉ 50–150 KB
+const BANNER_MAX = 600_000;    // ảnh đầu chương 1200×675, thường 80–200 KB
 function imageType(b) {
   if (b.length < 16) return null;
   if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'image/jpeg';
@@ -197,11 +202,11 @@ function imageType(b) {
       b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return 'image/webp';
   return null;
 }
-async function readImage(c) {
-  const tooBig = 'Ảnh lớn quá (tối đa 400 KB), bạn chọn ảnh khác nhé.';
-  if (Number(c.req.headers.get('Content-Length') || 0) > COVER_MAX) fail(413, tooBig);
+async function readImage(c, max = COVER_MAX) {
+  const tooBig = 'Ảnh lớn quá (tối đa ' + Math.round(max / 1000) + ' KB), bạn chọn ảnh khác nhé.';
+  if (Number(c.req.headers.get('Content-Length') || 0) > max) fail(413, tooBig);
   const buf = await c.req.arrayBuffer();
-  if (buf.byteLength > COVER_MAX) fail(413, tooBig);
+  if (buf.byteLength > max) fail(413, tooBig);
   const type = imageType(new Uint8Array(buf));            // xem nội dung file, không tin tên / loại file trình duyệt gửi
   if (!type) fail(400, 'File này không phải ảnh JPG, PNG hay WebP.');
   return { buf, type };
@@ -214,6 +219,14 @@ function imageResponse(row, cache) {
 }
 const putCover = (c, id, kind, img, t) => c.db.prepare(`INSERT INTO covers (story_id, kind, type, updated, data) VALUES (?1, ?2, ?3, ?4, ?5)
     ON CONFLICT(story_id, kind) DO UPDATE SET type = ?3, updated = ?4, data = ?5`).bind(id, kind, img.type, t, img.buf);
+const putChImage = (c, id, kind, img, t) => c.db.prepare(`INSERT INTO ch_images (chapter_id, kind, type, updated, data) VALUES (?1, ?2, ?3, ?4, ?5)
+    ON CONFLICT(chapter_id, kind) DO UPDATE SET type = ?3, updated = ?4, data = ?5`).bind(id, kind, img.type, t, img.buf);
+// ảnh chờ duyệt thành ảnh đang hiện (đổi số phiên bản để trình duyệt người đọc tải ảnh mới)
+const promoteChImage = (c, id, t) => [
+  c.db.prepare(`DELETE FROM ch_images WHERE chapter_id = ?1 AND kind = 'live'`).bind(id),
+  c.db.prepare(`UPDATE ch_images SET kind = 'live', updated = ?2 WHERE chapter_id = ?1 AND kind = 'pending'`).bind(id, t),
+  c.db.prepare('UPDATE chapters SET image = ?2 WHERE id = ?1').bind(id, t)
+];
 
 /* ---------- định tuyến ---------- */
 const routes = [];
@@ -312,7 +325,7 @@ route('GET', '/stories/:id', async (c) => {
 
 route('GET', '/chapters/:id', async (c) => {
   const id = idOf(c);
-  const ch = await c.db.prepare(`SELECT ch.id, ch.story_id, ch.title, ch.body, ch.words, ch.hearts, ch.published,
+  const ch = await c.db.prepare(`SELECT ch.id, ch.story_id, ch.title, ch.body, ch.words, ch.hearts, ch.image, ch.published,
         s.title AS story_title, s.rating, s.author_id, u.name AS author, u.username
       FROM chapters ch JOIN stories s ON s.id = ch.story_id JOIN users u ON u.id = s.author_id
       WHERE ch.id = ?1 AND ch.status = 'published' AND s.status = 'published' AND u.banned = 0`).bind(id).first();
@@ -324,7 +337,7 @@ route('GET', '/chapters/:id', async (c) => {
   ]);
   return {
     chapter: {
-      id, title: ch.title, body: ch.body, words: ch.words, hearts: ch.hearts, published: ch.published,
+      id, title: ch.title, body: ch.body, words: ch.words, hearts: ch.hearts, image: ch.image, published: ch.published,
       hearted: !!(who && mine.results.length), index: list.results.findIndex((x) => x.id === id), list: list.results,
       story: { id: ch.story_id, title: ch.story_title, rating: ch.rating, authorId: ch.author_id,
                author: { name: ch.author, username: ch.username } }
@@ -338,6 +351,16 @@ route('GET', '/covers/:id', async (c) => {
       JOIN users u ON u.id = s.author_id
       WHERE cv.story_id = ?1 AND cv.kind = 'live' AND s.status = 'published' AND u.banned = 0`).bind(idOf(c)).first();
   if (!row) fail(404, 'Truyện này chưa có ảnh bìa.');
+  return imageResponse(row, c.url.searchParams.get('v') ? 'public, max-age=31536000, immutable' : 'public, max-age=300');
+});
+
+// Ảnh đầu chương công khai: chỉ chương đã đăng của truyện đã đăng
+route('GET', '/chapter-images/:id', async (c) => {
+  const row = await c.db.prepare(`SELECT ci.type, ci.data FROM ch_images ci JOIN chapters ch ON ch.id = ci.chapter_id
+      JOIN stories s ON s.id = ch.story_id JOIN users u ON u.id = s.author_id
+      WHERE ci.chapter_id = ?1 AND ci.kind = 'live' AND ch.status = 'published' AND s.status = 'published' AND u.banned = 0`)
+    .bind(idOf(c)).first();
+  if (!row) fail(404, 'Chương này không có ảnh.');
   return imageResponse(row, c.url.searchParams.get('v') ? 'public, max-age=31536000, immutable' : 'public, max-age=300');
 });
 
@@ -492,6 +515,7 @@ function deleteStoryStmts(c, id) {
   return [
     c.db.prepare('DELETE FROM comments WHERE chapter_id IN (SELECT id FROM chapters WHERE story_id = ?1)').bind(id),
     c.db.prepare('DELETE FROM hearts WHERE chapter_id IN (SELECT id FROM chapters WHERE story_id = ?1)').bind(id),
+    c.db.prepare('DELETE FROM ch_images WHERE chapter_id IN (SELECT id FROM chapters WHERE story_id = ?1)').bind(id),
     c.db.prepare('DELETE FROM chapters WHERE story_id = ?1').bind(id),
     c.db.prepare('DELETE FROM covers WHERE story_id = ?1').bind(id),
     c.db.prepare('DELETE FROM stories WHERE id = ?1').bind(id)
@@ -503,7 +527,7 @@ route('GET', '/my/stories', async (c) => {
   const { results } = await c.db.prepare(`SELECT s.id, s.title, s.status, s.rating, s.done, s.reads, s.cover, s.created, s.updated, s.note,
         (s.edit_meta IS NOT NULL OR ${COVER_WAIT}) AS meta_waiting, COUNT(ch.id) AS total,
         SUM(ch.status = 'published') AS published, SUM(ch.status = 'draft') AS drafts,
-        SUM(ch.status = 'pending' OR ch.edit_status = 'pending') AS waiting,
+        SUM(ch.status = 'pending' OR ch.edit_status = 'pending' OR ${IMG_WAIT}) AS waiting,
         SUM(ch.status = 'rejected' OR ch.edit_status = 'rejected') AS rejected, SUM(ch.hearts) AS hearts
       FROM stories s LEFT JOIN chapters ch ON ch.story_id = s.id
       WHERE s.author_id = ?1 GROUP BY s.id ORDER BY COALESCE(s.updated, s.created) DESC`).bind(u.id).all();
@@ -519,11 +543,12 @@ route('GET', '/my/stories', async (c) => {
 route('GET', '/my/stories/:id', async (c) => {
   const { user, s } = await myStory(c, idOf(c));
   const [chs, pc] = await c.db.batch([
-    c.db.prepare(`SELECT id, n, title, words, status, note, edit_status AS editStatus, hearts, updated, published
-        FROM chapters WHERE story_id = ?1 ORDER BY n, id`).bind(s.id),
+    c.db.prepare(`SELECT ch.id, ch.n, ch.title, ch.words, ch.status, ch.note, ch.edit_status AS editStatus, ch.hearts, ch.image,
+          ${IMG_WAIT} AS imageWait, ch.updated, ch.published
+        FROM chapters ch WHERE ch.story_id = ?1 ORDER BY ch.n, ch.id`).bind(s.id),
     c.db.prepare(`SELECT updated FROM covers WHERE story_id = ?1 AND kind = 'pending'`).bind(s.id)
   ]);
-  const results = chs.results;
+  const results = chs.results.map((r) => ({ ...r, imageWait: !!r.imageWait }));
   let pendingMeta = null;
   try { pendingMeta = s.edit_meta ? JSON.parse(s.edit_meta) : null; } catch (e) { /* bỏ qua */ }
   return {
@@ -612,14 +637,57 @@ route('DELETE', '/my/stories/:id/cover', async (c) => {
 route('GET', '/my/chapters/:id', async (c) => {
   const { user, ch } = await myChapter(c, idOf(c));
   const editing = ch.status === 'published' && ch.edit_status;     // đang có bản sửa → mở bản sửa để viết tiếp
+  const pi = await c.db.prepare(`SELECT updated FROM ch_images WHERE chapter_id = ?1 AND kind = 'pending'`).bind(ch.id).first();
   return {
     canPublish: canPublish(user),
     chapter: {
       id: ch.id, storyId: ch.story_id, storyTitle: ch.story_title, status: ch.status, note: ch.note,
       editStatus: ch.edit_status, title: editing ? ch.edit_title : ch.title, body: editing ? ch.edit_body : ch.body,
-      updated: ch.updated
+      image: ch.image, pendingImage: pi ? pi.updated : 0, updated: ch.updated
     }
   };
+});
+
+// Ảnh đầu chương của chương mình (cả chương chưa đăng / ảnh chờ duyệt): tác giả và người duyệt xem được
+route('GET', '/my/chapters/:id/image', async (c) => {
+  const { ch } = await myChapter(c, idOf(c));
+  const kind = c.url.searchParams.get('pending') ? 'pending' : 'live';
+  const row = await c.db.prepare('SELECT type, data FROM ch_images WHERE chapter_id = ?1 AND kind = ?2').bind(ch.id, kind).first();
+  if (!row) fail(404, 'Chương này không có ảnh.');
+  return imageResponse(row, 'private, no-store');
+});
+
+route('PUT', '/my/chapters/:id/image', async (c) => {
+  const { user, ch } = await myChapter(c, idOf(c));
+  const img = await readImage(c, BANNER_MAX);
+  await limit(c, 'chimg:' + user.id, 60, 86400, 'Hôm nay bạn đổi ảnh chương nhiều quá rồi, mai đổi tiếp nha.');
+  const t = Date.now();
+  if (ch.status === 'published' && !canPublish(user)) {
+    // Chương đã đăng của thành viên thường: ảnh mới chờ duyệt, người đọc vẫn thấy ảnh cũ
+    await c.db.batch([putChImage(c, ch.id, 'pending', img, t), c.db.prepare(`UPDATE chapters SET note = '' WHERE id = ?1`).bind(ch.id)]);
+    return { pending: true };
+  }
+  // chương chưa đăng (người duyệt sẽ thấy ảnh khi duyệt chương) hoặc người được đăng thẳng: lưu luôn
+  await c.db.batch([
+    putChImage(c, ch.id, 'live', img, t),
+    c.db.prepare(`DELETE FROM ch_images WHERE chapter_id = ?1 AND kind = 'pending'`).bind(ch.id),
+    c.db.prepare('UPDATE chapters SET image = ?2 WHERE id = ?1').bind(ch.id, t)
+  ]);
+  return { pending: false, image: t };
+});
+
+// Bỏ ảnh đầu chương (bỏ thì không cần duyệt). ?pending=1: chỉ huỷ ảnh mới đang chờ duyệt.
+route('DELETE', '/my/chapters/:id/image', async (c) => {
+  const { ch } = await myChapter(c, idOf(c));
+  if (c.url.searchParams.get('pending')) {
+    await c.db.prepare(`DELETE FROM ch_images WHERE chapter_id = ?1 AND kind = 'pending'`).bind(ch.id).run();
+  } else {
+    await c.db.batch([
+      c.db.prepare('DELETE FROM ch_images WHERE chapter_id = ?1').bind(ch.id),
+      c.db.prepare('UPDATE chapters SET image = 0 WHERE id = ?1').bind(ch.id)
+    ]);
+  }
+  return { ok: true };
 });
 
 route('POST', '/my/stories/:id/chapters', async (c) => {
@@ -649,6 +717,12 @@ route('PUT', '/my/chapters/:id', async (c) => {
         .bind(ch.id, f.title, f.body, f.words, t).run();
       return { status: 'published', editStatus: null };
     }
+    if (f.title === ch.title && f.body === ch.body) {
+      // sửa về y như bản đang hiện: không cần duyệt gì, bỏ bản sửa cũ (nếu có)
+      await c.db.prepare(`UPDATE chapters SET edit_title = NULL, edit_body = NULL, edit_status = NULL, note = '' WHERE id = ?1`)
+        .bind(ch.id).run();
+      return { status: 'published', editStatus: null };
+    }
     // Chương đã đăng của thành viên thường: lưu thành bản sửa chờ duyệt, người đọc vẫn thấy bản cũ
     await c.db.prepare(`UPDATE chapters SET edit_title = ?2, edit_body = ?3, edit_status = 'pending', note = '', updated = ?4
         WHERE id = ?1`).bind(ch.id, f.title, f.body, t).run();
@@ -665,8 +739,11 @@ route('PUT', '/my/chapters/:id', async (c) => {
 
 route('POST', '/my/chapters/:id/cancel-edit', async (c) => {
   const { ch } = await myChapter(c, idOf(c));
-  await c.db.prepare(`UPDATE chapters SET edit_title = NULL, edit_body = NULL, edit_status = NULL, note = '' WHERE id = ?1`)
-    .bind(ch.id).run();
+  // huỷ bản sửa: bỏ cả chữ lẫn ảnh mới đang chờ duyệt
+  await c.db.batch([
+    c.db.prepare(`UPDATE chapters SET edit_title = NULL, edit_body = NULL, edit_status = NULL, note = '' WHERE id = ?1`).bind(ch.id),
+    c.db.prepare(`DELETE FROM ch_images WHERE chapter_id = ?1 AND kind = 'pending'`).bind(ch.id)
+  ]);
   return { ok: true };
 });
 
@@ -675,6 +752,7 @@ route('DELETE', '/my/chapters/:id', async (c) => {
   await c.db.batch([
     c.db.prepare('DELETE FROM comments WHERE chapter_id = ?1').bind(ch.id),
     c.db.prepare('DELETE FROM hearts WHERE chapter_id = ?1').bind(ch.id),
+    c.db.prepare('DELETE FROM ch_images WHERE chapter_id = ?1').bind(ch.id),
     c.db.prepare('DELETE FROM chapters WHERE id = ?1').bind(ch.id)
   ]);
   return { ok: true };
@@ -684,7 +762,8 @@ route('DELETE', '/my/chapters/:id', async (c) => {
 route('GET', '/admin/queue', async (c) => {
   await needAdmin(c);
   const [chs, metas] = await c.db.batch([
-    c.db.prepare(`SELECT ch.id, ch.story_id, ch.title, ch.body, ch.words, ch.status, ch.edit_title, ch.edit_body, ch.updated,
+    c.db.prepare(`SELECT ch.id, ch.story_id, ch.title, ch.body, ch.words, ch.status, ch.edit_title, ch.edit_body, ch.edit_status,
+          ch.image, ${IMG_WAIT} AS img_wait, ch.updated,
           (SELECT COUNT(*) FROM chapters x WHERE x.story_id = ch.story_id AND (x.n < ch.n OR (x.n = ch.n AND x.id < ch.id))) + 1 AS pos,
           s.title AS story_title, s.status AS story_status, s.summary, s.tags, s.rating, s.cover, u.name AS author, u.username
         FROM chapters ch JOIN stories s ON s.id = ch.story_id JOIN users u ON u.id = s.author_id
@@ -696,11 +775,13 @@ route('GET', '/admin/queue', async (c) => {
   ]);
   const items = chs.results.map((r) => {
     const edit = r.status === 'published';
+    const textEdit = edit && r.edit_status === 'pending';      // chương đã đăng: có sửa chữ, hay chỉ đổi ảnh
     return {
-      kind: edit ? 'edit' : r.story_status === 'published' ? 'chapter' : 'story',
+      kind: edit ? (textEdit ? 'edit' : 'image') : r.story_status === 'published' ? 'chapter' : 'story',
       id: r.id, pos: r.pos, updated: r.updated, author: { name: r.author, username: r.username },
-      title: edit ? r.edit_title : r.title, body: edit ? r.edit_body : r.body,
-      oldTitle: edit ? r.title : null, words: countWords(edit ? r.edit_body : r.body),
+      title: textEdit ? r.edit_title : r.title, body: textEdit ? r.edit_body : r.body,
+      oldTitle: edit ? r.title : null, words: countWords(textEdit ? r.edit_body : r.body),
+      image: r.image, nextImage: !!r.img_wait,
       story: { id: r.story_id, title: r.story_title, summary: r.summary, tags: splitTags(r.tags), rating: r.rating, cover: r.cover }
     };
   });
@@ -721,23 +802,33 @@ route('POST', '/admin/chapters/:id', async (c) => {
   await needAdmin(c);
   const b = await readJson(c);
   const note = clean(String(b.note || '').slice(0, MAX.note), MAX.note, true) || '';
-  const ch = await c.db.prepare('SELECT id, story_id, status, edit_status, edit_body FROM chapters WHERE id = ?1').bind(idOf(c)).first();
+  const ch = await c.db.prepare(`SELECT ch.id, ch.story_id, ch.status, ch.edit_status, ch.edit_body, ${IMG_WAIT} AS img_wait
+      FROM chapters ch WHERE ch.id = ?1`).bind(idOf(c)).first();
   if (!ch) fail(404, 'Chương này không còn nữa (có thể tác giả đã xoá).');
   const t = nowIso();
+  const editWait = ch.status === 'published' && (ch.edit_status === 'pending' || ch.img_wait);
   if (b.action === 'approve') {
     if (ch.status === 'pending') {
       await c.db.prepare(`UPDATE chapters SET status = 'published', published = ?2, note = '' WHERE id = ?1`).bind(ch.id, t).run();
       await afterPublish(c, ch.story_id, t);
-    } else if (ch.edit_status === 'pending') {
-      await c.db.prepare(`UPDATE chapters SET title = edit_title, body = edit_body, words = ?2, updated = ?3,
-          edit_title = NULL, edit_body = NULL, edit_status = NULL, note = '' WHERE id = ?1`)
-        .bind(ch.id, countWords(ch.edit_body), t).run();
+    } else if (editWait) {
+      // duyệt bản sửa: chữ mới (nếu có) + ảnh mới (nếu có)
+      const stmts = [c.db.prepare(`UPDATE chapters SET note = '' WHERE id = ?1`).bind(ch.id)];
+      if (ch.edit_status === 'pending') {
+        stmts.push(c.db.prepare(`UPDATE chapters SET title = edit_title, body = edit_body, words = ?2, updated = ?3,
+            edit_title = NULL, edit_body = NULL, edit_status = NULL WHERE id = ?1`).bind(ch.id, countWords(ch.edit_body), t));
+      }
+      if (ch.img_wait) stmts.push(...promoteChImage(c, ch.id, Date.now()));
+      await c.db.batch(stmts);
     } else fail(409, 'Mục này đã được xử lý rồi.');
   } else if (b.action === 'reject') {
     if (ch.status === 'pending') {
       await c.db.prepare(`UPDATE chapters SET status = 'rejected', note = ?2 WHERE id = ?1`).bind(ch.id, note).run();
-    } else if (ch.edit_status === 'pending') {
-      await c.db.prepare(`UPDATE chapters SET edit_status = 'rejected', note = ?2 WHERE id = ?1`).bind(ch.id, note).run();
+    } else if (editWait) {
+      const stmts = [c.db.prepare(`UPDATE chapters SET note = ?2 WHERE id = ?1`).bind(ch.id, note)];
+      if (ch.edit_status === 'pending') stmts.push(c.db.prepare(`UPDATE chapters SET edit_status = 'rejected' WHERE id = ?1`).bind(ch.id));
+      if (ch.img_wait) stmts.push(c.db.prepare(`DELETE FROM ch_images WHERE chapter_id = ?1 AND kind = 'pending'`).bind(ch.id));
+      await c.db.batch(stmts);
     } else fail(409, 'Mục này đã được xử lý rồi.');
   } else fail(400, 'Thao tác không hợp lệ.');
   return { ok: true, queue: await queueCount(c) };

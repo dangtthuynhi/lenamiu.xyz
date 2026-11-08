@@ -224,11 +224,21 @@
   .mine .cover.ph::after, .q-story .cover.ph::after { display: none; }
   .cover.big.ph { padding: 24px 16px; }
   .cover.big.ph span { font-size: 1.05rem; -webkit-line-clamp: 6; }
-  .cover-slot { position: relative; }
-  .cover-slot .flag {
+  .img-slot { position: relative; }
+  .img-slot .flag {
     position: absolute; left: 6px; top: 6px; padding: 1px 8px; border-radius: 999px; font-size: .7rem; font-weight: 700;
     background: var(--warn, #b7791f); color: #fff;
   }
+
+  /* ---------- ảnh ngang đầu chương (khổ 16:9) ---------- */
+  .banner { position: relative; overflow: hidden; aspect-ratio: 16 / 9; width: 100%; border-radius: 12px; background: var(--surface-2); }
+  .banner img, .banner canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .banner.none { display: grid; place-items: center; background: transparent; border: 1.5px dashed var(--line); color: var(--muted); font-size: .85rem; }
+  .ch-banner { margin: 18px 0 0; }
+  .ch-banner .banner { border-radius: 14px; box-shadow: 0 10px 28px -16px rgba(0, 0, 0, .45); }
+  .ch-banner + .ch-head { padding-top: 20px; }
+  .q-banner { max-width: 360px; margin: 10px 0; }
+  .banner-diff { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px; max-width: 600px; margin: 10px 0; font-size: .85rem; color: var(--muted); }
 
   .story {
     display: grid; grid-template-columns: 86px minmax(0, 1fr); gap: 14px; align-items: start; padding: 16px; border-radius: 16px;
@@ -360,12 +370,15 @@
   .mine { display: grid; gap: 12px; }
   .mine .card { padding: 16px; display: grid; grid-template-columns: 60px minmax(0, 1fr); gap: 14px; align-items: start; }
   .mine h3 { margin: 0 0 6px; font-size: 1.05rem; }
-  /* ô chọn ảnh bìa */
-  .cover-field { display: flex; gap: 16px; align-items: flex-start; }
-  .cover-field .cover-slot { flex: none; width: 112px; }
-  .cover-field .ctl { display: flex; flex-direction: column; gap: 10px; min-width: 0; flex: 1; }
-  .cover-field .ctl small { color: var(--muted); font-size: .8rem; line-height: 1.5; }
-  .cover-field input[type=range] { width: 100%; accent-color: var(--accent); }
+  /* ô chọn ảnh (bìa: ảnh nhỏ bên trái; ảnh đầu chương: ảnh rộng, nút bên dưới) */
+  .pick-field { display: flex; gap: 16px; align-items: flex-start; }
+  .pick-field .img-slot { flex: none; }
+  .pick-cover .img-slot { width: 112px; }
+  .pick-banner { flex-direction: column; gap: 12px; }
+  .pick-banner .img-slot { width: 100%; max-width: 440px; }
+  .pick-field .ctl { display: flex; flex-direction: column; gap: 10px; min-width: 0; flex: 1; align-self: stretch; }
+  .pick-field .ctl small { color: var(--muted); font-size: .8rem; line-height: 1.5; }
+  .pick-field input[type=range] { width: 100%; accent-color: var(--accent); }
   .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .ch-rows { list-style: none; margin: 0; padding: 0; }
   .ch-rows li {
@@ -850,7 +863,7 @@
         h('a', { class: 'btn', href: '#/' }, 'Quay lại')));
   }
 
-  /* ================= ảnh bìa ================= */
+  /* ================= ảnh bìa + ảnh đầu chương ================= */
   // Bìa màu (khi truyện chưa có ảnh): chọn theo mã truyện để mỗi truyện giữ một màu
   const PH_COLORS = [['#f4a6c1', '#c2457d'], ['#f7c59f', '#cf6440'], ['#b9a7ef', '#6a4cc2'],
                      ['#9ad6cc', '#2c8c82'], ['#a8c6f3', '#3b69bf'], ['#e6b3dc', '#8d4aa3']];
@@ -879,13 +892,33 @@
     else if (url) show(url);
     else {
       ph();
-      if (priv) privateCover(s.id, priv === 'pending').then((u) => { if (u) show(u); });
+      if (priv) privateImage('/my/stories/' + s.id + '/cover', priv === 'pending').then((u) => { if (u) show(u); });
     }
     return box;
   }
-  async function privateCover(id, pending) {
+  // Ảnh ngang đầu chương (khổ 16:9). v: phiên bản ảnh công khai (0 = không có);
+  // priv 'live' | 'pending': ảnh riêng của tác giả. Không có ảnh thì là khung trống "Chưa có ảnh" (chỉ dùng trong ô soạn).
+  function bannerBox(id, v, { priv } = {}) {
+    const box = h('div', { class: 'banner' });
+    const none = () => { box.classList.add('none'); fill(box, h('span', null, 'Chưa có ảnh')); };
+    const show = (url) => {
+      const img = h('img', { alt: '', decoding: 'async' });
+      img.addEventListener('error', none, { once: true });
+      img.src = url;
+      box.classList.remove('none');
+      fill(box, img);
+    };
+    if (priv) {
+      none();
+      privateImage('/my/chapters/' + id + '/image', priv === 'pending').then((u) => { if (u) show(u); });
+    } else if (v) show(API + '/chapter-images/' + id + '?v=' + v);
+    else none();
+    return box;
+  }
+  // Ảnh chưa công khai (truyện / chương chưa đăng, ảnh chờ duyệt): tải bằng phiên đăng nhập rồi hiện từ bộ nhớ
+  async function privateImage(path, pending) {
     try {
-      const r = await fetch(API + '/my/stories/' + id + '/cover' + (pending ? '?pending=1' : ''),
+      const r = await fetch(API + path + (pending ? '?pending=1' : ''),
                             { headers: { Authorization: 'Bearer ' + token }, cache: 'no-store' });
       if (!r.ok) return null;
       const url = URL.createObjectURL(await r.blob());
@@ -894,8 +927,11 @@
     } catch (e) { return null; }
   }
 
-  // Ảnh tác giả chọn được cắt về khổ 2:3 và thu nhỏ còn tối đa 600×900 ngay trong trình duyệt (gửi lên chỉ ~50–150 KB)
-  const COVER_W = 600;
+  // Ảnh tác giả chọn được cắt đúng khổ và thu nhỏ ngay trong trình duyệt (gửi lên chỉ ~50–200 KB)
+  const SHAPES = {
+    cover: { ratio: 2 / 3, w: 600, max: 380000 },        // bìa dọc 2:3, tối đa 600×900
+    banner: { ratio: 16 / 9, w: 1200, max: 480000 }      // ảnh ngang đầu chương 16:9, tối đa 1200×675
+  };
   function loadImageFile(file) {
     return new Promise((resolve, reject) => {
       const url = URL.createObjectURL(file);
@@ -906,9 +942,10 @@
     });
   }
   // Thu nhỏ trước một lần (mỗi lần giảm một nửa cho ảnh khỏi răng cưa) để kéo chỉnh vị trí cắt được mượt
-  function workingCopy(img) {
+  function workingCopy(img, shape) {
     const iw = img.naturalWidth, ih = img.naturalHeight;
-    const k = Math.min(1, (COVER_W * 2) / Math.min(iw, ih * 2 / 3));
+    const cropW = Math.min(iw, ih * shape.ratio);
+    const k = Math.min(1, (shape.w * 2) / cropW);
     const tw = Math.max(1, Math.round(iw * k)), th = Math.max(1, Math.round(ih * k));
     let src = img, w = iw, hh = ih;
     const step = (nw, nh) => {
@@ -921,15 +958,16 @@
     };
     while (w / 2 > tw) step(Math.round(w / 2), Math.round(hh / 2));
     if (w !== tw) step(tw, th);
-    return { src, w, h: hh, small: Math.min(iw, ih * 2 / 3) < 300 };
+    return { src, w, h: hh, shape, small: cropW < shape.w / 2 };
   }
-  // pos 0–1: vị trí cắt theo chiều ảnh bị dư (ảnh ngang: trái → phải, ảnh dọc dài: trên → dưới)
-  function drawCover(canvas, work, pos) {
+  // pos 0–1: vị trí cắt theo chiều ảnh bị dư (ảnh rộng hơn khổ: trái → phải, ảnh cao hơn khổ: trên → dưới)
+  function drawCrop(canvas, work, pos) {
+    const r = work.shape.ratio;
     let sw = work.w, sh = work.h, sx = 0, sy = 0;
-    if (work.w * 3 > work.h * 2) { sw = work.h * 2 / 3; sx = (work.w - sw) * pos; } else { sh = work.w * 1.5; sy = (work.h - sh) * pos; }
-    const w = Math.max(1, Math.round(Math.min(COVER_W, sw)));
+    if (work.w / work.h > r) { sw = work.h * r; sx = (work.w - sw) * pos; } else { sh = work.w / r; sy = (work.h - sh) * pos; }
+    const w = Math.max(1, Math.round(Math.min(work.shape.w, sw)));
     canvas.width = w;
-    canvas.height = Math.round(w * 1.5);
+    canvas.height = Math.max(1, Math.round(w / r));
     const g = canvas.getContext('2d');
     g.fillStyle = '#fff';                                  // ảnh PNG trong suốt: lót nền trắng
     g.fillRect(0, 0, canvas.width, canvas.height);
@@ -937,40 +975,42 @@
     g.drawImage(work.src, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
   }
   const canvasToBlob = (canvas, type, q) => new Promise((resolve) => canvas.toBlob(resolve, type, q));
-  async function coverBlob(canvas) {
-    let b = await canvasToBlob(canvas, 'image/webp', 0.86);
+  async function imageBlob(canvas, max) {
+    let b = await canvasToBlob(canvas, 'image/webp', 0.84);
     if (!b || b.type !== 'image/webp') b = await canvasToBlob(canvas, 'image/jpeg', 0.86);   // Safari cũ không xuất được WebP
-    if (b && b.size > 380000) b = await canvasToBlob(canvas, 'image/jpeg', 0.72);
+    if (b && b.size > max) b = await canvasToBlob(canvas, 'image/jpeg', 0.72);
+    if (b && b.size > max) b = await canvasToBlob(canvas, 'image/jpeg', 0.58);
     if (!b) throw new Error('Không xử lý được ảnh này, bạn thử ảnh khác nhé.');
     return b;
   }
 
-  // Ô "Ảnh bìa" trong form thông tin truyện. Ảnh chỉ được gửi lên khi bấm lưu form (save).
-  function coverPicker(st, titleInput) {
-    const state = { work: null, removed: false };
-    const had = !!(st && (st.cover || st.pendingCover));
-    const slot = h('div', { class: 'cover-slot' });
-    const canvas = h('canvas', { role: 'img', 'aria-label': 'Xem trước ảnh bìa' });
+  // Ô chọn ảnh dùng chung (ảnh bìa / ảnh đầu chương). Ảnh chỉ được gửi lên khi bấm lưu (save).
+  //   shape: SHAPES.cover | SHAPES.banner     had: đang có ảnh (kể cả ảnh chờ duyệt)   pending: ảnh đang có là ảnh chờ duyệt
+  //   current(): khung ảnh đang có    empty(): khung khi chưa có ảnh    path(id): đường dẫn đổi / bỏ ảnh
+  function imagePicker({ shape, label, tip, had, pending, current, empty, path, onChange }) {
+    const state = { work: null, removed: false, exact: false };
+    const slot = h('div', { class: 'img-slot' });
+    const canvas = h('canvas', { role: 'img', 'aria-label': 'Xem trước ảnh' });
     const file = h('input', { type: 'file', accept: 'image/*', class: 'vh', tabindex: '-1', 'aria-hidden': 'true' });
     const pick = h('button', { type: 'button', class: 'btn sm', onclick: () => file.click() });
-    const remove = h('button', { type: 'button', class: 'btn sm danger', onclick: () => { state.work = null; state.removed = had; draw(); } }, 'Bỏ ảnh');
+    const remove = h('button', { type: 'button', class: 'btn sm danger',
+      onclick: () => { state.work = null; state.removed = had; draw(); if (onChange) onChange(); } }, 'Bỏ ảnh');
     const sliderLbl = h('span');
     const slider = h('input', { type: 'range', min: '0', max: '100', value: '50', step: '1' });
     const sliderBox = h('label', { class: 'field', style: 'margin:0', hidden: true }, sliderLbl, slider);
-    const tip = h('small');
+    const tipEl = h('small');
 
     function draw() {
       const hasNew = !!state.work, hasOld = had && !state.removed;
-      if (hasNew) fill(slot, h('div', { class: 'cover' }, canvas));
-      else if (hasOld && st.pendingCover) fill(slot, coverBox(st, { src: null, priv: 'pending' }), h('span', { class: 'flag' }, 'Chờ duyệt'));
-      else if (hasOld) fill(slot, coverBox(st, st.status === 'published' ? {} : { src: null, priv: 'live' }));
-      else fill(slot, coverBox({ id: st ? st.id : 0, title: titleInput.value.trim() }, { src: null }));
+      if (hasNew) fill(slot, h('div', { class: shape === SHAPES.cover ? 'cover' : 'banner' }, canvas));
+      else if (hasOld) fill(slot, current(), pending ? h('span', { class: 'flag' }, 'Chờ duyệt') : null);
+      else fill(slot, empty());
       pick.textContent = hasNew || hasOld ? 'Đổi ảnh…' : 'Chọn ảnh…';
       remove.hidden = !(hasNew || hasOld);
       sliderBox.hidden = !hasNew || state.exact;
-      tip.textContent = hasNew
-        ? (state.work.small ? 'Ảnh hơi nhỏ nên bìa có thể bị mờ. ' : '') + 'Ảnh sẽ được lưu khi bạn bấm nút lưu bên dưới.'
-        : 'Ảnh dọc tỉ lệ 2:3 (vd 600×900) là đẹp nhất. Ảnh khác tỉ lệ sẽ được cắt, bạn kéo thanh để chọn phần giữ lại.';
+      tipEl.textContent = hasNew
+        ? (state.work.small ? 'Ảnh hơi nhỏ nên có thể bị mờ. ' : '') + 'Ảnh sẽ được lưu khi bạn bấm nút lưu bên dưới.'
+        : tip;
     }
     file.addEventListener('change', async () => {
       const f = file.files[0];
@@ -981,38 +1021,64 @@
       try {
         const img = await loadImageFile(f);
         const ratio = img.naturalWidth / img.naturalHeight;
-        state.work = workingCopy(img);
-        state.exact = Math.abs(ratio - 2 / 3) < 0.02;
+        state.work = workingCopy(img, shape);
+        state.exact = Math.abs(ratio / shape.ratio - 1) < 0.03;
         state.removed = false;
-        sliderLbl.textContent = ratio > 2 / 3 ? 'Dịch ảnh sang trái / phải' : 'Dịch ảnh lên / xuống';
+        sliderLbl.textContent = ratio > shape.ratio ? 'Dịch ảnh sang trái / phải' : 'Dịch ảnh lên / xuống';
         slider.value = '50';
-        drawCover(canvas, state.work, 0.5);
+        drawCrop(canvas, state.work, 0.5);
         draw();
+        if (onChange) onChange();
       } catch (e) { toast(e.message, true); }
     });
     let raf = 0;
     slider.addEventListener('input', () => {
       cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => { if (state.work) drawCover(canvas, state.work, slider.value / 100); });
+      raf = requestAnimationFrame(() => { if (state.work) drawCrop(canvas, state.work, slider.value / 100); });
     });
-    // bìa màu đổi theo tên truyện đang gõ
-    titleInput.addEventListener('input', () => { if (!state.work && !(had && !state.removed)) draw(); });
     draw();
 
     return {
-      el: h('div', { class: 'field' }, h('span', null, 'Ảnh bìa'),
-        h('div', { class: 'cover-field' }, slot,
-          h('div', { class: 'ctl' }, h('div', { class: 'row' }, pick, remove), sliderBox, tip, file))),
-      // gửi ảnh lên sau khi đã lưu truyện; trả true nếu ảnh mới đang chờ duyệt
+      el: h('div', { class: 'field' }, h('span', null, label),
+        h('div', { class: 'pick-field ' + (shape === SHAPES.cover ? 'pick-cover' : 'pick-banner') }, slot,
+          h('div', { class: 'ctl' }, h('div', { class: 'row' }, pick, remove), sliderBox, tipEl, file))),
+      redraw: () => { if (!state.work && !(had && !state.removed)) draw(); },
+      changed: () => !!state.work || state.removed,
+      // gửi ảnh lên sau khi đã lưu truyện / chương; trả true nếu ảnh mới đang chờ duyệt
       async save(id) {
         if (state.work) {
-          const d = await api('/my/stories/' + id + '/cover', { method: 'PUT', raw: await coverBlob(canvas) });
+          const d = await api(path(id), { method: 'PUT', raw: await imageBlob(canvas, shape.max) });
           return !!d.pending;
         }
-        if (state.removed) await api('/my/stories/' + id + '/cover', { method: 'DELETE' });
+        if (state.removed) await api(path(id), { method: 'DELETE' });
         return false;
       }
     };
+  }
+  // Ô "Ảnh bìa" trong form thông tin truyện
+  function coverPicker(st, titleInput) {
+    const p = imagePicker({
+      shape: SHAPES.cover, label: 'Ảnh bìa',
+      tip: 'Ảnh dọc tỉ lệ 2:3 (vd 600×900) là đẹp nhất. Ảnh khác tỉ lệ sẽ được cắt, bạn kéo thanh để chọn phần giữ lại.',
+      had: !!(st && (st.cover || st.pendingCover)), pending: !!(st && st.pendingCover),
+      current: () => coverBox(st, { src: null, priv: st.pendingCover ? 'pending' : 'live' }),
+      empty: () => coverBox({ id: st ? st.id : 0, title: titleInput.value.trim() }, { src: null }),
+      path: (id) => '/my/stories/' + id + '/cover'
+    });
+    titleInput.addEventListener('input', p.redraw);          // bìa màu đổi theo tên truyện đang gõ
+    return p;
+  }
+  // Ô "Ảnh đầu chương" trong trang soạn chương (không bắt buộc)
+  function bannerPicker(chap, onChange) {
+    return imagePicker({
+      shape: SHAPES.banner, label: 'Ảnh đầu chương (không bắt buộc)',
+      tip: 'Ảnh ngang tỉ lệ 16:9 (vd 1200×675), hiện ở đầu chương. Ảnh khác tỉ lệ sẽ được cắt, bạn kéo thanh để chọn phần giữ lại.',
+      had: !!(chap && (chap.image || chap.pendingImage)), pending: !!(chap && chap.pendingImage),
+      current: () => bannerBox(chap.id, 0, { priv: chap.pendingImage ? 'pending' : 'live' }),
+      empty: () => bannerBox(0, 0),
+      path: (id) => '/my/chapters/' + id + '/image',
+      onChange
+    });
   }
 
   /* ================= định tuyến ================= */
@@ -1272,6 +1338,7 @@
           h('a', { href: '#/truyen/' + s.id }, '← ' + s.title),
           h('div', { class: 'row', style: 'position:relative;flex:none' },
             mine ? h('a', { class: 'btn sm', href: '#/chuong/' + ch.id + '/sua' }, 'Sửa') : null, aa, panel)),
+        ch.image ? h('div', { class: 'ch-banner' }, bannerBox(ch.id, ch.image)) : null,
         h('header', { class: 'ch-head' },
           h('p', { class: 'kicker' }, 'Chương ' + (ch.index + 1) + ' / ' + ch.list.length),
           h('h1', null, ch.title || s.title),
@@ -1593,7 +1660,7 @@
     }
 
     const chRow = (c, i) => {
-      const extra = c.status === 'published' && c.editStatus === 'pending' ? h('span', { class: 'badge b-wait' }, 'Bản sửa chờ duyệt')
+      const extra = c.status === 'published' && (c.editStatus === 'pending' || c.imageWait) ? h('span', { class: 'badge b-wait' }, 'Bản sửa chờ duyệt')
         : c.status === 'published' && c.editStatus === 'rejected' ? h('span', { class: 'badge b-no' }, 'Bản sửa bị từ chối') : null;
       return h('li', null,
         h('div', { class: 't' },
@@ -1655,6 +1722,8 @@
     const load = (stored) => { fill(ed, richNodes(richFromStored(stored))); if (!ed.firstChild) ed.append(h('p', null, h('br'))); };
     load(chap ? chap.body : '');
     const current = () => walkRich(ed);
+    const loadedBody = richHtml(current());            // để biết chương đã đăng có sửa chữ hay chỉ đổi ảnh
+    const pic = bannerPicker(chap, () => { dirty = true; });
     const meta = h('div', { class: 'ed-meta' }, h('span'), h('span'));
     let dirty = false, saveT, metaT;
     const paintMeta = () => {
@@ -1789,27 +1858,35 @@
     const notes = [];
     if (status === 'rejected' && chap.note) notes.push(h('p', { class: 'notice bad' }, 'Người duyệt nhắn: ' + chap.note + '. Bạn sửa rồi gửi lại nhé.'));
     if (status === 'pending') notes.push(h('p', { class: 'notice warn' }, 'Chương này đang chờ duyệt. Bạn vẫn sửa được, bấm "Cập nhật bản gửi duyệt" để thay bản đã gửi.'));
-    if (published && chap.editStatus === 'pending') notes.push(h('p', { class: 'notice warn' }, 'Bản sửa của bạn đang chờ duyệt. Người đọc vẫn thấy bản cũ cho tới khi được duyệt.'));
+    if (published && (chap.editStatus === 'pending' || chap.pendingImage)) notes.push(h('p', { class: 'notice warn' }, 'Bản sửa của bạn đang chờ duyệt. Người đọc vẫn thấy bản cũ cho tới khi được duyệt.'));
     if (published && chap.editStatus === 'rejected') notes.push(h('p', { class: 'notice bad' }, 'Bản sửa lần trước không được duyệt' + (chap.note ? ': ' + chap.note : '.')));
-    if (published && !canPub && !chap.editStatus) notes.push(h('p', { class: 'notice' }, 'Chương này đã đăng. Bản sửa sẽ được người duyệt xem trước, trong lúc đó người đọc vẫn thấy bản cũ.'));
+    if (published && !canPub && !chap.editStatus && !chap.pendingImage) notes.push(h('p', { class: 'notice' }, 'Chương này đã đăng. Bản sửa sẽ được người duyệt xem trước, trong lúc đó người đọc vẫn thấy bản cũ.'));
 
     async function save(submit) {
       const blocks = current();
       if (!blocksWords(blocks)) { toast('Chương chưa có nội dung.', true); ed.focus(); return; }
       const bodyHtml = richHtml(blocks);
       if (bodyHtml.length > MAX_BODY) { toast('Chương dài quá giới hạn, bạn chia thành 2 chương nhé.', true); return; }
+      // chương đã đăng mà chữ không đổi: chỉ gửi ảnh (khỏi tạo "bản sửa" giống hệt bản cũ)
+      const sameText = published && title.value === (chap.title || '') && bodyHtml === loadedBody;
+      if (sameText && !pic.changed()) { toast('Bạn chưa thay đổi gì cả.'); return; }
       bar2.querySelectorAll('button').forEach((b) => { b.disabled = true; });
       try {
         const body = { title: title.value, body: bodyHtml, submit };
-        const d = isNew ? await api('/my/stories/' + storyId + '/chapters', { method: 'POST', body })
-                        : await api('/my/chapters/' + chap.id, { method: 'PUT', body });
+        const d = sameText ? { status: 'published', editStatus: chap.editStatus === 'pending' ? 'pending' : null }
+          : isNew ? await api('/my/stories/' + storyId + '/chapters', { method: 'POST', body })
+          : await api('/my/chapters/' + chap.id, { method: 'PUT', body });
         dirty = false;
         clearTimeout(saveT);
         ls.del(draftKey);
         listCache = null;
-        const msg = d.editStatus === 'pending' ? 'Đã gửi bản sửa, chờ người duyệt xem nhé.'
-          : d.status === 'published' ? 'Đã đăng! 🎉' : d.status === 'pending' ? 'Đã gửi duyệt. Duyệt xong là chương hiện lên trang 💗' : 'Đã lưu nháp.';
-        toast(msg);
+        let imgWait = false, imgErr = null;
+        try { imgWait = await pic.save(isNew ? d.id : chap.id); } catch (e2) { imgErr = e2; }
+        const msg = d.editStatus === 'pending' || imgWait ? 'Đã gửi bản sửa, chờ người duyệt xem nhé.'
+          : d.status === 'published' ? (published ? 'Đã lưu thay đổi.' : 'Đã đăng! 🎉')
+          : d.status === 'pending' ? 'Đã gửi duyệt. Duyệt xong là chương hiện lên trang 💗' : 'Đã lưu nháp.';
+        if (imgErr) toast('Đã lưu chương nhưng chưa lưu được ảnh (' + imgErr.message + '). Bạn mở chương ra thử lại nhé.', true);
+        else toast(msg);
         go('/truyen/' + storyId + '/sua');
       } catch (e) {
         toast(e.message, true);
@@ -1818,7 +1895,7 @@
     }
     const buttons = [];
     if (published) {
-      if (chap.editStatus && !canPub) {
+      if ((chap.editStatus || chap.pendingImage) && !canPub) {
         buttons.push(h('button', { type: 'button', class: 'btn', onclick: async () => {
           if (!confirm('Huỷ bản sửa, giữ nguyên bản đang hiện trên trang?')) return;
           try { await api('/my/chapters/' + chap.id + '/cancel-edit', { method: 'POST' }); dirty = false; ls.del(draftKey); toast('Đã huỷ bản sửa.'); go('/truyen/' + storyId + '/sua'); }
@@ -1838,6 +1915,7 @@
       h('div', { class: 'page-head' }, h('h1', null, isNew ? 'Chương ' + pos + ' (mới)' : 'Sửa chương'), chap ? badge(status) : null),
       notes, restoreBox,
       h('label', { class: 'field' }, h('span', null, 'Tên chương'), title),
+      pic.el,
       h('div', { class: 'field' }, h('span', null, 'Nội dung'), toolbar, ed),
       meta,
       h('p', { class: 'help' }, 'Bôi đen chữ rồi bấm nút để in đậm, nghiêng, gạch chân, căn giữa… Phím tắt: ',
@@ -1867,7 +1945,8 @@
     const setQueue = (n) => { queue = n; renderNav(); tabs.firstChild.textContent = 'Chờ duyệt' + (n ? ' (' + n + ')' : ''); };
     setQueue(items.length);
     const empty = () => h('div', { class: 'empty card' }, h('p', null, 'Hết việc rồi! Không có gì chờ duyệt 🎉'));
-    const KIND = { story: ['🆕 Truyện mới', 'b-acc'], chapter: ['➕ Chương mới', 'b-ok'], edit: ['✏️ Sửa chương', 'b-wait'], meta: ['📝 Sửa thông tin truyện', 'b-wait'] };
+    const KIND = { story: ['🆕 Truyện mới', 'b-acc'], chapter: ['➕ Chương mới', 'b-ok'], edit: ['✏️ Sửa chương', 'b-wait'],
+                   image: ['🖼 Đổi ảnh chương', 'b-wait'], meta: ['📝 Sửa thông tin truyện', 'b-wait'] };
 
     const card = (it) => {
       const el = h('article', { class: 'card q-item' });
@@ -1906,16 +1985,23 @@
             coverBox(s, { src: null, priv: 'pending' })) : null,
           rows.length ? h('dl', { class: 'diff' }, rows) : null];
       } else {
+        // ảnh đầu chương: chương mới → ảnh của chương; sửa chương có ảnh mới → ảnh cũ → ảnh mới
+        const pic = it.nextImage
+          ? h('div', { class: 'banner-diff' }, it.image ? bannerBox(it.id, it.image) : bannerBox(0, 0), h('span', null, '→'),
+              bannerBox(it.id, 0, { priv: 'pending' }))
+          : it.image && (it.kind === 'story' || it.kind === 'chapter') ? h('div', { class: 'q-banner' }, bannerBox(it.id, 0, { priv: 'live' })) : null;
         content = [
           h('h3', null, s.title),
           h('p', { class: 'small', style: 'margin:0' }, 'Chương ' + it.pos + ': ' + (it.title || '(không tên)') +
             (it.kind === 'edit' && it.oldTitle !== it.title ? ' (tên cũ: ' + (it.oldTitle || 'không tên') + ')' : '') + ' · ' + fmt(it.words) + ' chữ'),
+          pic,
           it.kind === 'story' ? h('div', { class: s.cover ? 'q-story' : null, style: 'margin-top:8px' },
             s.cover ? coverBox(s, { src: null, priv: 'live' }) : null,
             h('div', null,
               h('div', { class: 'row' }, ratingBadge(s.rating) || h('span', { class: 'badge' }, RATING.all), s.tags.map((t) => h('span', { class: 'tag' }, t))),
               s.summary ? h('p', { class: 'small muted', style: 'white-space:pre-wrap;margin:6px 0 0' }, s.summary) : null)) : null,
-          h('details', null, h('summary', null, it.kind === 'edit' ? 'Đọc bản sửa' : 'Đọc nội dung'), h('div', { class: 'prose' }, renderBody(it.body)))
+          it.kind === 'image' ? null   // chỉ đổi ảnh, chữ giữ nguyên
+            : h('details', null, h('summary', null, it.kind === 'edit' ? 'Đọc bản sửa' : 'Đọc nội dung'), h('div', { class: 'prose' }, renderBody(it.body)))
         ];
       }
       addKids(el, [

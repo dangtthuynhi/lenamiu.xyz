@@ -65,12 +65,24 @@ CREATE TABLE IF NOT EXISTS chapters (
   edit_body   TEXT,                          --   cho tới khi bản sửa được duyệt
   edit_status TEXT,                          -- NULL | 'pending' | 'rejected'
   hearts      INTEGER NOT NULL DEFAULT 0,
+  image       INTEGER NOT NULL DEFAULT 0,    -- phiên bản ảnh ngang đầu chương đang hiện (mili giây), 0 = không có ảnh
   created     TEXT    NOT NULL,
   updated     TEXT    NOT NULL,
   published   TEXT
 );
 CREATE INDEX IF NOT EXISTS chapters_story ON chapters (story_id, n);
 CREATE INDEX IF NOT EXISTS chapters_status ON chapters (status);
+
+-- Ảnh ngang đầu chương (không bắt buộc): trình duyệt đã cắt về khổ 16:9, tối đa 1200×675, khoảng 80–200 KB.
+-- (Database tạo trước khi có ảnh chương: chạy thêm file nang-cap-anh-chuong.sql một lần.)
+CREATE TABLE IF NOT EXISTS ch_images (
+  chapter_id INTEGER NOT NULL,
+  kind       TEXT    NOT NULL,               -- 'live' (đang hiện) | 'pending' (ảnh mới chờ duyệt: chương đã đăng của thành viên thường)
+  type       TEXT    NOT NULL,
+  updated    INTEGER NOT NULL,
+  data       BLOB    NOT NULL,
+  PRIMARY KEY (chapter_id, kind)
+);
 
 -- Tim: mỗi người (mã người đọc trong trình duyệt) 1 tim / 1 chương
 CREATE TABLE IF NOT EXISTS hearts (
