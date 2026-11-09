@@ -91,6 +91,16 @@ window.VIETSUB = {
 
   videos: [
     {
+      title: 'PODKAZZ EP.24 – Lena & Miu: May mắn khi có partner tốt',
+      id: 'podkazz-ep-24',
+      video: 'podkazz-ep-24.mp4',
+      youtube: '',
+      drive: '',
+      group: 'PODKAZZ',
+      date: '2026-11-09',
+      note: ''
+    },
+    {
       title: 'Eat Trip Ship – Lena & Miu hẹn hò ở Siam Square',
       id: 'eat-trip-ship',
       video: 'lenamiu-eat-trip-ship.mp4',
