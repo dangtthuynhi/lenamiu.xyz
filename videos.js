@@ -91,6 +91,16 @@ window.VIETSUB = {
 
   videos: [
     {
+      title: 'Tee Tai Krua – Bật mí: Lena & Miu lần nào cũng tập hôn trước?!',
+      id: 'tee-tai-krua',
+      video: 'lenamiu-tee-tai-krua.mp4',
+      youtube: '',
+      drive: '',
+      group: 'Tee Tai Krua',
+      date: '2026-11-11',
+      note: ''
+    },
+    {
       title: 'PODKAZZ EP.24 – Lena & Miu: May mắn khi có partner tốt',
       id: 'podkazz-ep-24',
       video: 'podkazz-ep-24.mp4',
