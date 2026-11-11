@@ -91,6 +91,16 @@ window.VIETSUB = {
 
   videos: [
     {
+      title: 'Lena đã thì thầm gì trong clip hậu trường?? – Phỏng vấn LenaMiu (Fesicuro)',
+      id: 'fesicuro-phong-van',
+      video: 'lenamiu-fesicuro-interview.mp4',
+      youtube: '',
+      drive: '',
+      group: 'Phỏng vấn',
+      date: '2026-11-11',
+      note: ''
+    },
+    {
       title: 'Tee Tai Krua – Bật mí: Lena & Miu lần nào cũng tập hôn trước?!',
       id: 'tee-tai-krua',
       video: 'lenamiu-tee-tai-krua.mp4',
