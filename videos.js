@@ -91,6 +91,16 @@ window.VIETSUB = {
 
   videos: [
     {
+      title: 'Yriety – Phỏng vấn độc quyền Lena & Miu: chuyện đáng yêu của hai đứa',
+      id: 'yriety-interview',
+      video: 'lenamiu-yriety-interview.mp4',
+      youtube: '',
+      drive: '',
+      group: 'Phỏng vấn',
+      date: '2026-11-12',
+      note: ''
+    },
+    {
       title: 'Pls Love Reaction EP 3',
       id: 'pls-love-reaction-ep-3',
       video: 'pls-love-reaction-ep-3.mp4',
