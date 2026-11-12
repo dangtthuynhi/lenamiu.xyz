@@ -91,6 +91,16 @@ window.VIETSUB = {
 
   videos: [
     {
+      title: 'Pls Love Reaction EP 3',
+      id: 'pls-love-reaction-ep-3',
+      video: 'pls-love-reaction-ep-3.mp4',
+      youtube: '',
+      drive: '',
+      group: 'Pls Love',
+      date: '2026-11-12',
+      note: ''
+    },
+    {
       title: 'Lena đã thì thầm gì trong clip hậu trường?? – Phỏng vấn LenaMiu (Fesicuro)',
       id: 'fesicuro-phong-van',
       video: 'lenamiu-fesicuro-interview.mp4',
