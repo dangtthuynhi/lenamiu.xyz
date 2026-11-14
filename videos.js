@@ -177,6 +177,21 @@ window.VIETSUB = {
 
   videos: [
     {
+      title: 'Vogue Exclusive – Phỏng vấn Lena & Miu: hậu trường bìa Vogue cùng CHANEL',
+      title_en: 'Vogue Exclusive – Lena & Miu interview: behind their CHANEL Vogue cover',
+      title_th: 'Vogue Exclusive – สัมภาษณ์พิเศษ ลีน่า-หมิว กับเบื้องหลังปกโว้กในลุค CHANEL',
+      title_zh: 'Vogue Exclusive – Lena & Miu 专访：CHANEL 造型 Vogue 封面幕后',
+      title_id: 'Vogue Exclusive – Wawancara Lena & Miu: di balik sampul Vogue bersama CHANEL',
+      id: 'vogue-exclusive',
+      video: 'lenamiu-vogue-exclusive.mp4',
+      subs: { vi: 'vogue-exclusive.vi.vtt', en: 'vogue-exclusive.en.vtt', th: 'vogue-exclusive.th.vtt', zh: 'vogue-exclusive.zh.vtt', id: 'vogue-exclusive.id.vtt' },
+      youtube: '',
+      drive: '',
+      group: 'Phỏng vấn',
+      date: '2026-11-14',
+      note: ''
+    },
+    {
       title: 'Yriety – Phỏng vấn độc quyền Lena & Miu: chuyện đáng yêu của hai đứa',
       title_en: 'Yriety – Exclusive interview with Lena & Miu: the cutest stories of the two',
       title_th: 'Yriety – สัมภาษณ์พิเศษ Lena & Miu: เรื่องน่ารัก ๆ ของสองคนนี้',
