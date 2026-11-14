@@ -177,6 +177,21 @@ window.VIETSUB = {
 
   videos: [
     {
+      title: 'LenaMiu x OomBam x TanYuYu – Đại chiến team Top và team Bot',
+      title_en: 'LenaMiu x OomBam x TanYuYu – The intense battle between Team Top and Team Bottom',
+      title_th: 'LenaMiu x OomBam x TanYuYu – การแข่งขันสุดเดือดระหว่างทีมเมะและทีมเคะ',
+      title_zh: 'LenaMiu x OomBam x TanYuYu – 攻队受队大对决',
+      title_id: 'LenaMiu x OomBam x TanYuYu – Pertarungan sengit Team Top vs Team Bottom',
+      id: 'lenamiu-oombam-tanyuyu',
+      video: 'lenamiu-oombam-tanyuyu.mp4',
+      subs: { vi: 'lenamiu-oombam-tanyuyu.vi.vtt', en: 'lenamiu-oombam-tanyuyu.en.vtt', zh: 'lenamiu-oombam-tanyuyu.zh.vtt', id: 'lenamiu-oombam-tanyuyu.id.vtt' },
+      youtube: '',
+      drive: '',
+      group: 'Vlog',
+      date: '2026-11-14',
+      note: ''
+    },
+    {
       title: 'Vogue Exclusive – Phỏng vấn Lena & Miu: hậu trường bìa Vogue cùng CHANEL',
       title_en: 'Vogue Exclusive – Lena & Miu interview: behind their CHANEL Vogue cover',
       title_th: 'Vogue Exclusive – สัมภาษณ์พิเศษ ลีน่า-หมิว กับเบื้องหลังปกโว้กในลุค CHANEL',
