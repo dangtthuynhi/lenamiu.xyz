@@ -9,3 +9,17 @@ compatibility_date = "2025-10-01"
 binding = "DB"
 database_name = "lenamiu-pk"
 database_id = "4200c883-725a-481a-a75e-7e5d7a0fb77e"
+
+# PayPal cho người ủng hộ ở nước ngoài (cộng chung vào thanh PK). Lấy ở developer.paypal.com → Apps & Credentials → Live.
+#   PAYPAL_ENV          "live" (tiền thật) | "sandbox" (tiền giả, để thử)
+#   PAYPAL_CLIENT_ID    Client ID của app (công khai, không phải bí mật) — phải khớp paypalClientId trong videos.js
+#   PAYPAL_WEBHOOK_ID   Webhook ID (app → Live Webhooks → URL https://lenamiu-pk.dangthithuynhi2000.workers.dev/paypal/webhook)
+#   PAYPAL_VND_PER_USD  tỷ giá quy USD ra VNĐ để so với chuyển khoản trên thanh PK
+# Secret bản Live KHÔNG ghi ở đây: npx wrangler secret put PAYPAL_SECRET
+# Thử bằng tiền giả trong máy: Secret Sandbox để ở .dev.vars, rồi chạy
+#   npx wrangler dev --port 8790 --var PAYPAL_ENV:sandbox --var PAYPAL_CLIENT_ID:<Client ID Sandbox trong videos.js>
+[vars]
+PAYPAL_ENV = "live"
+PAYPAL_CLIENT_ID = "BAA8PTre52a28ZAJ10Wxcvv_EOPCGHg7Dk4QQuv6JcEy_iNt4lB5gsKNt67_3vrt3RjlvPxKBSSTiElnJU"
+PAYPAL_WEBHOOK_ID = "2AV61410AE573470U"
+PAYPAL_VND_PER_USD = "25000"

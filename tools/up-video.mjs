@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Up video lên kho R2 cho trang LenaMiu Vietsub.
+/* Up video lên kho R2 cho trang LenaMiu Sub.
 
    Cách dùng (chạy ở thư mục lenamiu.xyz):
      node tools/up-video.mjs "D:\video\Pls Love EP2 vietsub.mp4"

@@ -9,6 +9,17 @@ CREATE TABLE IF NOT EXISTS tx (
 );
 CREATE INDEX IF NOT EXISTS tx_at ON tx (at);
 
+-- Mỗi dòng = một lượt ủng hộ qua PayPal (người ở nước ngoài), cộng chung vào thanh PK.
+-- (Database tạo trước khi có PayPal: chạy thêm file nang-cap-paypal.sql một lần.)
+CREATE TABLE IF NOT EXISTS paypal (
+  id     TEXT    PRIMARY KEY,   -- mã giao dịch (capture) của PayPal: báo nhiều lần cũng không cộng trùng
+  team   TEXT    NOT NULL,      -- 'LenaMiu' hoặc 'MiuLena' (người ủng hộ chọn trên trang, ghi trong đơn PayPal)
+  amount INTEGER NOT NULL,      -- quy ra VNĐ theo tỷ giá PAYPAL_VND_PER_USD lúc nhận (để so được với chuyển khoản)
+  usd    REAL    NOT NULL,      -- số tiền gốc (USD)
+  at     TEXT    NOT NULL       -- giờ Việt Nam "YYYY-MM-DD HH:MM:SS" (giống SePay)
+);
+CREATE INDEX IF NOT EXISTS paypal_at ON paypal (at);
+
 -- Bộ đếm lượt truy cập ('site') và lượt xem từng video ('v:<id video>')
 CREATE TABLE IF NOT EXISTS counters (
   name TEXT    PRIMARY KEY,

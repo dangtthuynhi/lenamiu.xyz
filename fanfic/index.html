@@ -6,12 +6,12 @@
 <title>LenaMiu Fanfic</title>
 <meta name="description" content="Fanfic LenaMiu do fan viết. Đọc miễn phí, có tài khoản là đăng được truyện.">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="LenaMiu Vietsub">
+<meta property="og:site_name" content="LenaMiu Sub">
 <meta property="og:locale" content="vi_VN">
 <meta property="og:title" content="LenaMiu Fanfic">
 <meta property="og:description" content="Fanfic LenaMiu do fan viết. Đọc miễn phí, có tài khoản là đăng được truyện.">
 <meta property="og:url" content="https://lenamiu.xyz/fanfic/">
-<meta property="og:image" content="https://lenamiu.xyz/og-image.png?v=2">
+<meta property="og:image" content="https://lenamiu.xyz/og-image.png?v=3">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -462,8 +462,9 @@
 <body>
 <div class="progress" id="progress" hidden></div>
 <script>
-  // Dải chữ chạy + đầu trang + hộp donate: dùng chung với mọi trang (../site.js, cấu hình ở ../videos.js)
-  (function () { var v = Date.now(); document.write('<script src="../videos.js?v=' + v + '"><\/script><script src="../site.js?v=' + v + '"><\/script>'); })();
+  // Dải chữ chạy + đầu trang + hộp donate + đổi ngôn ngữ: dùng chung với mọi trang
+  // (../site.js, chữ giao diện ở ../i18n.js, cấu hình ở ../videos.js). Phần truyện bên dưới luôn là tiếng Việt.
+  (function () { var v = Date.now(); document.write('<script src="../videos.js?v=' + v + '"><\/script><script src="../i18n.js?v=' + v + '"><\/script><script src="../site.js?v=' + v + '"><\/script>'); })();
 </script>
 
 <main class="wrap" id="app" tabindex="-1"></main>
@@ -471,7 +472,7 @@
 <footer class="foot wrap">
   <p>Truyện do fan viết, thuộc về tác giả của từng truyện. Nhân vật dựa trên người thật: viết với sự tôn trọng nhé.</p>
   <p data-donate-wrap hidden><a href="#" class="donate-link" data-donate></a></p>
-  <p><a href="../">← Về trang video LenaMiu Vietsub</a></p>
+  <p><a href="../">← Về trang video LenaMiu Sub</a></p>
 </footer>
 
 <script>

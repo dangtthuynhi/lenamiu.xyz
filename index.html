@@ -3,22 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>LenaMiu Vietsub</title>
-<meta name="description" content="Video LenaMiu có vietsub, làm bởi dangtthuynhi &amp; Kem Dâu Ngọt.">
+<title>LenaMiu Sub</title>
+<meta name="description" content="Video LenaMiu có sub, làm bởi dangtthuynhi &amp; Kem Dâu Ngọt.">
 <!-- ảnh + tên hiện ra khi dán link vào Messenger, Zalo, Threads, Facebook... -->
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="LenaMiu Vietsub">
+<meta property="og:site_name" content="LenaMiu Sub">
 <meta property="og:locale" content="vi_VN">
-<meta property="og:title" content="LenaMiu Vietsub">
-<meta property="og:description" content="Video LenaMiu có vietsub, làm bởi dangtthuynhi &amp; Kem Dâu Ngọt.">
+<meta property="og:title" content="LenaMiu Sub">
+<meta property="og:description" content="Video LenaMiu có sub, làm bởi dangtthuynhi &amp; Kem Dâu Ngọt.">
 <meta property="og:url" content="https://lenamiu.xyz/">
-<meta property="og:image" content="https://lenamiu.xyz/og-image.png?v=2">
+<meta property="og:image" content="https://lenamiu.xyz/og-image.png?v=3">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Logo LenaMiu Vietsub">
+<meta property="og:image:alt" content="Logo LenaMiu Sub">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://lenamiu.xyz/">
+<!-- cùng trang bằng thứ tiếng khác (chữ giao diện ở i18n.js) -->
+<link rel="alternate" hreflang="vi" href="https://lenamiu.xyz/?lang=vi">
+<link rel="alternate" hreflang="en" href="https://lenamiu.xyz/?lang=en">
+<link rel="alternate" hreflang="th" href="https://lenamiu.xyz/?lang=th">
+<link rel="alternate" hreflang="zh-Hans" href="https://lenamiu.xyz/?lang=zh">
+<link rel="alternate" hreflang="id" href="https://lenamiu.xyz/?lang=id">
+<link rel="alternate" hreflang="x-default" href="https://lenamiu.xyz/">
 <!-- logo trên tab trình duyệt và khi lưu ra màn hình chính -->
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -139,6 +146,21 @@
   .note { margin: 8px 0 0; color: var(--muted); white-space: pre-line; }
   .hint { margin: 8px 0 0; font-size: .85rem; color: var(--muted); }
 
+  /* ---------- thanh chọn phụ đề (video RAW có sub rời, xem bằng máy chủ riêng) ---------- */
+  .subbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 12px; }
+  .subbar-label { flex: none; margin-right: 2px; font-size: .85rem; font-weight: 600; color: var(--muted); }
+  .sub {
+    flex: none; font: inherit; font-size: .85rem; font-weight: 600; min-height: 34px; padding: 5px 14px;
+    border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--text); cursor: pointer;
+  }
+  .sub[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  /* chữ phụ đề hiện trên video (iPhone khi xem toàn màn hình dùng kiểu chữ của máy) */
+  .player video::cue {
+    background: rgba(0, 0, 0, .62); color: #fff; line-height: 1.35;
+    font-family: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, .6);
+  }
+
   .stepper { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
   .step {
     display: block; min-width: 0; padding: 10px 14px; border: 1px solid var(--line);
@@ -189,14 +211,29 @@
   }
   .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .35s ease; }
   .card:hover .thumb img { transform: scale(1.04); }
-  .badges { position: absolute; right: 6px; bottom: 6px; display: flex; gap: 4px; }
+  /* nhãn trên ảnh bìa: nhiều nhãn thì xuống hàng (canh phải), mỗi nhãn luôn nằm trên một dòng */
+  .badges {
+    position: absolute; left: 6px; right: 6px; bottom: 6px; display: flex; flex-wrap: wrap-reverse;
+    justify-content: flex-end; gap: 4px;
+  }
   .badge {
     padding: 1px 6px; border-radius: 5px; background: rgba(0, 0, 0, .75); color: #fff;
-    font-size: .68rem; font-weight: 600; line-height: 1.6;
+    font-size: .68rem; font-weight: 600; line-height: 1.6; white-space: nowrap;
+  }
+  .badge.cc { background: var(--accent); color: var(--on-accent); }   /* video có nhiều thứ tiếng phụ đề */
+  .badge.vi { background: #da251d; color: #ffde00; }                   /* chỉ có phụ đề tiếng Việt (màu cờ) */
+  /* dòng nổi bật dưới tên video: chỉ có phụ đề tiếng Việt */
+  .sub-only {
+    display: inline-flex; align-items: center; gap: 6px; margin: 10px 0 0; padding: 5px 14px;
+    border-radius: 999px; font-size: .875rem; font-weight: 700; line-height: 1.4;
+    color: #b3160f; background: #fff1d6; border: 1px solid #f3c96b;
+  }
+  @media (prefers-color-scheme: dark) {
+    .sub-only { color: #ffd76a; background: rgba(218, 37, 29, .22); border-color: rgba(255, 215, 106, .35); }
   }
   .card[aria-current="true"] .thumb { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
   .card[aria-current="true"] .thumb::before {
-    content: "Đang xem"; position: absolute; left: 6px; top: 6px; z-index: 1;
+    content: var(--now-label, "Đang xem"); position: absolute; left: 6px; top: 6px; z-index: 1;
     padding: 2px 9px; border-radius: 999px; background: var(--accent); color: var(--on-accent);
     font-size: .72rem; font-weight: 700;
   }
@@ -217,6 +254,7 @@
   }
   .foot p { margin: 0 0 4px; }
   .foot a { color: inherit; }
+  .foot .social { white-space: nowrap; }   /* "𝕏 @tên" không bị tách dòng */
 
   /* ---------- hộp "Đăng lên X" ---------- */
   .sheet textarea {
@@ -248,42 +286,49 @@
 <body>
 
 <script>
-  // videos.js (danh sách video + cấu hình) và site.js (dải chữ chạy, đầu trang, hộp donate — dùng chung mọi trang).
+  // videos.js (danh sách video + cấu hình), i18n.js (chữ giao diện 5 thứ tiếng) và site.js (dải chữ chạy,
+  // đầu trang, hộp donate, đổi ngôn ngữ — dùng chung mọi trang).
   // GitHub Pages cho trình duyệt giữ file 10 phút; thêm ?v=giờ-hiện-tại để lần nào cũng lấy bản mới nhất.
-  (function () { var v = Date.now(); document.write('<script src="videos.js?v=' + v + '"><\/script><script src="site.js?v=' + v + '"><\/script>'); })();
+  (function () { var v = Date.now(); document.write('<script src="videos.js?v=' + v + '"><\/script><script src="i18n.js?v=' + v + '"><\/script><script src="site.js?v=' + v + '"><\/script>'); })();
 </script>
 
 <main class="wrap">
 
-  <section class="watch" id="watch" aria-label="Đang xem" hidden>
+  <!-- data-i18n / data-i18n-attr: chữ đổi theo ngôn ngữ (bảng chữ ở i18n.js) -->
+  <section class="watch" id="watch" aria-label="Đang xem" data-i18n-attr="aria-label:v.watching" hidden>
     <div class="player" id="player"></div>
     <div class="meta">
       <div class="meta-row">
-        <div class="sources" id="sources" role="group" aria-label="Nguồn phát"></div>
+        <div class="sources" id="sources" role="group" aria-label="Nguồn phát" data-i18n-attr="aria-label:v.sources"></div>
         <div class="actions">
           <a class="ghost" id="openLink" href="#" target="_blank" rel="noopener"></a>
-          <button type="button" class="ghost" id="xBtn">Đăng lên X</button>
-          <button type="button" class="ghost" id="shareBtn">Chia sẻ</button>
+          <button type="button" class="ghost" id="xBtn" data-i18n="v.xBtn">Đăng lên X</button>
+          <button type="button" class="ghost" id="shareBtn" data-i18n="v.share">Chia sẻ</button>
         </div>
       </div>
+      <!-- chọn thứ tiếng phụ đề: chỉ hiện với video RAW có ô subs trong videos.js -->
+      <div class="subbar" id="subbar" role="group" aria-label="Phụ đề" data-i18n-attr="aria-label:v.subsAria" hidden></div>
       <p class="kicker" id="watchKicker"></p>
       <h1 id="watchTitle"></h1>
+      <!-- video chỉ có phụ đề tiếng Việt (in sẵn trong hình, không có ô subs): báo nổi bật ngay dưới tên -->
+      <p class="sub-only" id="subsNote" hidden></p>
       <p class="note" id="watchNote"></p>
       <p class="hint" id="watchHint"></p>
-      <nav class="stepper" id="stepper" aria-label="Video khác">
-        <a class="step prev" id="prevLink" href="#"><small>‹ Trước</small><span></span></a>
-        <a class="step next" id="nextLink" href="#"><small>Sau ›</small><span></span></a>
+      <nav class="stepper" id="stepper" aria-label="Video khác" data-i18n-attr="aria-label:v.others">
+        <a class="step prev" id="prevLink" href="#"><small data-i18n="v.prev">‹ Trước</small><span></span></a>
+        <a class="step next" id="nextLink" href="#"><small data-i18n="v.next">Sau ›</small><span></span></a>
       </nav>
     </div>
   </section>
 
   <section aria-labelledby="libTitle">
     <div class="lib-head">
-      <h2 id="libTitle">Tất cả video <span class="count" id="count"></span></h2>
+      <h2 id="libTitle"><span data-i18n="v.all">Tất cả video</span> <span class="count" id="count"></span></h2>
       <input class="search" id="search" type="search" placeholder="Tìm video..."
-             aria-label="Tìm video" autocomplete="off" spellcheck="false">
+             aria-label="Tìm video" data-i18n-attr="placeholder:v.search,aria-label:v.searchAria"
+             autocomplete="off" spellcheck="false">
     </div>
-    <div class="chips" id="chips" role="group" aria-label="Lọc theo nhóm"></div>
+    <div class="chips" id="chips" role="group" aria-label="Lọc theo nhóm" data-i18n-attr="aria-label:v.chips"></div>
     <ul class="grid" id="grid"></ul>
     <p class="empty" id="empty" hidden></p>
   </section>
@@ -293,18 +338,18 @@
 <dialog class="sheet" id="xDialog" aria-labelledby="xTitle">
   <form method="dialog" class="sheet-in">
     <div class="sheet-head">
-      <h2 id="xTitle">Đăng lên X</h2>
-      <button class="icon-btn" value="close" aria-label="Đóng">✕</button>
+      <h2 id="xTitle" data-i18n="v.xBtn">Đăng lên X</h2>
+      <button class="icon-btn" value="close" aria-label="Đóng" data-i18n-attr="aria-label:close">✕</button>
     </div>
-    <p class="sheet-sub">Nội dung đã viết sẵn, sửa thoải mái trước khi đăng nha.</p>
-    <textarea id="xText" rows="7" aria-label="Nội dung bài đăng"></textarea>
+    <p class="sheet-sub" data-i18n="v.xSub">Nội dung đã viết sẵn, sửa thoải mái trước khi đăng nha.</p>
+    <textarea id="xText" rows="7" aria-label="Nội dung bài đăng" data-i18n-attr="aria-label:v.xText"></textarea>
     <div class="sheet-row">
-      <button type="button" class="ghost" id="xAgain">↻ Viết câu khác</button>
+      <button type="button" class="ghost" id="xAgain" data-i18n="v.xAgain">↻ Viết câu khác</button>
       <span class="x-count" id="xCount" aria-live="polite"></span>
     </div>
     <div class="sheet-actions">
-      <button type="button" class="ghost" id="xCopy">Chép nội dung</button>
-      <a class="primary" id="xGo" href="https://x.com/intent/tweet" target="_blank" rel="noopener" autofocus>Mở X để đăng ↗</a>
+      <button type="button" class="ghost" id="xCopy" data-i18n="v.xCopy">Chép nội dung</button>
+      <a class="primary" id="xGo" href="https://x.com/intent/tweet" target="_blank" rel="noopener" autofocus data-i18n="v.xGo">Mở X để đăng ↗</a>
     </div>
   </form>
 </dialog>
@@ -313,7 +358,8 @@
   <p id="footText"></p>
   <p id="visits" hidden></p>
   <p data-donate-wrap hidden><a href="#lumi" class="donate-link" data-donate></a></p>
-  <p>Kênh của tụi mình:
+  <!-- link X của người làm sub (site.socials trong videos.js) được thêm vào sau link YouTube -->
+  <p id="channels"><span data-i18n="v.channel">Kênh của tụi mình:</span>
      <a href="https://www.youtube.com/@dangtthuynhi" target="_blank" rel="noopener">YouTube</a></p>
 </footer>
 
@@ -323,14 +369,37 @@
 
   const DATA = window.VIETSUB || {};
   const SITE = Object.assign(
-    { title: 'LenaMiu Vietsub', tagline: '', footer: '', dailymotionPlayerId: '', videoBase: '' }, DATA.site);
+    { title: 'LenaMiu Sub', tagline: '', footer: '', dailymotionPlayerId: '', videoBase: '' }, DATA.site);
+
+  // Ngôn ngữ: chữ giao diện ở i18n.js, chọn ngôn ngữ ở site.js (nút 🌐). Tên video dịch ở videos.js (title_en...).
+  const LM = window.LM || {};
+  const LANG = LM.lang || 'vi';
+  const LOC = LM.locale || 'vi-VN';
+  const VI = (window.LM_I18N || {}).vi || {};
+  const t = LM.t || ((k, vars) => String(k in VI ? VI[k] : k)
+    .replace(/\{(\w+)\}/g, (m, x) => (vars && x in vars ? String(vars[x]) : m)));
+  const tr = LM.tr || ((o, f) => (o ? o[f] : ''));
+  if (LM.applyI18n) LM.applyI18n();
+  document.documentElement.style.setProperty('--now-label', JSON.stringify(t('v.watching')));
+  // Tên nhóm đã dịch (site.groupNames trong videos.js), không có thì giữ nguyên tên nhóm
+  function groupName(g) {
+    const m = g && (SITE.groupNames || {})[g];
+    return (m && LANG !== 'vi' && m[LANG]) || g;
+  }
+  // Link gửi đi (Chia sẻ, Đăng lên X) kèm ?lang= khi đang xem bằng tiếng nước ngoài, để người nhận thấy cùng thứ tiếng
+  const langQuery = LANG === 'vi' ? '' : '?lang=' + LANG;
+  if (LANG !== 'vi') {
+    const canon = document.querySelector('link[rel="canonical"]');
+    if (canon) canon.href = 'https://lenamiu.xyz/' + langQuery;
+  }
+
   // Thứ tự ưu tiên khi một video có nhiều nguồn. Video trên máy chủ riêng (kho R2) xếp đầu:
   // phát bằng trình phát gốc của trình duyệt nên nhanh nhất, iPhone xem mượt.
   // Drive xếp sau Odysee vì trình phát Drive trên iPhone bị hai bộ nút chồng nhau.
   const SOURCES = ['file', 'youtube', 'odysee', 'drive', 'dailymotion'];
-  const LABEL = { file: 'Máy chủ riêng', youtube: 'YouTube', odysee: 'Odysee', drive: 'Google Drive',
+  const LABEL = { file: t('v.srcFile'), youtube: 'YouTube', odysee: 'Odysee', drive: 'Google Drive',
                   dailymotion: 'Dailymotion' };
-  const BADGE = { file: 'Nhanh', youtube: 'YouTube', odysee: 'Odysee', drive: 'Drive', dailymotion: 'Dailymotion' };
+  const BADGE = { file: t('v.badgeFile'), youtube: 'YouTube', odysee: 'Odysee', drive: 'Drive', dailymotion: 'Dailymotion' };
   // Địa chỉ máy chủ phát video (Cloudflare Worker + kho R2), vd https://lenamiu-video.xxx.workers.dev/
   const VIDEO_BASE = String(SITE.videoBase || '').trim().replace(/\/*$/, '/');
   const SRC_KEY = 'vietsub_src';
@@ -417,9 +486,39 @@
     return p.split('/').map((seg) => encodeURIComponent(seg).replace(/%3A/gi, ':').replace(/%40/g, '@')).join('/');
   }
 
+  // Ngày đăng: tiếng Việt viết 08/11/2026, thứ tiếng khác viết theo kiểu của họ (Nov 8, 2026 · 2026年11月8日...)
   function fmtDate(s) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || '').trim());
-    return m ? m[3] + '/' + m[2] + '/' + m[1] : String(s || '');
+    if (!m) return String(s || '');
+    if (LANG !== 'vi') {
+      try {
+        return new Intl.DateTimeFormat(LOC, { day: 'numeric', month: 'short', year: 'numeric' })
+          .format(new Date(+m[1], +m[2] - 1, +m[3]));
+      } catch (e) { /* trình duyệt cũ: dùng kiểu ngày/tháng/năm */ }
+    }
+    return m[3] + '/' + m[2] + '/' + m[1];
+  }
+
+  /* ---------- phụ đề rời: nhiều thứ tiếng cho cùng một video RAW ---------- */
+  const SUB_KEY = 'lm_sub';                  // thứ tiếng phụ đề người xem đã chọn ('off' = tắt)
+  const SUB_V = Date.now();                  // GitHub Pages giữ file 10 phút: thêm ?v= để sửa sub là thấy ngay
+  const LANG_CODES = (LM.langs || []).map((l) => l.code);
+  // xếp thứ tiếng theo thứ tự trong menu 🌐 (Việt, Anh, Thái, Trung, Indonesia), thứ tiếng lạ để sau cùng
+  function subOrder(codes) {
+    const rank = (c) => (LANG_CODES.includes(c) ? LANG_CODES.indexOf(c) : 99);
+    return codes.slice().sort((a, b) => rank(a) - rank(b));
+  }
+  function subName(code) {
+    const l = (LM.langs || []).find((x) => x.code === code);
+    return l ? l.name.replace(/[（(].*$/, '').trim() : code.toUpperCase();
+  }
+  // Sub mặc định: lựa chọn lần trước → thứ tiếng của trang đang xem → tiếng Việt → thứ tiếng đầu tiên có
+  function chooseSub(v) {
+    if (!v.subLangs.length) return '';
+    const saved = store(SUB_KEY);
+    if (saved === 'off') return 'off';
+    for (const c of [saved, LANG, 'vi']) if (c && v.subs[c]) return c;
+    return v.subLangs[0];
   }
 
   /* ---------- đọc danh sách video ---------- */
@@ -436,10 +535,24 @@
     let id = base;
     for (let n = 2; used.has(id); n++) id = base + '-' + n;
     used.add(id);
+    // tìm kiếm được bằng tên / ghi chú ở mọi thứ tiếng (gõ tên tiếng Anh hay tiếng Việt đều ra)
+    const allText = Object.keys(v).filter((k) => /^(title|note)(_[a-z]{2})?$/.test(k)).map((k) => v[k]);
+    // Phụ đề rời (video RAW): subs: { vi: 'id.vi.vtt', en: 'id.en.vtt' } → file trong thư mục subs/
+    const subs = {};
+    if (v.subs && typeof v.subs === 'object' && ids.file) {
+      for (const [k, f] of Object.entries(v.subs)) {
+        const code = String(k).toLowerCase(), file = String(f || '').trim();
+        if (!/^[a-z]{2,3}$/.test(code) || !file) continue;
+        subs[code] = /^https?:\/\//i.test(file) || file.includes('/') ? file : 'subs/' + file;
+      }
+    }
+    const subLangs = subOrder(Object.keys(subs));
     return {
-      id, ids,
-      title: v.title || 'Video chưa đặt tên',
-      group: v.group || '', date: v.date || '', note: v.note || '', hashtags: v.hashtags || '',
+      id, ids, subs, subLangs,
+      // chỉ có phụ đề tiếng Việt: chưa có sub rời (sub in cứng trong hình) hoặc sub rời chỉ có tiếng Việt
+      viOnly: !subLangs.length || (subLangs.length === 1 && subLangs[0] === 'vi'),
+      title: tr(v, 'title') || t('v.untitled'),
+      group: v.group || '', date: v.date || '', note: tr(v, 'note') || '', hashtags: v.hashtags || '',
       thumb: v.thumb ||
         // lệnh up-video tải kèm ảnh bìa .jpg cùng tên với video
         (ids.file && /\.mp4(\?|$)/i.test(ids.file) ? ids.file.replace(/\.mp4(\?|$)/i, '.jpg$1')
@@ -449,7 +562,7 @@
         : ''),
       // Odysee không có link ảnh bìa cố định → hỏi API của Odysee sau (fillOdyseeThumbs)
       needThumb: !v.thumb && !ids.file && !ids.youtube && !!ids.odysee,
-      text: norm([v.title, v.group, v.note, fmtDate(v.date)].join(' ')),
+      text: norm([...allText, v.group, groupName(v.group), fmtDate(v.date)].join(' ')),
       visible: true
     };
   }).filter(Boolean);
@@ -461,8 +574,11 @@
   let src = 'youtube';
   let group = '';
   let query = '';
+  let curSub = '';           // thứ tiếng phụ đề đang bật cho video đang xem ('off' = tắt, '' = video không có sub rời)
 
-  $('footText').textContent = SITE.footer;
+  $('footText').textContent = tr(SITE, 'footer') || '';
+  // Chân trang: thêm trang X của người làm sub cạnh link YouTube
+  (LM.socials || []).forEach((p) => $('channels').append(' · ', LM.socialLink(p, '𝕏 @' + p.handle)));
 
   /* (hộp donate, thanh PK, dải chữ chạy: ở site.js, dùng chung cho mọi trang; trang này gọi qua window.LM) */
 
@@ -478,7 +594,7 @@
     $('count').textContent = '(0)';
     $('search').hidden = true;
     $('empty').hidden = false;
-    $('empty').textContent = 'Chưa có video nào.';
+    $('empty').textContent = t('v.empty');
     console.info('[vietsub] Thêm video vào videos.js nha.');
     return;
   }
@@ -493,6 +609,15 @@
 
     const thumb = el('span', 'thumb');
     const badges = el('span', 'badges');
+    if (v.subLangs.length > 1) {          // nhiều thứ tiếng phụ đề: nhãn CC, rê chuột thấy danh sách
+      const cc = el('span', 'badge cc', 'CC');
+      cc.title = v.subLangs.map(subName).join(' · ');
+      badges.append(cc);
+    } else if (v.viOnly) {                // chỉ có phụ đề tiếng Việt: nhãn ★ Sub Việt màu cờ
+      const vi = el('span', 'badge vi', '★ ' + t('v.viBadge'));
+      vi.title = t('v.viBadgeTitle');
+      badges.append(vi);
+    }
     sourcesOf(v).forEach((s) => badges.append(el('span', 'badge', BADGE[s])));
     if (v.thumb) thumb.append(thumbImg(v.thumb, true));
     thumb.append(badges);
@@ -538,7 +663,7 @@
   const groups = [...new Set(videos.map((v) => v.group).filter(Boolean))];
   if (groups.length >= 2) {
     ['', ...groups].forEach((g) => {
-      const b = el('button', 'chip', g || 'Tất cả');
+      const b = el('button', 'chip', g ? groupName(g) : t('v.allChip'));
       b.type = 'button';
       b.setAttribute('aria-pressed', String(g === group));
       b.addEventListener('click', () => {
@@ -567,9 +692,7 @@
       ? '(' + videos.length + ')' : '(' + shown + '/' + videos.length + ')';
     $('empty').hidden = shown > 0;
     if (!shown) {
-      $('empty').textContent = query.trim()
-        ? 'Không tìm thấy video nào khớp “' + query.trim() + '”.'
-        : 'Nhóm này chưa có video.';
+      $('empty').textContent = query.trim() ? t('v.noMatch', { q: query.trim() }) : t('v.groupEmpty');
     }
     updateStepper();
   }
@@ -589,7 +712,7 @@
       const origin = /^https?:$/.test(location.protocol)
         ? '&origin=' + encodeURIComponent(location.origin) : '';
       return 'https://www.youtube-nocookie.com/embed/' + v.ids.youtube +
-             '?autoplay=1&rel=0&playsinline=1&hl=vi' + origin;
+             '?autoplay=1&rel=0&playsinline=1&hl=' + (LANG === 'zh' ? 'zh-CN' : LANG) + origin;
     }
     if (s === 'odysee') return 'https://odysee.com/$/embed/' + odyseePath(v.ids.odysee);
     if (s === 'drive') return 'https://drive.google.com/file/d/' + v.ids.drive + '/preview';
@@ -620,7 +743,36 @@
       if (cur.thumb) vd.poster = cur.thumb;
       vd.title = cur.title;
       vd.src = cur.ids.file;
+      // phụ đề rời: mỗi thứ tiếng một <track>; bật đúng thứ tiếng đang chọn
+      // (cũng hiện trong nút CC của trình phát, và khi xem toàn màn hình trên iPhone)
+      cur.subLangs.forEach((code) => {
+        const tk = el('track');
+        tk.kind = 'subtitles';
+        tk.srclang = code;
+        tk.label = subName(code);
+        tk.src = cur.subs[code] + (cur.subs[code].includes('?') ? '&' : '?') + 'v=' + SUB_V;
+        if (code === curSub) tk.default = true;
+        vd.append(tk);
+      });
       box.append(vd);
+      if (cur.subLangs.length) {
+        const born = Date.now();
+        applySub(vd);
+        vd.addEventListener('loadedmetadata', () => applySub(vd), { once: true });
+        vd.textTracks.addEventListener('change', () => {
+          const showing = [...vd.textTracks].filter((tt) => tt.mode === 'showing');
+          const wanted = curSub === 'off' ? 0 : 1;
+          // Lúc video vừa mở, trình duyệt hay TỰ bật thêm sub theo ngôn ngữ của máy (2 sub chồng lên nhau):
+          // không coi đó là người xem chọn, đặt lại đúng thứ tiếng trang đã chọn. Lúc nào cũng chỉ 1 sub.
+          if (showing.length > 1 || Date.now() - born < 2000) {
+            if (showing.length !== wanted || (wanted && showing[0].language !== curSub)) applySub(vd);
+            return;
+          }
+          // người xem đổi sub bằng nút CC của trình phát → thanh chọn bên dưới đổi theo, nhớ lựa chọn
+          const code = showing.length ? showing[0].language : 'off';
+          if (code !== curSub) { curSub = code; store(SUB_KEY, code); paintSubbar(); }
+        });
+      }
       const p = vd.play();
       if (p && p.catch) p.catch(() => {});   // trình duyệt chặn tự phát thì người xem bấm nút phát
       return;
@@ -640,18 +792,53 @@
       b.href = watchUrl(cur, 'dailymotion');
       b.target = '_blank';
       b.rel = 'noopener';
-      b.setAttribute('aria-label', 'Mở video trên Dailymotion: ' + cur.title);
+      b.setAttribute('aria-label', t('v.openDm', { title: cur.title }));
       b.addEventListener('click', () => countView(cur));
     } else {
       b.type = 'button';
-      b.setAttribute('aria-label', 'Phát video: ' + cur.title + ' (' + LABEL[src] + ')');
+      b.setAttribute('aria-label', t('v.play', { title: cur.title, src: LABEL[src] }));
       b.addEventListener('click', () => showPlayer(true));
     }
     if (cur.thumb) b.append(thumbImg(cur.thumb));
     b.append(el('span', 'play'),
-             el('span', 'on', linkOut ? 'Mở trên Dailymotion ↗' : 'Xem trên ' + LABEL[src]));
+             el('span', 'on', linkOut ? t('v.openDmShort') : t('v.watchOn', { src: LABEL[src] })));
     box.append(b);
   }
+
+  function applySub(vd) {
+    [...vd.textTracks].forEach((tt) => { tt.mode = tt.language === curSub ? 'showing' : 'disabled'; });
+  }
+  // Thanh chọn phụ đề: chỉ hiện khi video có sub rời và đang xem bằng máy chủ riêng
+  function paintSubbar() {
+    const bar = $('subbar');
+    const show = cur.subLangs.length > 0 && src === 'file';
+    const hadFocus = bar.contains(document.activeElement);
+    bar.hidden = !show;
+    if (show) {
+      bar.replaceChildren(el('span', 'subbar-label', t('v.subsLabel')), ...[...cur.subLangs, 'off'].map((code) => {
+        const b = el('button', 'sub', code === 'off' ? t('v.subsOff') : subName(code));
+        b.type = 'button';
+        b.dataset.sub = code;
+        if (code !== 'off') b.lang = code;
+        b.setAttribute('aria-pressed', String(code === curSub));
+        return b;
+      }));
+      if (hadFocus) bar.querySelector('[aria-pressed="true"]').focus();
+    }
+    // Video chỉ có phụ đề tiếng Việt: báo nổi bật ngay dưới tên (mọi thứ tiếng)
+    const note = cur.viOnly && t('v.subsNote');
+    $('subsNote').textContent = note || '';
+    $('subsNote').hidden = !note;
+  }
+  $('subbar').addEventListener('click', (e) => {
+    const b = e.target.closest('.sub');
+    if (!b || b.dataset.sub === curSub) return;
+    curSub = b.dataset.sub;
+    store(SUB_KEY, curSub);
+    paintSubbar();
+    const vd = $('player').querySelector('video');
+    if (vd) applySub(vd);                // đang phát thì đổi sub luôn, không phát lại từ đầu
+  });
 
   function select(id, play) {
     cur = videos.find((v) => v.id === id) || videos[0];
@@ -659,6 +846,7 @@
     // người xem đã chọn nguồn khác. Video không có thì mới dùng nguồn đã chọn lần trước.
     const pref = store(SRC_KEY);
     src = has(cur, 'file') ? 'file' : has(cur, pref) ? pref : sourcesOf(cur)[0];
+    curSub = chooseSub(cur);
 
     paintKicker();
     $('watchTitle').textContent = cur.title;
@@ -682,6 +870,7 @@
     const hadFocus = box.contains(document.activeElement);
     box.textContent = '';
     box.hidden = list.length < 2;
+    paintSubbar();                       // đổi nguồn phát: thanh phụ đề chỉ có khi xem bằng máy chủ riêng
     list.forEach((s) => {
       const b = el('button', 'src', LABEL[s]);
       b.type = 'button';
@@ -692,11 +881,11 @@
     if (hadFocus && !box.hidden) box.querySelector('[aria-pressed="true"]').focus();
 
     $('openLink').href = watchUrl(cur, src);
-    $('openLink').textContent = 'Mở trên ' + LABEL[src] + ' ↗';
+    $('openLink').textContent = t('v.openOn', { src: LABEL[src] });
     const others = list.filter((s) => s !== src).map((s) => LABEL[s]);
     $('watchHint').textContent = others.length
-      ? 'Video không lên? Bấm qua ' + others.join(' hoặc ') + ' thử, hoặc mở thẳng trên ' + LABEL[src] + ' nha.'
-      : 'Video không lên? Bấm “Mở trên ' + LABEL[src] + '” để xem thẳng bên đó nha.';
+      ? t('v.hint', { others: others.join(t('v.or')), src: LABEL[src] })
+      : t('v.hint1', { src: LABEL[src] });
   }
 
   $('sources').addEventListener('click', (e) => {
@@ -750,28 +939,31 @@
 
   $('shareBtn').addEventListener('click', async () => {
     const btn = $('shareBtn');
-    const url = location.href.split('#')[0] + '#' + cur.id;
+    const url = location.origin + location.pathname + langQuery + '#' + cur.id;
     try {
       if (navigator.share && matchMedia('(pointer: coarse)').matches) {
         await navigator.share({ title: cur.title, url });
         return;
       }
       await navigator.clipboard.writeText(url);
-      btn.textContent = 'Đã chép link ✓';
-      setTimeout(() => { btn.textContent = 'Chia sẻ'; }, 2000);
+      btn.textContent = t('v.linkCopied');
+      setTimeout(() => { btn.textContent = t('v.share'); }, 2000);
     } catch (err) {
       if (err && err.name === 'AbortError') return;   // tự tắt bảng chia sẻ
-      window.prompt('Chép link này nha:', url);
+      window.prompt(t('v.sharePrompt'), url);
     }
   });
 
   /* ---------- Đăng lên X: viết sẵn bài đăng rồi mở khung soạn bài của X ---------- */
   // Mẫu câu và hashtag nằm trong videos.js (site.share). Mỗi lần bấm chọn ngẫu nhiên một mẫu.
+  // Mẫu câu theo ngôn ngữ: templates_en, templates_th... trong videos.js; không có thì dùng mẫu tiếng Việt
+  // (tiếng nước ngoài mà chưa có mẫu thì dùng mẫu chung chỉ có tên video + link, khỏi lẫn câu tiếng Việt)
   const SHARE = Object.assign({ hashtags: '', templates: [] }, SITE.share);
-  const TEMPLATES = (SHARE.templates || []).filter(Boolean);
-  if (!TEMPLATES.length) TEMPLATES.push('[Vietsub] LenaMiu | {title}\n{link}\n\n{hashtags}');
+  const ownTpl = LANG === 'vi' ? SHARE.templates : SHARE['templates_' + LANG];
+  const TEMPLATES = (Array.isArray(ownTpl) ? ownTpl : []).filter(Boolean);
+  if (!TEMPLATES.length) TEMPLATES.push(LANG === 'vi' ? '[Vietsub] LenaMiu | {title}\n{link}\n\n{hashtags}' : 'LenaMiu | {title}\n{link}\n\n{hashtags}');
   // Luôn dùng link thật của trang (kể cả khi đang thử trong máy)
-  const SITE_URL = ((document.querySelector('link[rel="canonical"]') || {}).href || location.href).split('#')[0];
+  const SITE_URL = 'https://lenamiu.xyz/' + langQuery;
   let lastTpl = -1;
 
   function makePost(v) {
@@ -780,7 +972,7 @@
     if (pool.length > 1) pool = pool.filter((i) => i !== lastTpl);   // bấm lại thì ra câu khác
     lastTpl = pool[Math.floor(Math.random() * pool.length)];
     const tags = [...new Set((SHARE.hashtags + ' ' + v.hashtags).split(/\s+/).filter(Boolean))].join(' ');
-    const val = { title: v.title, group: v.group, link: SITE_URL + '#' + v.id, hashtags: tags };
+    const val = { title: v.title, group: groupName(v.group), link: SITE_URL + '#' + v.id, hashtags: tags };
     return TEMPLATES[lastTpl].replace(/\{(title|group|link|hashtags)\}/g, (m, k) => val[k])
       .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
   }
@@ -808,7 +1000,7 @@
     ta.style.height = 'auto';
     if (ta.scrollHeight) ta.style.height = Math.min(ta.scrollHeight + 2, innerHeight * 0.5) + 'px';
     $('xGo').href = 'https://x.com/intent/tweet?text=' + encodeURIComponent(t);
-    $('xCount').textContent = n > 280 ? n + '/280 · dài quá, X sẽ bắt rút gọn' : n + '/280';
+    $('xCount').textContent = n > 280 ? t('v.xOver', { n }) : n + '/280';
     $('xCount').classList.toggle('over', n > 280);
   }
   function xFill() { $('xText').value = makePost(cur); xRefresh(); }
@@ -826,15 +1018,15 @@
     const btn = $('xCopy');
     try { await navigator.clipboard.writeText($('xText').value); }
     catch (e) { $('xText').select(); document.execCommand('copy'); }
-    btn.textContent = 'Đã chép ✓';
-    setTimeout(() => { btn.textContent = 'Chép nội dung'; }, 2000);
+    btn.textContent = t('v.xCopied');
+    setTimeout(() => { btn.textContent = t('v.xCopy'); }, 2000);
   });
 
   /* ---------- lượt truy cập + lượt xem ---------- */
   // 1 người chỉ được tính 1 lượt truy cập / ngày và 1 lượt xem mỗi video / ngày (máy chủ kiểm tra lại lần nữa)
-  const fmtNum = (n) => Number(n).toLocaleString('vi-VN');
-  function viewsText(v) { return statsReady && views[v.id] ? fmtNum(views[v.id]) + ' lượt xem' : ''; }
-  function metaText(v) { return [v.group, fmtDate(v.date), viewsText(v)].filter(Boolean).join(' · '); }
+  const fmtNum = (n) => Number(n).toLocaleString(LOC);
+  function viewsText(v) { return statsReady && views[v.id] ? t('v.views', { n: fmtNum(views[v.id]) }) : ''; }
+  function metaText(v) { return [groupName(v.group), fmtDate(v.date), viewsText(v)].filter(Boolean).join(' · '); }
   function paintMeta(v) {
     v.metaEl.textContent = metaText(v);
     v.metaEl.hidden = !v.metaEl.textContent;
@@ -847,7 +1039,7 @@
   }
   function paintVisits() {
     if (!statsReady || !siteVisits) return;
-    $('visits').textContent = '👀 ' + fmtNum(siteVisits) + ' lượt truy cập';
+    $('visits').textContent = t('v.visits', { n: fmtNum(siteVisits) });
     $('visits').hidden = false;
   }
 

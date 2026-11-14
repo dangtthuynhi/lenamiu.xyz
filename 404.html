@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Không tìm thấy trang · LenaMiu Vietsub</title>
+<title>Không tìm thấy trang · LenaMiu Sub</title>
 <meta name="robots" content="noindex">
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -34,15 +34,19 @@
 </head>
 <body>
 <script>
-  // Dải chữ chạy + đầu trang + hộp donate: dùng chung với mọi trang (/site.js, cấu hình ở /videos.js)
-  (function () { var v = Date.now(); document.write('<script src="/videos.js?v=' + v + '"><\/script><script src="/site.js?v=' + v + '"><\/script>'); })();
+  // Dải chữ chạy + đầu trang + hộp donate + đổi ngôn ngữ: dùng chung với mọi trang
+  // (/site.js, chữ giao diện ở /i18n.js, cấu hình ở /videos.js)
+  (function () { var v = Date.now(); document.write('<script src="/videos.js?v=' + v + '"><\/script><script src="/i18n.js?v=' + v + '"><\/script><script src="/site.js?v=' + v + '"><\/script>'); })();
 </script>
   <main>
     <div>
-      <h1>Không tìm thấy trang này</h1>
-      <p>Có thể link đã đổi hoặc gõ nhầm rồi.</p>
-      <p><a href="/">Về trang video LenaMiu</a> · <a href="/fanfic/">Đọc fanfic</a></p>
+      <h1 data-i18n="nf.title">Không tìm thấy trang này</h1>
+      <p data-i18n="nf.text">Có thể link đã đổi hoặc gõ nhầm rồi.</p>
+      <p><a href="/" data-i18n="nf.home">Về trang video LenaMiu</a> · <a href="/fanfic/" data-i18n="nf.fanfic">Đọc fanfic</a></p>
     </div>
   </main>
+<script>
+  if (window.LM && LM.t) { LM.applyI18n(); document.title = LM.t('nf.doc') + ' · LenaMiu Sub'; }
+</script>
 </body>
 </html>

@@ -8,6 +8,13 @@
    Cấu hình (chữ trên nút, ảnh QR, máy chủ PK...) đọc từ videos.js → site.donate, site.tagline.
    Chỗ trống cho từng trang: <div id="topExtra"> ở cuối đầu trang (trang Fanfic để nút tài khoản ở đây).
    Link mở hộp donate ở chỗ khác trong trang: <a href="#" data-donate></a>, bọc trong <p data-donate-wrap hidden>.
+
+   Đa ngôn ngữ: chữ giao diện ở i18n.js (nạp TRƯỚC site.js). Nút 🌐 ở đầu trang để đổi, trang nhớ lựa chọn.
+     - Link có ?lang=en (th, zh, id, vi) thì mở bằng thứ tiếng đó (chỉ lần đó, không đổi lựa chọn đã lưu).
+     - Lần đầu vào: máy để giờ Việt Nam hoặc có cài tiếng Việt → tiếng Việt; máy cài tiếng Thái / Trung / Indonesia → tiếng đó;
+       máy chỉ cài tiếng Anh / tiếng khác → hỏi máy chủ PK (GET /geo) xem người xem ở nước nào theo IP (xem detectLang).
+     - Chữ cố định trong trang: <span data-i18n="khoá"></span>, thuộc tính: data-i18n-attr="placeholder:khoá,aria-label:khoá".
+     - Trang dùng qua window.LM: LM.t('khoá', {biến}), LM.tr(obj, 'title') (đọc ô title_en...), LM.lang, LM.locale.
 */
 (function () {
   'use strict';
@@ -36,67 +43,221 @@
   function norm(s) {
     return String(s || '').normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
   }
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  /* ================= ngôn ngữ ================= */
+  const I18N = window.LM_I18N || { langs: [['vi', 'Tiếng Việt', 'VI', 'vi-VN']], vi: {} };
+  const LANGS = I18N.langs.map(([code, name, short, locale]) => ({ code, name, short, locale }));
+  const CODES = LANGS.map((l) => l.code);
+  const LANG_KEY = 'lm_lang';          // thứ tiếng người xem tự chọn bằng nút 🌐
+  const IP_KEY = 'lm_lang_ip';         // thứ tiếng đoán theo IP: lưu 30 ngày cho khỏi hỏi máy chủ mỗi lần
+  // Mã nước (theo IP) → thứ tiếng. Nước khác: tiếng Anh.
+  const COUNTRY_LANG = { VN: 'vi', TH: 'th', ID: 'id', CN: 'zh', TW: 'zh', HK: 'zh', MO: 'zh' };
+  let askIp = false;
+  // Thứ tự ưu tiên khi chọn thứ tiếng:
+  //   1. link có ?lang=... (chỉ lần đó)   2. người xem đã tự chọn bằng nút 🌐
+  //   3. máy để giờ Việt Nam / có cài tiếng Việt → tiếng Việt (nhiều bạn Việt dùng điện thoại cài tiếng Anh)
+  //   4. máy có cài tiếng Thái / Trung / Indonesia → tiếng đó (đúng cả khi dùng VPN)
+  //   5. máy chỉ cài tiếng Anh / tiếng khác → đoán theo IP (VN, TH, ID, CN/TW/HK/MO), còn lại tiếng Anh
+  function detectLang() {
+    let q = '';
+    try { q = String(new URLSearchParams(location.search).get('lang') || '').toLowerCase(); } catch (e) { /* bỏ qua */ }
+    if (CODES.includes(q)) return q;
+    const saved = store(LANG_KEY);
+    if (CODES.includes(saved)) return saved;
+    const prefs = (navigator.languages && navigator.languages.length ? [...navigator.languages] : [navigator.language || ''])
+      .map((x) => String(x).toLowerCase());
+    let tz = '';
+    try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { /* bỏ qua */ }
+    if (/^Asia\/(Ho_Chi_Minh|Saigon)$/.test(tz) || prefs.some((p) => p.startsWith('vi'))) return 'vi';
+    for (const p of prefs) {
+      const c = p === 'in' || p.startsWith('in-') ? 'id' : p.split('-')[0];   // "in" là mã cũ của tiếng Indonesia
+      if (c !== 'en' && CODES.includes(c)) return c;
+    }
+    try {
+      const x = JSON.parse(store(IP_KEY) || 'null');
+      if (x && CODES.includes(x.lang) && Date.now() - x.at < 30 * 86400e3) return x.lang;
+    } catch (e) { /* bỏ qua */ }
+    askIp = true;
+    return CODES.includes('en') ? 'en' : CODES[0];
+  }
+  const LANG = detectLang();
+
+  // Bước 5: hỏi máy chủ (lenamiu-pk, Cloudflare biết nước theo IP; không lưu IP). Trang vừa mở (dưới 4 giây)
+  // mà nước đó dùng thứ tiếng khác thì tải lại trang một lần cho đúng tiếng; chậm hơn thì để lần sau dùng.
+  if (askIp) {
+    const api = String(SITE.statsApi || (SITE.donate || {}).pkApi || '').trim().replace(/\/+$/, '');
+    const t0 = Date.now();
+    if (api && window.fetch && /^https?:$/.test(location.protocol)) {
+      fetch(api + '/geo', { cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          const c = String((d && d.country) || '').toUpperCase();
+          if (!/^[A-Z]{2}$/.test(c)) return;
+          const want = CODES.includes(COUNTRY_LANG[c]) ? COUNTRY_LANG[c] : CODES.includes('en') ? 'en' : LANG;
+          const rec = JSON.stringify({ lang: want, at: Date.now() });
+          store(IP_KEY, rec);
+          // chỉ tải lại khi đã lưu được (trình duyệt chặn lưu thì tải lại mãi), người xem chưa tự chọn tiếng
+          if (want !== LANG && store(IP_KEY) === rec && !store(LANG_KEY) && Date.now() - t0 < 4000) location.reload();
+        })
+        .catch(() => { /* không hỏi được thì giữ tiếng Anh */ });
+    }
+  }
+  const LOC = (LANGS.find((l) => l.code === LANG) || LANGS[0] || { locale: 'vi-VN' }).locale;
+  const HTML_LANG = LANG === 'zh' ? 'zh-Hans' : LANG;
+  // Chữ giao diện: thứ tiếng đang chọn → tiếng Anh → tiếng Việt. {biến} được thay bằng giá trị trong vars.
+  function t(key, vars) {
+    const dict = [I18N[LANG], I18N.en, I18N.vi].find((d) => d && Object.prototype.hasOwnProperty.call(d, key));
+    let s = dict ? String(dict[key]) : key;
+    if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (Object.prototype.hasOwnProperty.call(vars, k) ? String(vars[k]) : m));
+    return s;
+  }
+  // Ô dịch trong videos.js (vd title_en, note_th, button_zh): có thì dùng, không thì dùng bản tiếng Việt
+  function tr(obj, field) {
+    if (!obj) return '';
+    if (LANG !== 'vi') {
+      const v = obj[field + '_' + LANG];
+      if (v != null && v !== false && String(v).trim() !== '') return v;
+    }
+    return obj[field];
+  }
+  // Chữ cố định trong trang: data-i18n="khoá" (thay chữ), data-i18n-attr="placeholder:khoá,aria-label:khoá"
+  function applyI18n(root) {
+    const scope = root || document;
+    scope.querySelectorAll('[data-i18n]').forEach((n) => { n.textContent = t(n.getAttribute('data-i18n')); });
+    scope.querySelectorAll('[data-i18n-attr]').forEach((n) => {
+      n.getAttribute('data-i18n-attr').split(',').forEach((pair) => {
+        const [attr, key] = pair.split(':').map((x) => x.trim());
+        if (attr && key) n.setAttribute(attr, t(key));
+      });
+    });
+  }
+  // Trang Fanfic: truyện viết bằng tiếng Việt nên giữ lang="vi" cho cả trang, chỉ đầu trang theo ngôn ngữ đã chọn
+  if (PAGE !== 'fanfic') document.documentElement.lang = HTML_LANG;
+  const curLang = LANGS.find((l) => l.code === LANG) || { short: LANG.toUpperCase() };
 
   /* ================= đầu trang + dải chữ chạy ================= */
   const topHtml =
     '<a class="ticker" id="ticker" href="' + ROOT + '#lumi" hidden>' +
       '<span class="ticker-track" aria-hidden="true"><span class="ticker-item" id="tickerA"></span>' +
       '<span class="ticker-item" id="tickerB"></span></span></a>' +
-    '<header class="top wrap" id="siteTop">' +
+    '<header class="top wrap" id="siteTop" lang="' + esc(HTML_LANG) + '">' +
       '<a class="brand" href="' + ROOT + '"><img src="' + ROOT + 'favicon.svg" alt="" width="32" height="32">' +
-        '<span>LenaMiu <b>Vietsub</b></span></a>' +
+        '<span>LenaMiu <b>Sub</b></span></a>' +
       '<p class="tagline" id="tagline"></p>' +
-      '<nav class="top-nav" aria-label="Mục chính">' +
-        '<a class="top-link" href="' + ROOT + '" data-page="video">🎬 Video</a>' +
-        '<a class="top-link" href="' + ROOT + 'fanfic/" data-page="fanfic">📖 Fanfic</a>' +
+      '<nav class="top-nav" aria-label="' + esc(t('nav.aria')) + '">' +
+        '<a class="top-link" href="' + ROOT + '" data-page="video">' + esc(t('nav.video')) + '</a>' +
+        '<a class="top-link" href="' + ROOT + 'fanfic/" data-page="fanfic">' + esc(t('nav.fanfic')) + '</a>' +
         '<button type="button" class="donate-btn" id="donateBtn" hidden><span class="btn-long"></span><span class="btn-short"></span></button>' +
       '</nav>' +
+      // nút đổi ngôn ngữ: link thật (?lang=...) để không có JavaScript vẫn bấm được
+      '<details class="lang" id="langMenu"><summary aria-label="' + esc(t('lang.aria')) + '">' +
+        '<span aria-hidden="true">🌐</span><span class="lang-cur">' + esc(curLang.short) + '</span></summary>' +
+        '<ul class="lang-list">' + LANGS.map((l) => '<li><a href="?lang=' + l.code + '" lang="' + l.code + '" hreflang="' + l.code + '"' +
+          ' data-lang="' + l.code + '"' + (l.code === LANG ? ' aria-current="true"' : '') + '>' + esc(l.name) + '</a></li>').join('') +
+        '</ul></details>' +
       '<div class="top-extra" id="topExtra"></div>' +
-    '</header>';
+    '</header>' +
+    (PAGE === 'fanfic' && t('fanfic.note') ? '<p class="lang-note wrap" lang="' + esc(HTML_LANG) + '">' + esc(t('fanfic.note')) + '</p>' : '');
   if (me && me.parentNode && document.readyState === 'loading') me.insertAdjacentHTML('beforebegin', topHtml);
   else document.body.insertAdjacentHTML('afterbegin', topHtml);
-  $('tagline').textContent = SITE.tagline || '';
-  $('tagline').hidden = !SITE.tagline;
+  // Trang X của người làm sub (site.socials trong videos.js): { name, x, handle }
+  const SOCIALS = (Array.isArray(SITE.socials) ? SITE.socials : [])
+    .filter((p) => p && String(p.name || '').trim() && /^https:\/\/(x|twitter)\.com\/[A-Za-z0-9_]{1,30}\/?$/i.test(String(p.x || '').trim()))
+    .map((p) => ({ name: String(p.name).trim(), x: String(p.x).trim(), handle: String(p.x).trim().replace(/\/$/, '').split('/').pop() }));
+  const socialLink = (p, text) => {
+    const a = el('a', 'social', text);
+    a.href = p.x;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.title = 'X @' + p.handle;
+    return a;
+  };
+  // Dòng ghi công: tên người làm sub có trang X thì thành link (giữ nguyên chữ của từng thứ tiếng)
+  const tagline = tr(SITE, 'tagline') || '';
+  let rest = tagline;
+  while (rest) {
+    let best = null;
+    for (const p of SOCIALS) {
+      const i = rest.indexOf(p.name);
+      if (i >= 0 && (!best || i < best.i)) best = { i, p };
+    }
+    if (!best) { $('tagline').append(rest); break; }
+    $('tagline').append(rest.slice(0, best.i), socialLink(best.p, best.p.name));
+    rest = rest.slice(best.i + best.p.name.length);
+  }
+  $('tagline').hidden = !tagline;
   document.querySelectorAll('#siteTop .top-link').forEach((a) => {
     if (a.dataset.page === PAGE) a.setAttribute('aria-current', 'page');
   });
 
+  // Đổi ngôn ngữ: lưu lựa chọn rồi tải lại trang (giữ nguyên video / chương đang xem trong phần # của link)
+  $('langMenu').addEventListener('click', (e) => {
+    const a = e.target.closest('a[data-lang]');
+    if (!a) return;
+    e.preventDefault();
+    const code = a.dataset.lang;
+    store(LANG_KEY, code);
+    if (code === LANG) { $('langMenu').open = false; return; }
+    const u = new URL(location.href);
+    u.searchParams.set('lang', code);
+    location.assign(u.href);
+  });
+  document.addEventListener('click', (e) => { if ($('langMenu').open && !$('langMenu').contains(e.target)) $('langMenu').open = false; });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('langMenu').open) { $('langMenu').open = false; $('langMenu').querySelector('summary').focus(); } });
+
   /* ================= hộp "Mua sữa tã cho Lumi" ================= */
   document.body.insertAdjacentHTML('beforeend',
-    '<dialog class="sheet lm-dd" id="donateDialog" aria-labelledby="dTitle">' +
+    '<dialog class="sheet lm-dd" id="donateDialog" aria-labelledby="dTitle" lang="' + esc(HTML_LANG) + '">' +
     '<form method="dialog" class="sheet-in">' +
-      '<div class="sheet-head"><h2 id="dTitle"></h2><button class="icon-btn" value="close" aria-label="Đóng">✕</button></div>' +
+      '<div class="sheet-head"><h2 id="dTitle"></h2><button class="icon-btn" value="close" aria-label="' + esc(t('close')) + '">✕</button></div>' +
       '<p class="sheet-sub" id="dText"></p>' +
-      '<section class="pk" id="pk" aria-label="PK LenaMiu và MiuLena" hidden>' +
+      '<section class="pk" id="pk" aria-label="' + esc(t('d.pkAria')) + '" hidden>' +
         '<div class="pk-score">' +
           '<span class="pk-side a" id="pkSideA"><b><span class="crown" aria-hidden="true">👑</span>LenaMiu</b><span class="pk-pct" id="pkA">50%</span></span>' +
           '<span class="pk-vs" aria-hidden="true">VS</span>' +
           '<span class="pk-side b" id="pkSideB"><b>MiuLena<span class="crown" aria-hidden="true">👑</span></b><span class="pk-pct" id="pkB">50%</span></span>' +
         '</div>' +
-        '<div class="pk-bar" id="pkBar" role="img" aria-label="Hai phe đang hoà">' +
+        '<div class="pk-bar" id="pkBar" role="img" aria-label="' + esc(t('pk.tie')) + '">' +
           '<div class="pk-track"><span class="pk-fill a" id="pkFill"></span><span class="pk-fill b"></span></div>' +
           '<span class="pk-spark" id="pkSpark" aria-hidden="true">⚡</span>' +
         '</div>' +
         '<p class="pk-news" id="pkNews" aria-live="polite"></p>' +
       '</section>' +
+      // chọn phe: dùng chung cho mã QR và nút PayPal
       '<div id="teamBox" hidden>' +
-        '<p class="teams-label" id="teamsLabel">Bạn đứng phe nào?</p>' +
+        '<p class="teams-label" id="teamsLabel"><span class="step-no" aria-hidden="true">1</span>' + esc(t('d.teams')) + '</p>' +
         '<div class="teams" role="group" aria-labelledby="teamsLabel">' +
           '<button type="button" class="team a" data-team="LenaMiu" aria-pressed="false">LenaMiu</button>' +
           '<button type="button" class="team b" data-team="MiuLena" aria-pressed="false">MiuLena</button>' +
         '</div>' +
       '</div>' +
-      '<figure class="qr" id="dQrBox"><img id="dQr" alt="Mã QR chuyển khoản"></figure>' +
-      '<p class="memo" id="dMemoRow" hidden>Nội dung chuyển khoản: <b id="dMemo"></b>' +
-        '<button type="button" class="memo-copy" id="dMemoCopy">Chép</button></p>' +
-      '<dl class="acct" id="dAcct"></dl>' +
-      '<p class="qr-tip">Đang xem trên điện thoại? Bấm “Lưu ảnh QR” (hoặc nhấn giữ ảnh → Lưu), ' +
-        'rồi mở app ngân hàng / MoMo → Quét mã → chọn ảnh vừa lưu.</p>' +
-      '<p class="qr-tip" id="pkTip" hidden>Chuyển khoản xong, thanh PK tự cập nhật sau vài giây. ' +
-        'Nhớ giữ nguyên nội dung <b>LenaMiu</b> hoặc <b>MiuLena</b> khi chuyển để được tính nha.</p>' +
-      '<div class="sheet-actions">' +
-        '<button type="button" class="ghost" id="dCopy" hidden>Chép số tài khoản</button>' +
-        '<a class="primary" id="dSave" download>Lưu ảnh QR</a>' +
+      // người xem tiếng nước ngoài: nút PayPal (site.donate.paypalClientId) hoặc link Ko-fi (intlUrl) thay cho mã QR
+      '<div class="intl" id="intlBox" hidden>' +
+        '<p class="intl-text" id="intlText"></p>' +
+        '<div class="pp" id="ppBox" hidden>' +
+          '<p class="pp-label" id="ppAmtLabel"><span class="step-no" aria-hidden="true">2</span>' + esc(t('d.ppAmount')) + '</p>' +
+          '<div class="pp-amounts" id="ppAmounts" role="group" aria-labelledby="ppAmtLabel"></div>' +
+          '<input class="pp-other" id="ppOther" type="number" min="1" max="500" step="1" inputmode="decimal" hidden' +
+            ' aria-label="' + esc(t('d.ppOtherAria')) + '" placeholder="' + esc(t('d.ppOtherAria')) + '">' +
+          '<p class="pp-msg" id="ppMsg" aria-live="polite"></p>' +
+          '<div class="pp-buttons" id="ppButtons"></div>' +
+        '</div>' +
+        '<a class="primary intl-go" id="intlGo" target="_blank" rel="noopener"></a>' +
+        '<button type="button" class="intl-qr" id="intlQr">' + esc(t('d.showQr')) + '</button>' +
+      '</div>' +
+      '<div id="qrPart">' +
+        (t('d.vnOnly') ? '<p class="qr-tip vn-only">' + esc(t('d.vnOnly')) + '</p>' : '') +
+        '<figure class="qr" id="dQrBox"><img id="dQr" alt="' + esc(t('d.qrAlt')) + '"></figure>' +
+        '<p class="memo" id="dMemoRow" hidden>' + esc(t('d.memo')) + ' <b id="dMemo"></b>' +
+          '<button type="button" class="memo-copy" id="dMemoCopy">' + esc(t('d.copy')) + '</button></p>' +
+        '<dl class="acct" id="dAcct"></dl>' +
+        '<p class="qr-tip">' + esc(t('d.qrTip')) + '</p>' +
+        '<p class="qr-tip" id="pkTip" hidden>' + esc(t('d.pkTip')) + '</p>' +
+        '<div class="sheet-actions">' +
+          '<button type="button" class="ghost" id="dCopy" hidden>' + esc(t('d.copyAcct')) + '</button>' +
+          '<a class="primary" id="dSave" download>' + esc(t('d.saveQr')) + '</a>' +
+        '</div>' +
       '</div>' +
     '</form></dialog>');
 
@@ -120,7 +281,30 @@
     kienlongbank: '970452', bvbank: '970454', timo: '970454', cake: '546034', ubank: '546035'
   };
   const BANK_BIN_OF = String(DONATE.bankBin || BANK_BIN[norm(DONATE.bank).replace(/[^a-z]/g, '')] || '');
-  const PK_API = String(DONATE.pkApi || '').trim().replace(/\/+$/, '');
+  // Mở trang trong máy (localhost) mà có site.donate.paypalSandbox: dùng PayPal thử (tiền giả) + máy chủ PK trong máy.
+  // Trang thật (lenamiu.xyz) không bao giờ vào nhánh này.
+  const PP_SANDBOX = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && DONATE.paypalSandbox &&
+    DONATE.paypalSandbox.clientId ? DONATE.paypalSandbox : null;
+  const PK_API = String((PP_SANDBOX && PP_SANDBOX.pkApi) || DONATE.pkApi || '').trim().replace(/\/+$/, '');
+  // Nút PayPal cho người ở nước ngoài (chỉ khi xem bằng tiếng nước ngoài): tiền vào được cộng vào phe trên thanh PK
+  // (máy chủ PK tạo đơn + thu tiền, xem worker/src/index.js). Có nút PayPal thì không dùng link intlUrl.
+  const PP_CLIENT = LANG !== 'vi' && PK_API ? String((PP_SANDBOX && PP_SANDBOX.clientId) || DONATE.paypalClientId || '').trim() : '';
+  const PP_AMOUNTS = (Array.isArray(DONATE.paypalAmounts) ? DONATE.paypalAmounts : [3, 5, 10, 20])
+    .map(Number).filter((n) => n >= 1 && n <= 500);
+  const PP_LOCALE = { en: 'en_US', th: 'th_TH', zh: 'zh_CN', id: 'id_ID' }[LANG] || 'en_US';
+  // Link ủng hộ cho người ở nước ngoài (Ko-fi...): chỉ dùng khi đang xem bằng tiếng nước ngoài và chưa có nút PayPal
+  const INTL_URL = (() => {
+    const u = String(DONATE.intlUrl || '').trim();
+    return LANG !== 'vi' && !PP_CLIENT && /^https:\/\/[^\s"<>]+$/i.test(u) ? u : '';
+  })();
+  const INTL_ON = !!(PP_CLIENT || INTL_URL);
+  const INTL_SITE = (() => {
+    if (!INTL_URL) return '';
+    let host = '';
+    try { host = new URL(INTL_URL).hostname.replace(/^www\./, ''); } catch (e) { return 'link'; }
+    return /ko-fi\.com$/.test(host) ? 'Ko-fi' : /paypal\.(me|com)$/.test(host) ? 'PayPal'
+      : /buymeacoffee\.com$/.test(host) ? 'Buy Me a Coffee' : /patreon\.com$/.test(host) ? 'Patreon' : host;
+  })();
   // Ảnh QR làm sẵn cho từng phe (vd tạo trên SePay), dạng { LenaMiu: 'qr-lenamiu.png', MiuLena: '...' }
   const TEAM_QR = {};
   if (DONATE.teamQr && typeof DONATE.teamQr === 'object') TEAMS.forEach((t) => { TEAM_QR[t] = abs(DONATE.teamQr[t]); });
@@ -204,7 +388,8 @@
     return cv.toDataURL('image/png');
   }
 
-  const label = String(DONATE.button || '').trim() || 'Ủng hộ';
+  const label = String(tr(DONATE, 'button') || '').trim() || 'Ủng hộ';
+  const fmtPct = (p) => p.toLocaleString(LOC, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
 
   // Link mở hộp donate ở chỗ khác trong trang (vd chân trang): <a data-donate>, bọc trong [data-donate-wrap]
   function wireDonateLinks() {
@@ -223,13 +408,34 @@
     if (!qr && !AUTO_QR) return;
     const dd = $('donateDialog');
     $('donateBtn').querySelector('.btn-long').textContent = label;
-    $('donateBtn').querySelector('.btn-short').textContent = String(DONATE.buttonShort || '').trim() || label;
+    $('donateBtn').querySelector('.btn-short').textContent = String(tr(DONATE, 'buttonShort') || '').trim() || label;
     $('donateBtn').setAttribute('aria-label', label);
-    $('dTitle').textContent = String(DONATE.title || '').trim() || label;
-    $('dText').textContent = DONATE.text;
-    $('dText').hidden = !DONATE.text;
+    $('dTitle').textContent = String(tr(DONATE, 'title') || '').trim() || label;
+    const dText = tr(DONATE, 'text') || '';
+    $('dText').textContent = dText;
+    $('dText').hidden = !dText;
 
-    const rows = [['Ngân hàng', DONATE.bank], ['Số tài khoản', DONATE.account], ['Chủ tài khoản', DONATE.name]]
+    // Đang xem bằng tiếng nước ngoài và có nút PayPal / link Ko-fi: hiện cái đó trước, mã QR ẩn sau một nút bấm
+    if (INTL_ON) {
+      $('intlBox').hidden = false;
+      if (PP_CLIENT) {
+        $('intlText').textContent = t('d.ppText');
+        $('ppBox').hidden = false;
+        $('intlGo').hidden = true;
+      } else {
+        $('intlText').textContent = t('d.intlText', { site: INTL_SITE });
+        $('intlGo').href = INTL_URL;
+        $('intlGo').textContent = t('d.intlBtn', { site: INTL_SITE });
+      }
+      $('qrPart').hidden = true;
+      $('intlQr').addEventListener('click', () => {
+        $('qrPart').hidden = false;
+        $('intlQr').hidden = true;
+        if (AUTO_QR) { $('teamBox').hidden = false; preloadTeamQr(); renderQr(); }
+      });
+    }
+
+    const rows = [[t('d.bank'), DONATE.bank], [t('d.account'), DONATE.account], [t('d.holder'), DONATE.name]]
       .filter((r) => String(r[1] || '').trim());
     rows.forEach(([k, v]) => $('dAcct').append(el('dt', '', k), el('dd', '', v)));
     $('dAcct').hidden = !rows.length;
@@ -250,15 +456,20 @@
     let pkFast = false;       // hộp donate đang mở → hỏi máy chủ PK nhanh hơn
     let lastPk = null;        // số liệu PK mới nhất
     let tickerText = '';
+    let ppAmt = PP_AMOUNTS.includes(5) ? 5 : PP_AMOUNTS[0] || 5;   // số tiền PayPal đang chọn (USD); 0 = đang gõ số khác
+    let ppRendered = false;   // đã vẽ nút PayPal chưa
+    let ppLib = null;         // đang tải thư viện PayPal
 
     openDonate = () => {
       if (typeof dd.showModal === 'function') { if (!dd.open) dd.showModal(); }
       else window.open(HAS_TEAM_QR ? TEAM_QR[team || TEAMS[0]] : qr, '_blank', 'noopener');
       if (AUTO_QR) { preloadTeamQr(); renderQr(); pkStart(); }
+      if (PP_CLIENT) renderPaypal();
     };
     dd.addEventListener('close', pkStop);
 
     if (AUTO_QR) setupTeams();
+    if (PP_CLIENT) setupPaypal();
     else {
       // Ảnh QR cố định: ảnh tải được thì mới hiện nút
       const save = abs(DONATE.save) || qr;
@@ -276,8 +487,99 @@
       TEAMS.forEach((t) => { new Image().src = TEAM_QR[t]; });
     }
 
+    /* --- nút PayPal (người xem tiếng nước ngoài): chọn phe + số tiền → PayPal → máy chủ PK cộng vào phe --- */
+    function ppSay(msg, kind) {
+      $('ppMsg').textContent = msg || '';
+      $('ppMsg').className = 'pp-msg' + (kind ? ' ' + kind : '');
+    }
+    function ppAmount() {
+      const v = ppAmt || Math.round(Number($('ppOther').value) * 100) / 100;
+      return v >= 1 && v <= 500 ? v : 0;
+    }
+    function setupPaypal() {
+      const box = $('ppAmounts');
+      const paint = () => box.querySelectorAll('.pp-amt').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.v) === ppAmt)));
+      PP_AMOUNTS.forEach((n) => {
+        const b = el('button', 'pp-amt', '$' + n);
+        b.type = 'button';
+        b.dataset.v = String(n);
+        box.append(b);
+      });
+      const other = el('button', 'pp-amt', t('d.ppOther'));
+      other.type = 'button';
+      other.dataset.v = '0';
+      box.append(other);
+      box.addEventListener('click', (e) => {
+        const b = e.target.closest('.pp-amt');
+        if (!b) return;
+        ppAmt = Number(b.dataset.v);
+        $('ppOther').hidden = ppAmt !== 0;
+        if (!ppAmt) $('ppOther').focus();
+        paint();
+        ppSay('');
+      });
+      paint();
+    }
+    function loadPaypal() {
+      if (window.paypal && window.paypal.Buttons) return Promise.resolve(window.paypal);
+      if (!ppLib) {
+        ppLib = new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://www.paypal.com/sdk/js?client-id=' + encodeURIComponent(PP_CLIENT) +
+            '&currency=USD&intent=capture&components=buttons&locale=' + PP_LOCALE;
+          s.onload = () => (window.paypal && window.paypal.Buttons ? resolve(window.paypal) : reject(new Error('paypal')));
+          s.onerror = () => { ppLib = null; reject(new Error('paypal')); };
+          document.head.append(s);
+        });
+      }
+      return ppLib;
+    }
+    const ppPost = (path, body) => fetch(PK_API + path, { method: 'POST', body: JSON.stringify(body) })
+      .then((r) => r.json().catch(() => ({})));
+    // Nút PayPal chỉ tải khi mở hộp donate lần đầu (thư viện PayPal khá nặng)
+    function renderPaypal() {
+      if (ppRendered) return;
+      ppRendered = true;
+      ppSay(t('d.ppLoad'));
+      loadPaypal().then((pp) => {
+        ppSay('');
+        return pp.Buttons({
+          style: { layout: 'vertical', shape: 'pill', color: 'gold', label: 'paypal', height: 45 },
+          onClick: (data, actions) => {
+            if (!team) {
+              // chưa chọn phe: nhắc ngay trên nút, ô chọn phe rung nhẹ + cuộn tới cho dễ thấy
+              ppSay(t('d.ppPick'), 'bad');
+              const tb = $('teamBox');
+              tb.classList.remove('need');
+              void tb.offsetWidth;
+              tb.classList.add('need');
+              tb.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+              return actions.reject();
+            }
+            if (!ppAmount()) { ppSay(t('d.ppMin'), 'bad'); return actions.reject(); }
+            ppSay('');
+            return actions.resolve();
+          },
+          // máy chủ PK tạo đơn và tự ghi phe vào đơn
+          createOrder: () => ppPost('/paypal/order', { team, amount: ppAmount() }).then((d) => {
+            if (!d.id) throw new Error('order');
+            return d.id;
+          }),
+          // người xem bấm trả xong → máy chủ thu tiền, cộng vào phe → thanh PK + tung hoa cập nhật ngay
+          onApprove: (data) => ppPost('/paypal/capture', { order: data.orderID }).then((d) => {
+            if (!d.ok) throw new Error('capture');
+            ppSay(t('d.ppThanks', { team: d.team || team }), 'good');
+            pkSchedule(0);
+          }),
+          onCancel: () => ppSay(''),
+          onError: () => ppSay(t('d.ppFail'), 'bad')
+        }).render('#ppButtons');
+      }).catch(() => { ppRendered = false; ppSay(t('d.ppLoadFail'), 'bad'); });
+    }
+
     function setupTeams() {
-      $('teamBox').hidden = false;
+      // có link Ko-fi (không dùng phe): ô chọn phe ẩn tới khi người xem bấm hiện mã QR
+      $('teamBox').hidden = !!INTL_URL;
       $('pk').hidden = !PK_API;
       $('pkTip').hidden = !PK_API;
       team = TEAMS.includes(store(TEAM_KEY)) ? store(TEAM_KEY) : '';   // nhớ phe đã chọn lần trước
@@ -286,12 +588,14 @@
         if (!b) return;
         team = b.dataset.team;
         store(TEAM_KEY, team);
+        $('teamBox').classList.remove('need');
+        if (PP_CLIENT && $('ppMsg').classList.contains('bad')) ppSay('');   // đã chọn phe: bỏ lời nhắc
         renderQr();
       });
       $('dMemoCopy').addEventListener('click', async () => {
-        try { await navigator.clipboard.writeText(team); } catch (e) { window.prompt('Chép nội dung này nha:', team); return; }
-        $('dMemoCopy').textContent = 'Đã chép ✓';
-        setTimeout(() => { $('dMemoCopy').textContent = 'Chép'; }, 2000);
+        try { await navigator.clipboard.writeText(team); } catch (e) { window.prompt(t('d.copyPrompt'), team); return; }
+        $('dMemoCopy').textContent = t('d.copied');
+        setTimeout(() => { $('dMemoCopy').textContent = t('d.copy'); }, 2000);
       });
       $('ticker').addEventListener('click', (e) => { e.preventDefault(); openDonate(); });
       showButtons();
@@ -300,20 +604,21 @@
 
     function renderQr() {
       $('teamBox').querySelectorAll('.team').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.team === team)));
+      $('teamBox').classList.toggle('pick', !team);       // chưa chọn phe: làm nổi ô chọn phe
       const box = $('dQrBox');
       $('dMemoRow').hidden = !team;
       $('dSave').hidden = !team;
       if (!team) {
-        box.replaceChildren(el('div', 'qr-wait', 'Chọn phe LenaMiu hoặc MiuLena để hiện mã QR nha'));
+        box.replaceChildren(el('div', 'qr-wait', t('d.pickTeam')));
         return;
       }
       $('dMemo').textContent = team;
       if (HAS_TEAM_QR) {
         const src = TEAM_QR[team];
         const img = el('img');
-        img.alt = 'Mã QR chuyển khoản, nội dung ' + team;
+        img.alt = t('d.qrAltTeam', { team });
         img.addEventListener('error', () => {
-          box.replaceChildren(el('div', 'qr-wait', 'Chưa tải được ảnh mã QR, bạn thử mở lại sau chút nha.'));
+          box.replaceChildren(el('div', 'qr-wait', t('d.qrFail')));
         }, { once: true });
         img.src = src;
         box.replaceChildren(img);
@@ -327,20 +632,18 @@
         const account = String(DONATE.account).replace(/\s+/g, '');
         const m = qrMatrix(lib, vietqr(BANK_BIN_OF, account, team));
         const svg = qrSvg(m);
-        svg.setAttribute('aria-label', 'Mã QR chuyển khoản, nội dung ' + team);
+        svg.setAttribute('aria-label', t('d.qrAltTeam', { team }));
         box.replaceChildren(svg);
-        $('dSave').href = qrPng(m, ['Nội dung: ' + team, [DONATE.bank, account].filter(Boolean).join(' · '),
+        $('dSave').href = qrPng(m, [t('d.memoLine', { team }), [DONATE.bank, account].filter(Boolean).join(' · '),
                                     String(DONATE.name || '')].filter(Boolean));
         $('dSave').setAttribute('download', 'ma-qr-' + team + '.png');
       }).catch(() => {
-        box.replaceChildren(el('div', 'qr-wait',
-          'Chưa tải được mã QR. Bạn chuyển khoản theo số tài khoản bên dưới, nội dung ghi ' + team + ' nha.'));
+        box.replaceChildren(el('div', 'qr-wait', t('d.qrLibFail', { team })));
         $('dSave').hidden = true;
       });
     }
 
     /* --- thanh PK: chỉ hiện %, không hiện số tiền (máy chủ cũng chỉ trả về %) --- */
-    const fmtPct = (p) => p.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
     let shownPct = 50;        // % phe LenaMiu đang hiện trên màn hình
     let pctRaf = 0;
     let hitTimer = 0;
@@ -444,14 +747,14 @@
       countTo(pa);
       $('pkSideA').classList.toggle('lead', started && pa > pb);
       $('pkSideB').classList.toggle('lead', started && pb > pa);
-      $('pkBar').setAttribute('aria-label', pa === pb ? 'Hai phe đang hoà, mỗi bên 50%'
+      $('pkBar').setAttribute('aria-label', pa === pb ? t('pk.tie')
         : 'LenaMiu ' + fmtPct(pa) + ', MiuLena ' + fmtPct(pb));
 
       const recent = Array.isArray(d && d.recent) ? d.recent : [];
       if (fresh.length) {
         const x = fresh[0];
         $('pkNews').setAttribute('aria-live', 'polite');   // chỉ đọc to khi có lượt mới
-        $('pkNews').textContent = (x.team === 'LenaMiu' ? '💗' : '💜') + ' Phe ' + x.team + ' vừa được tiếp sức!';
+        $('pkNews').textContent = (x.team === 'LenaMiu' ? '💗 ' : '💜 ') + t('pk.boosted', { team: x.team });
         $('pkNews').classList.add('fresh');
         const pk = $('pk');
         pk.classList.remove('hit', 'hit-a', 'hit-b');
@@ -465,7 +768,7 @@
       } else if (!$('pkNews').classList.contains('fresh')) {
         // Lượt donate gần nhất: phe nào + lúc nào (số nhập tay không tính, máy chủ đã lọc)
         const last = recent[0];
-        const textNow = last ? lastText(last) : !started ? 'Chưa có lượt nào, mở màn đi nào!' : '';
+        const textNow = last ? lastText(last) : !started ? t('pk.none') : '';
         $('pkNews').setAttribute('aria-live', 'off');     // "N phút trước" đổi liên tục, khỏi đọc to mỗi phút
         if ($('pkNews').textContent !== textNow) $('pkNews').textContent = textNow;
       }
@@ -476,18 +779,25 @@
     // fixed = true: luôn ghi giờ cụ thể (dải chữ chạy dùng, để chữ khỏi đổi mỗi phút làm giật)
     function lastText(x, fixed) {
       const icon = x.team === 'LenaMiu' ? '💗 ' : '💜 ';
-      const t = new Date(String(x.at || '').replace(' ', 'T') + '+07:00');
-      if (isNaN(t)) return icon + 'Lần donate gần nhất là cho phe ' + x.team;
+      const team = x.team;
+      const at = new Date(String(x.at || '').replace(' ', 'T') + '+07:00');
+      if (isNaN(at)) return icon + t('last.basic', { team });
       const vn = (d) => new Date(d.getTime() + 7 * 3600e3);
-      const v = vn(t);
+      const v = vn(at);
       const two = (n) => String(n).padStart(2, '0');
-      const hm = two(v.getUTCHours()) + ':' + two(v.getUTCMinutes());
-      const mins = Math.floor((Date.now() - t.getTime()) / 60000);
-      if (!fixed && mins < 1) return icon + 'Phe ' + x.team + ' vừa được donate xong!';
-      if (!fixed && mins < 60) return icon + 'Phe ' + x.team + ' vừa được donate cách đây ' + mins + ' phút';
+      const time = two(v.getUTCHours()) + ':' + two(v.getUTCMinutes());
+      const mins = Math.floor((Date.now() - at.getTime()) / 60000);
+      if (!fixed && mins < 1) return icon + t('last.now', { team });
+      if (!fixed && mins < 60) return icon + t('last.mins', { team, n: mins });
       const today = v.toISOString().slice(0, 10) === vn(new Date()).toISOString().slice(0, 10);
-      return icon + 'Lần donate gần nhất là cho phe ' + x.team + ', lúc ' + hm +
-             (today ? ' hôm nay' : ' ngày ' + two(v.getUTCDate()) + '/' + two(v.getUTCMonth() + 1));
+      if (today) return icon + t('last.today', { team, time });
+      // ngày theo giờ Việt Nam, viết theo kiểu của từng thứ tiếng (vd 08/11 · Nov 8 · 11月8日)
+      let date = two(v.getUTCDate()) + '/' + two(v.getUTCMonth() + 1);
+      if (LANG !== 'vi') {
+        try { date = new Intl.DateTimeFormat(LOC, { timeZone: 'Asia/Ho_Chi_Minh', day: 'numeric', month: 'short' }).format(at); }
+        catch (e) { /* trình duyệt cũ: giữ kiểu 08/11 */ }
+      }
+      return icon + t('last.day', { team, time, date });
     }
 
     /* --- dải chữ chạy ở trên cùng trang: tỉ lệ PK + lượt donate gần nhất + rủ tiếp sức --- */
@@ -497,16 +807,14 @@
       const recent = Array.isArray(d && d.recent) ? d.recent : [];
       const parts = [label + ': LenaMiu ' + fmtPct(pa) + ' ⚡ ' + fmtPct(pb) + ' MiuLena'];
       if (recent[0]) parts.push(lastText(recent[0], true));
-      if (!started) parts.push('Chưa ai mở màn, bạn làm người đầu tiên nha!');
-      else if (Math.abs(pa - pb) < 5) parts.push('🔥 Hai phe đang sát nút, ai sẽ thắng đây?');
+      if (!started) parts.push(t('tk.start'));
+      else if (Math.abs(pa - pb) < 5) parts.push(t('tk.close'));
       else {
         const behind = pa < pb ? 'LenaMiu' : 'MiuLena';
-        const icon = behind === 'LenaMiu' ? '💗' : '💜';
-        parts.push(Math.abs(pa - pb) < 15
-          ? icon + ' Phe ' + behind + ' đang bị dẫn trước, tiếp sức để lật kèo nào!'
-          : icon + ' Phe ' + behind + ' ơi, đang bị bỏ xa rồi, tiếp sức ngay nào!');
+        const icon = behind === 'LenaMiu' ? '💗 ' : '💜 ';
+        parts.push(icon + t(Math.abs(pa - pb) < 15 ? 'tk.behind' : 'tk.far', { team: behind }));
       }
-      parts.push('👉 Bấm vào đây, chọn phe rồi quét mã để tiếp sức nha');
+      parts.push(t(INTL_ON ? 'tk.ctaIntl' : 'tk.cta'));
       const text = parts.join('     ✦     ');
       if (text === tickerText) return;            // chữ không đổi thì để yên, khỏi giật
       tickerText = text;
@@ -519,20 +827,21 @@
     }
 
     /* --- tung bông tung hoa cho phe vừa được donate --- */
-    function celebrate(t) {
+    function celebrate(team) {
       // Hộp donate đang mở (nằm lớp trên cùng) thì vẽ bên trong hộp, không thì vẽ trên cả trang
       const host = dd.open ? dd : document.body;
-      const banner = el('div', 'cele-banner ' + (t === 'LenaMiu' ? 'a' : 'b'),
-                        '🎉 Phe ' + t + ' vừa được tiếp sức! ' + (t === 'LenaMiu' ? '💗' : '💜'));
+      const banner = el('div', 'cele-banner ' + (team === 'LenaMiu' ? 'a' : 'b'),
+                        t('cele', { team }) + ' ' + (team === 'LenaMiu' ? '💗' : '💜'));
       banner.setAttribute('role', 'status');
       host.append(banner);
       setTimeout(() => banner.remove(), 5400);
       const tk = $('ticker');
       tk.classList.remove('flash'); void tk.offsetWidth; tk.classList.add('flash');
-      if (!reduced) confetti(host, t);
+      if (!reduced) confetti(host, team);
     }
 
-    function confetti(host, t) {
+    function confetti(host, team) {
+      const t = team;   // (tên ngắn dùng bên dưới; chỉ là tên phe, không phải hàm dịch)
       const cv = document.createElement('canvas');
       cv.className = 'confetti';
       cv.setAttribute('aria-hidden', 'true');
@@ -609,12 +918,17 @@
       const btn = $('dCopy');
       const acc = String(DONATE.account).replace(/\s+/g, '');
       try { await navigator.clipboard.writeText(acc); }
-      catch (e) { window.prompt('Chép số tài khoản này nha:', acc); return; }
-      btn.textContent = 'Đã chép ✓';
-      setTimeout(() => { btn.textContent = 'Chép số tài khoản'; }, 2000);
+      catch (e) { window.prompt(t('d.copyAcctPrompt'), acc); return; }
+      btn.textContent = t('d.copied');
+      setTimeout(() => { btn.textContent = t('d.copyAcct'); }, 2000);
     });
   })();
 
-  // Cho từng trang dùng: mở hộp donate, nhận ra link #lumi
-  window.LM = { root: ROOT, page: PAGE, openDonate: () => openDonate(), isDonateHash };
+  // Chữ cố định trong trang (data-i18n): trang tự gọi LM.applyI18n() sớm; gọi lại lúc tải xong cho chắc
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => applyI18n());
+  else applyI18n();
+
+  // Cho từng trang dùng: mở hộp donate, nhận ra link #lumi, chữ theo ngôn ngữ
+  window.LM = { root: ROOT, page: PAGE, openDonate: () => openDonate(), isDonateHash,
+                lang: LANG, locale: LOC, langs: LANGS, t, tr, applyI18n, socials: SOCIALS, socialLink };
 })();
