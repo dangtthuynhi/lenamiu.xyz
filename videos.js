@@ -177,6 +177,21 @@ window.VIETSUB = {
 
   videos: [
     {
+      title: 'LenaMiu – Ngày nghỉ của tụi mình: Cave Fantasy và food tour Siam',
+      title_en: 'LenaMiu – Our free day together: Cave Fantasy and a Siam food tour',
+      title_th: 'LenaMiu – วันว่างของเรา: Cave Fantasy และตะลุยกินที่สยาม',
+      title_zh: 'LenaMiu – 我们的休息日：Cave Fantasy 和暹罗美食之旅',
+      title_id: 'LenaMiu – Hari libur kami: Cave Fantasy dan wisata kuliner Siam',
+      id: 'lenamiu-free-day-together',
+      video: 'lenamiu-free-day-together.mp4',
+      subs: { vi: 'lenamiu-free-day-together.vi.vtt', en: 'lenamiu-free-day-together.en.vtt', zh: 'lenamiu-free-day-together.zh.vtt', id: 'lenamiu-free-day-together.id.vtt' },
+      youtube: '',
+      drive: '',
+      group: 'Vlog',
+      date: '2026-11-16',
+      note: ''
+    },
+    {
       title: 'LenaMiu x OomBam x TanYuYu – Đại chiến team Top và team Bot',
       title_en: 'LenaMiu x OomBam x TanYuYu – The intense battle between Team Top and Team Bottom',
       title_th: 'LenaMiu x OomBam x TanYuYu – การแข่งขันสุดเดือดระหว่างทีมเมะและทีมเคะ',
