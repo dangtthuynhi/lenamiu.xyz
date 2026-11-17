@@ -177,6 +177,21 @@ window.VIETSUB = {
 
   videos: [
     {
+      title: 'LenaMiu ở Vũ Hán – Năng lượng tràn đầy, trái tim hạnh phúc',
+      title_en: 'High Energy, Happy Hearts! – LenaMiu in Wuhan',
+      title_th: 'High Energy, Happy Hearts! – ขอบคุณที่มาเป็นความสุขให้กันนะคะ',
+      title_zh: 'High Energy, Happy Hearts! – LenaMiu 的武汉之旅',
+      title_id: 'High Energy, Happy Hearts! – LenaMiu di Wuhan',
+      id: 'lenamiu-high-energy-happy-hearts',
+      video: 'lenamiu-high-energy-happy-hearts.mp4',
+      subs: { vi: 'lenamiu-high-energy-happy-hearts.vi.vtt', en: 'lenamiu-high-energy-happy-hearts.en.vtt', th: 'lenamiu-high-energy-happy-hearts.th.vtt', zh: 'lenamiu-high-energy-happy-hearts.zh.vtt', id: 'lenamiu-high-energy-happy-hearts.id.vtt' },
+      youtube: '',
+      drive: '',
+      group: 'Vlog',
+      date: '2026-11-17',
+      note: ''
+    },
+    {
       title: 'LenaMiu – Ngày nghỉ của tụi mình: Cave Fantasy và food tour Siam',
       title_en: 'LenaMiu – Our free day together: Cave Fantasy and a Siam food tour',
       title_th: 'LenaMiu – วันว่างของเรา: Cave Fantasy และตะลุยกินที่สยาม',
