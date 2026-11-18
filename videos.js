@@ -41,11 +41,11 @@ window.VIETSUB = {
 
   site: {
     title: 'LenaMiu Sub',
-    tagline: 'Sub bởi dangtthuynhi & Kem Dâu Ngọt',
-    tagline_en: 'Subs by dangtthuynhi & Kem Dâu Ngọt',
-    tagline_th: 'ซับโดย dangtthuynhi & Kem Dâu Ngọt',
-    tagline_zh: '字幕：dangtthuynhi & Kem Dâu Ngọt',
-    tagline_id: 'Subtitle oleh dangtthuynhi & Kem Dâu Ngọt',
+    tagline: 'Sub bởi Dev Không Lương Của LenaMiu & Kem Dâu Ngọt',
+    tagline_en: 'Subs by Dev Không Lương Của LenaMiu & Kem Dâu Ngọt',
+    tagline_th: 'ซับโดย Dev Không Lương Của LenaMiu & Kem Dâu Ngọt',
+    tagline_zh: '字幕：Dev Không Lương Của LenaMiu & Kem Dâu Ngọt',
+    tagline_id: 'Subtitle oleh Dev Không Lương Của LenaMiu & Kem Dâu Ngọt',
     footer: 'Sub phi lợi nhuận, làm vì thương LenaMiu. Video thuộc về chủ sở hữu gốc.',
     footer_en: 'Non-profit fansubs, made with love for LenaMiu. All videos belong to their original owners.',
     footer_th: 'ซับไตเติลแบบไม่แสวงหากำไร ทำด้วยความรักต่อ LenaMiu วิดีโอทั้งหมดเป็นของเจ้าของต้นฉบับ',
@@ -55,7 +55,7 @@ window.VIETSUB = {
     // Trang X của người làm sub: tên nào có trong dòng ghi công (tagline) ở đầu trang thì tự thành link,
     // và hiện thêm ở chân trang video (cạnh link YouTube). name phải viết giống hệt trong tagline.
     socials: [
-      { name: 'dangtthuynhi', x: 'https://x.com/dangtthuynhi' },
+      { name: 'Dev Không Lương Của LenaMiu', x: 'https://x.com/lenamiuxyz' },
       { name: 'Kem Dâu Ngọt', x: 'https://x.com/kemdaungot02' }
     ],
 
