@@ -177,6 +177,21 @@ window.VIETSUB = {
 
   videos: [
     {
+      title: 'PLS Love Reaction EP.4 – Lena & Miu xem lại tập 4',
+      title_en: 'PLS Love Reaction EP.4 – Lena & Miu rewatch Episode 4',
+      title_th: 'Reaction EP.4 | PLS Love รักได้ไหม – ลีน่า หมิว ดูตอนที่ 4 ด้วยกัน',
+      title_zh: 'PLS Love Reaction EP.4 – Lena 和 Miu 一起回看第4集',
+      title_id: 'PLS Love Reaction EP.4 – Lena & Miu nonton ulang Episode 4',
+      id: 'pls-love-reaction-ep-4',
+      video: 'pls-love-reaction-ep-4.mp4',
+      subs: { vi: 'pls-love-reaction-ep-4.vi.vtt', en: 'pls-love-reaction-ep-4.en.vtt', zh: 'pls-love-reaction-ep-4.zh.vtt', id: 'pls-love-reaction-ep-4.id.vtt' },
+      youtube: '',
+      drive: '',
+      group: 'Pls Love',
+      date: '2026-11-19',
+      note: ''
+    },
+    {
       title: 'LenaMiu ở Vũ Hán – Năng lượng tràn đầy, trái tim hạnh phúc',
       title_en: 'High Energy, Happy Hearts! – LenaMiu in Wuhan',
       title_th: 'High Energy, Happy Hearts! – ขอบคุณที่มาเป็นความสุขให้กันนะคะ',
