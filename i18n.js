@@ -120,6 +120,8 @@ window.LM_I18N = {
     'v.subsLabel': '💬 Phụ đề:',
     'v.subsOff': 'Tắt',
     'v.subsAria': 'Chọn thứ tiếng phụ đề',
+    'v.fs': 'Toàn màn hình',
+    'v.fsExit': 'Thoát toàn màn hình',
 
     'nf.doc': 'Không tìm thấy trang',
     'nf.title': 'Không tìm thấy trang này',
@@ -231,6 +233,8 @@ window.LM_I18N = {
     'v.subsLabel': '💬 Subtitles:',
     'v.subsOff': 'Off',
     'v.subsAria': 'Choose subtitle language',
+    'v.fs': 'Full screen',
+    'v.fsExit': 'Exit full screen',
 
     'nf.doc': 'Page not found',
     'nf.title': 'Page not found',
@@ -342,6 +346,8 @@ window.LM_I18N = {
     'v.subsLabel': '💬 ซับไตเติล:',
     'v.subsOff': 'ปิด',
     'v.subsAria': 'เลือกภาษาซับไตเติล',
+    'v.fs': 'เต็มหน้าจอ',
+    'v.fsExit': 'ออกจากโหมดเต็มหน้าจอ',
 
     'nf.doc': 'ไม่พบหน้านี้',
     'nf.title': 'ไม่พบหน้านี้',
@@ -453,6 +459,8 @@ window.LM_I18N = {
     'v.subsLabel': '💬 字幕：',
     'v.subsOff': '关闭',
     'v.subsAria': '选择字幕语言',
+    'v.fs': '全屏',
+    'v.fsExit': '退出全屏',
 
     'nf.doc': '找不到页面',
     'nf.title': '找不到这个页面',
@@ -564,6 +572,8 @@ window.LM_I18N = {
     'v.subsLabel': '💬 Subtitle:',
     'v.subsOff': 'Mati',
     'v.subsAria': 'Pilih bahasa subtitle',
+    'v.fs': 'Layar penuh',
+    'v.fsExit': 'Keluar dari layar penuh',
 
     'nf.doc': 'Halaman tidak ditemukan',
     'nf.title': 'Halaman tidak ditemukan',

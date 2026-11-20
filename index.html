@@ -90,7 +90,27 @@
     border-radius: 14px; overflow: hidden; box-shadow: var(--shadow);
   }
   .player iframe, .player video, .facade { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-  .player video { background: #000; object-fit: contain; }
+  /* Trình duyệt vẽ phụ đề ở đáy THẺ <video>, không phải đáy phần hình. Nên thẻ <video> luôn được cắt vừa khít
+     phần hình (--ar = tỉ lệ thật của video, đặt lúc tải video), căn giữa khung đen .player. */
+  .player { container-type: size; }
+  .player video {
+    background: #000; object-fit: contain; margin: auto;
+    width: min(100cqw, 100cqh * (var(--ar, 1.7778)));
+    height: min(100cqh, 100cqw / (var(--ar, 1.7778)));
+  }
+  /* Toàn màn hình: phóng to cả khung .player (nút .fs-btn) chứ không phóng thẳng thẻ <video>. Phóng thẳng <video>
+     thì khi cầm điện thoại dọc, thẻ <video> phủ cả màn hình, hình nằm giữa và phụ đề rơi xuống dải đen bên dưới. */
+  .player:fullscreen { border-radius: 0; box-shadow: none; }
+  .player:-webkit-full-screen { border-radius: 0; box-shadow: none; }
+  .fs-btn {
+    position: absolute; top: 8px; right: 8px; z-index: 2; width: 40px; height: 40px; padding: 0;
+    display: grid; place-items: center; border: 0; border-radius: 50%;
+    background: rgba(0, 0, 0, .55); color: #fff; cursor: pointer;
+    opacity: 0; pointer-events: none; transition: opacity .25s ease;
+  }
+  .fs-btn.show, .fs-btn:focus-visible { opacity: 1; pointer-events: auto; }
+  .fs-btn svg { width: 22px; height: 22px; }
+  .player:fullscreen .fs-btn { top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); }
   .facade {
     display: block; padding: 0; margin: 0; background: #000; cursor: pointer;
     color: #fff; font: inherit; text-decoration: none;
@@ -154,8 +174,11 @@
     border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--text); cursor: pointer;
   }
   .sub[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-  /* chữ phụ đề hiện trên video (iPhone khi xem toàn màn hình dùng kiểu chữ của máy) */
+  /* chữ phụ đề hiện trên video (iPhone khi xem toàn màn hình dùng kiểu chữ của máy).
+     Cỡ chữ: trình duyệt tự lấy 5% chiều cao hình (1em) nên to nhỏ theo khung video, nhưng điện thoại cầm dọc
+     hình chỉ cao ~220px → chữ còn 11px, khó đọc. Nên không cho nhỏ hơn 15px; hình to hơn thì chữ vẫn to theo. */
   .player video::cue {
+    font-size: max(15px, 1em);
     background: rgba(0, 0, 0, .62); color: #fff; line-height: 1.35;
     font-family: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
     text-shadow: 0 1px 2px rgba(0, 0, 0, .6);
@@ -727,6 +750,49 @@
     return 'https://www.dailymotion.com/video/' + v.ids.dailymotion;
   }
 
+  // Nút toàn màn hình riêng (xem chú thích .fs-btn ở CSS): phóng to cả khung #player để phụ đề luôn nằm trong hình.
+  // Chỉ dùng ở trình duyệt ẩn được nút toàn màn hình gốc (Chrome, Edge, Samsung, Cốc Cốc...). iPhone không cho
+  // phóng to khung, Firefox không ẩn được nút gốc → giữ nguyên nút gốc của trình phát.
+  const FS_OK = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled) &&
+                'controlsList' in HTMLMediaElement.prototype;
+  const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+  const FS_SVG = (d) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>';
+  const FS_ICON = { enter: FS_SVG('M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5'),
+                    exit: FS_SVG('M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5') };
+  let fsHide = 0;
+  function paintFs() {
+    const fb = $('player').querySelector('.fs-btn');
+    if (!fb) return;
+    const on = fsEl() === $('player');
+    fb.innerHTML = on ? FS_ICON.exit : FS_ICON.enter;
+    fb.title = t(on ? 'v.fsExit' : 'v.fs');
+    fb.setAttribute('aria-label', fb.title);
+  }
+  // Nút hiện ra mỗi khi chạm / rê chuột vào video, đang phát thì 2,5 giây sau tự ẩn (đang dừng thì hiện luôn)
+  function pokeFs() {
+    const fb = $('player').querySelector('.fs-btn');
+    if (!fb) return;
+    fb.classList.add('show');
+    clearTimeout(fsHide);
+    fsHide = setTimeout(() => {
+      const vd = $('player').querySelector('video');
+      if (vd && !vd.paused) fb.classList.remove('show');
+    }, 2500);
+  }
+  function toggleFs() {
+    const box = $('player');
+    const p = fsEl()
+      ? (document.exitFullscreen || document.webkitExitFullscreen).call(document)
+      : (box.requestFullscreen || box.webkitRequestFullscreen).call(box, { navigationUI: 'hide' });
+    if (p && p.catch) p.catch(() => {});
+  }
+  if (FS_OK) {
+    ['pointerdown', 'pointermove'].forEach((ev) => $('player').addEventListener(ev, pokeFs, { passive: true }));
+    document.addEventListener('fullscreenchange', paintFs);
+    document.addEventListener('webkitfullscreenchange', paintFs);
+  }
+
   // Chưa bấm phát thì chỉ hiện ảnh bìa, để trang mở nhanh trên điện thoại
   function showPlayer(play) {
     const box = $('player');
@@ -755,6 +821,20 @@
         vd.append(tk);
       });
       box.append(vd);
+      // tỉ lệ thật của video → thẻ <video> vừa khít phần hình (CSS --ar), phụ đề không rơi ra dải đen
+      vd.addEventListener('loadedmetadata', () => {
+        if (vd.videoWidth && vd.videoHeight) vd.style.setProperty('--ar', String(vd.videoWidth / vd.videoHeight));
+      });
+      if (FS_OK) {
+        vd.setAttribute('controlslist', 'nofullscreen');   // nút gốc phóng thẳng <video> → thay bằng nút .fs-btn
+        const fb = el('button', 'fs-btn show');
+        fb.type = 'button';
+        fb.addEventListener('click', toggleFs);
+        vd.addEventListener('play', pokeFs);
+        vd.addEventListener('pause', pokeFs);
+        box.append(fb);
+        paintFs();
+      }
       if (cur.subLangs.length) {
         const born = Date.now();
         applySub(vd);
