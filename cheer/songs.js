@@ -13,8 +13,6 @@
      chart      (không bắt buộc) file nốt cho trò chơi gõ nhịp, nằm trong thư mục cheer/charts/, vd 'ten-bai.json'.
                 Tạo từ âm thanh của bài: node tools/make-chart.mjs "D:\nhac\bai.webm" ten-bai
                 (lệnh tự đo bpm + anchor và in sẵn các dòng để dán vào đây). Không có thì chỉ cổ vũ tự do.
-     key        (không bắt buộc) tông của bài, vd 'Db', 'F#m', 'Bb'. Tiếng gõ lightstick là nốt chuông trong tông này.
-                make-chart đo sẵn và ghi trong file nốt; chỉ ghi ở đây khi muốn sửa lại. Không có tông: tiếng gõ không cao độ.
      hall       Màu đèn sân khấu: 'pink' (hồng), 'red' (đỏ), 'violet' (tím), 'sunset' (cam hoàng hôn), 'ocean' (xanh)
      versions   Các video của bài (sân khấu khác nhau, fancam...), người xem đổi trong ô "Video". Mỗi video:
                   label    tên ngắn, vd 'Fanmeeting Bangkok' (thứ tiếng khác: label_en, label_th, label_zh, label_id)
