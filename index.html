@@ -175,10 +175,11 @@
   }
   .sub[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
   /* chữ phụ đề hiện trên video (iPhone khi xem toàn màn hình dùng kiểu chữ của máy).
-     Cỡ chữ: trình duyệt tự lấy 5% chiều cao hình (1em) nên to nhỏ theo khung video, nhưng điện thoại cầm dọc
-     hình chỉ cao ~220px → chữ còn 11px, khó đọc. Nên không cho nhỏ hơn 15px; hình to hơn thì chữ vẫn to theo. */
+     Cỡ chữ: trình duyệt tự lấy 5% chiều cao hình (1em) nên to nhỏ theo khung video. Điện thoại cầm dọc thì 1em
+     chỉ ~11px, nên nhích lên 13px cho dễ đọc — nhưng không quá 1.25em (6% chiều cao hình). Không dùng mức sàn
+     cố định kiểu 15px: máy để chữ to / phóng to trang thì khung video chỉ còn ~265px, 15px chiếm nửa hình. */
   .player video::cue {
-    font-size: max(15px, 1em);
+    font-size: clamp(1em, 13px, 1.25em);
     background: rgba(0, 0, 0, .62); color: #fff; line-height: 1.35;
     font-family: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
     text-shadow: 0 1px 2px rgba(0, 0, 0, .6);
