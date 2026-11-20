@@ -102,17 +102,21 @@
      thì khi cầm điện thoại dọc, thẻ <video> phủ cả màn hình, hình nằm giữa và phụ đề rơi xuống dải đen bên dưới. */
   .player:fullscreen { border-radius: 0; box-shadow: none; }
   .player:-webkit-full-screen { border-radius: 0; box-shadow: none; }
+  /* Nút .fs-btn nằm đúng chỗ nút toàn màn hình gốc trên thanh điều khiển (góc dưới bên phải, kế nút ⋮), trông
+     giống nút gốc. Nút gốc (bị controlslist="nofullscreen" làm xám) được ẩn nhưng vẫn giữ chỗ, nên các nút khác
+     không xê dịch. Vị trí tính theo phần hình (thẻ <video> nằm giữa khung .player): ô 48px thứ 2 tính từ phải,
+     hàng nút cách đáy 23px. */
   .fs-btn {
-    position: absolute; top: 8px; right: 8px; z-index: 2; width: 40px; height: 40px; padding: 0;
-    display: grid; place-items: center; border: 0; border-radius: 50%;
-    background: rgba(0, 0, 0, .55); color: #fff; cursor: pointer;
+    position: absolute; z-index: 2; width: 48px; height: 48px; padding: 0;
+    right: calc((100cqw - min(100cqw, 100cqh * (var(--ar, 1.7778)))) / 2 + 48px);
+    bottom: calc((100cqh - min(100cqh, 100cqw / (var(--ar, 1.7778)))) / 2 + 23px);
+    display: grid; place-items: center; border: 0; border-radius: 50%; background: none; color: #fff;
+    cursor: pointer; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6));
     opacity: 0; pointer-events: none; transition: opacity .25s ease;
   }
   .player.ui .fs-btn, .fs-btn:focus-visible { opacity: 1; pointer-events: auto; }
-  .fs-btn svg { width: 22px; height: 22px; }
-  .player:fullscreen .fs-btn { top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); }
-  /* controlslist="nofullscreen" chỉ làm nút toàn màn hình gốc xám đi (vẫn hiện) → ẩn hẳn, chỉ còn nút .fs-btn */
-  .player video[controlslist~="nofullscreen"]::-webkit-media-controls-fullscreen-button { display: none; }
+  .fs-btn svg { width: 24px; height: 24px; }
+  .player video[controlslist~="nofullscreen"]::-webkit-media-controls-fullscreen-button { visibility: hidden; }
   .facade {
     display: block; padding: 0; margin: 0; background: #000; cursor: pointer;
     color: #fff; font: inherit; text-decoration: none;
@@ -830,6 +834,13 @@
     }, 2500);
   }
   ['pointerdown', 'pointermove'].forEach((ev) => $('player').addEventListener(ev, pokeUi, { passive: true }));
+  // chuột rời khỏi video lúc đang phát: thanh điều khiển gốc ẩn ngay → nút cũng ẩn theo
+  $('player').addEventListener('pointerleave', (e) => {
+    const vd = $('player').querySelector('video');
+    if (e.pointerType !== 'mouse' || !vd || vd.paused) return;
+    clearTimeout(uiHide);
+    $('player').classList.remove('ui');
+  });
 
   // Phụ đề tự vẽ (xem chú thích .subs ở CSS). Chỉ dùng ở trình duyệt có nút toàn màn hình riêng (FS_OK: Chrome,
   // Edge, Samsung, Cốc Cốc...) và ẩn được phụ đề gốc. Lý do:
