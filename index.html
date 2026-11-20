@@ -177,7 +177,7 @@
   /* Phụ đề do trang tự vẽ (lớp .subs đè lên đúng phần hình), không để trình duyệt vẽ: trình duyệt trên điện thoại
      tự phóng chữ phụ đề theo cài đặt cỡ chữ / phụ đề của máy, cầm dọc là chữ to đùng che nửa hình. Tự vẽ thì cỡ chữ
      luôn = 5% cạnh ngắn của hình (giống mặc định của trình duyệt), tối thiểu 9px. Phụ đề gốc bị ẩn nhưng vẫn bật,
-     để nút CC của trình phát dùng được và iPhone xem toàn màn hình vẫn có phụ đề. */
+     để nút CC của trình phát dùng được. iPhone / Safari / Firefox không dùng lớp này (xem OWN_SUBS ở JS). */
   .player.own-subs video::-webkit-media-text-track-container { display: none; }
   .subs {
     display: none; position: absolute; inset: 0; z-index: 1; margin: auto; pointer-events: none;
@@ -200,8 +200,9 @@
     background: rgba(0, 0, 0, .62); padding: 0 .3em; text-shadow: 0 1px 2px rgba(0, 0, 0, .6);
     -webkit-box-decoration-break: clone; box-decoration-break: clone;
   }
-  /* Phụ đề gốc của trình duyệt: chỉ còn hiện ở Firefox, và khi thẻ <video> tự phóng to kiểu gốc (iPhone dùng kiểu
-     chữ của máy). Cỡ chữ: 1em = 5% chiều cao hình; nhích lên 13px khi hình nhỏ nhưng không quá 1.25em. */
+  /* Phụ đề gốc của trình duyệt: còn hiện ở iPhone / Safari / Firefox, và khi thẻ <video> tự phóng to kiểu gốc
+     (iPhone toàn màn hình dùng kiểu chữ của máy). Cỡ chữ: 1em = 5% chiều cao hình; nhích lên 13px khi hình nhỏ
+     nhưng không quá 1.25em. */
   .player video::cue {
     font-size: clamp(1em, 13px, 1.25em);
     background: rgba(0, 0, 0, .62); color: #fff; line-height: 1.35;
@@ -817,10 +818,13 @@
   }
   ['pointerdown', 'pointermove'].forEach((ev) => $('player').addEventListener(ev, pokeUi, { passive: true }));
 
-  // Phụ đề tự vẽ (xem chú thích .subs ở CSS). Chỉ dùng ở trình duyệt ẩn được phụ đề gốc (Chrome, Edge, Samsung,
-  // Cốc Cốc, Safari...). Firefox không ẩn được → để trình duyệt tự vẽ như cũ, khỏi bị 2 lớp phụ đề chồng nhau.
-  const OWN_SUBS = !!(window.CSS && CSS.supports &&
-                      CSS.supports('selector(video::-webkit-media-text-track-container)'));
+  // Phụ đề tự vẽ (xem chú thích .subs ở CSS). Chỉ dùng ở trình duyệt có nút toàn màn hình riêng (FS_OK: Chrome,
+  // Edge, Samsung, Cốc Cốc...) và ẩn được phụ đề gốc. Lý do:
+  // - iPhone / iPad / Safari xem toàn màn hình bằng trình phát gốc, phụ đề lúc đó được chụp lại TỪ lớp phụ đề gốc
+  //   trong trang → lớp gốc bị ẩn là toàn màn hình mất phụ đề. Nên Safari giữ phụ đề gốc như cũ.
+  // - Firefox không ẩn được phụ đề gốc → tự vẽ thêm là 2 lớp phụ đề chồng nhau.
+  const OWN_SUBS = FS_OK && !!(window.CSS && CSS.supports &&
+                               CSS.supports('selector(video::-webkit-media-text-track-container)'));
   function paintCues() {
     const box = $('player');
     const layer = box.querySelector('.subs-in');
