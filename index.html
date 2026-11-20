@@ -187,12 +187,23 @@
   }
   .player.own-subs .subs { display: block; }
   .subs-in {
-    position: absolute; left: 0; right: 0; bottom: 0; padding: 0 4% .7em;
+    position: absolute; left: 0; right: 0; bottom: 0; padding: 0 4% calc(.5em + 5cqh);
     display: flex; flex-direction: column; align-items: center;
     font: 400 max(9px, 5cqmin)/1.35 "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
     -webkit-text-size-adjust: none; text-size-adjust: none;
     color: #fff; text-align: center; white-space: pre-line;
     transition: transform .25s ease;
+  }
+  /* Toàn màn hình (nhất là xoay ngang): hình chạm mép dưới màn hình, chỗ góc bo / thanh điều hướng của máy che
+     mất → nâng phụ đề lên cao hơn, chừa thêm phần mép máy che (safe-area). */
+  .player:fullscreen .subs-in { padding-bottom: calc(.5em + 8cqh + env(safe-area-inset-bottom, 0px)); }
+  .player:-webkit-full-screen .subs-in { padding-bottom: calc(.5em + 8cqh + env(safe-area-inset-bottom, 0px)); }
+  /* Thẻ <video> tự phóng to kiểu gốc (vd xoay ngang là trình duyệt tự phóng to): phụ đề gốc nằm sát đáy, cũng nâng lên */
+  .player video:fullscreen::-webkit-media-text-track-container {
+    transform: translateY(calc(-8% - env(safe-area-inset-bottom, 0px)));
+  }
+  .player video:-webkit-full-screen::-webkit-media-text-track-container {
+    transform: translateY(calc(-8% - env(safe-area-inset-bottom, 0px)));
   }
   /* thanh điều khiển đang hiện (lớp .ui) thì đẩy phụ đề lên, khỏi che thanh tua */
   .player.ui .subs-in { transform: translateY(calc(-1 * min(58px, 34cqh))); }
