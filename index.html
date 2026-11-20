@@ -105,17 +105,22 @@
   /* Nút .fs-btn nằm đúng chỗ nút toàn màn hình gốc trên thanh điều khiển (góc dưới bên phải, kế nút ⋮), trông
      giống nút gốc. Nút gốc (bị controlslist="nofullscreen" làm xám) được ẩn nhưng vẫn giữ chỗ, nên các nút khác
      không xê dịch. Vị trí tính theo phần hình (thẻ <video> nằm giữa khung .player): ô 48px thứ 2 tính từ phải,
-     hàng nút cách đáy 23px. */
+     hàng nút cách đáy 23px. Hình rộng hơn 1440px (vd toàn màn hình máy tính Full HD) thì Chrome vẽ nút to hơn:
+     ô 64px, nút ⋮ cách mép phải 16px, hàng nút cách đáy 24px → --fs-big = 1px khi hình > 1440px, còn lại 0. */
   .fs-btn {
-    position: absolute; z-index: 2; width: 48px; height: 48px; padding: 0;
-    right: calc((100cqw - min(100cqw, 100cqh * (var(--ar, 1.7778)))) / 2 + 48px);
-    bottom: calc((100cqh - min(100cqh, 100cqw / (var(--ar, 1.7778)))) / 2 + 23px);
+    --fs-w: min(100cqw, 100cqh * (var(--ar, 1.7778)));
+    --fs-h: min(100cqh, 100cqw / (var(--ar, 1.7778)));
+    --fs-big: clamp(0px, (var(--fs-w) - 1440.5px) * 1000, 1px);
+    position: absolute; z-index: 2; padding: 0;
+    width: calc(48px + 16 * var(--fs-big)); height: calc(48px + 16 * var(--fs-big));
+    right: calc((100cqw - var(--fs-w)) / 2 + 48px + 32 * var(--fs-big));
+    bottom: calc((100cqh - var(--fs-h)) / 2 + 23px + var(--fs-big));
     display: grid; place-items: center; border: 0; border-radius: 50%; background: none; color: #fff;
     cursor: pointer; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6));
     opacity: 0; pointer-events: none; transition: opacity .25s ease;
   }
   .player.ui .fs-btn, .fs-btn:focus-visible { opacity: 1; pointer-events: auto; }
-  .fs-btn svg { width: 24px; height: 24px; }
+  .fs-btn svg { width: calc(24px + 8 * var(--fs-big)); height: calc(24px + 8 * var(--fs-big)); }
   .player video[controlslist~="nofullscreen"]::-webkit-media-controls-fullscreen-button { visibility: hidden; }
   .facade {
     display: block; padding: 0; margin: 0; background: #000; cursor: pointer;
