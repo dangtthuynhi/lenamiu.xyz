@@ -196,14 +196,18 @@
   }
   /* Toàn màn hình (nhất là xoay ngang): hình chạm mép dưới màn hình, chỗ góc bo / thanh điều hướng của máy che
      mất → nâng phụ đề lên cao hơn, chừa thêm phần mép máy che (safe-area). */
-  .player:fullscreen .subs-in { padding-bottom: calc(.5em + 8cqh + env(safe-area-inset-bottom, 0px)); }
-  .player:-webkit-full-screen .subs-in { padding-bottom: calc(.5em + 8cqh + env(safe-area-inset-bottom, 0px)); }
+  .player:fullscreen .subs-in { padding-bottom: calc(.5em + 12cqh + env(safe-area-inset-bottom, 0px)); }
+  .player:-webkit-full-screen .subs-in { padding-bottom: calc(.5em + 12cqh + env(safe-area-inset-bottom, 0px)); }
+  /* điện thoại xoay ngang mà không bấm toàn màn hình: cũng nâng lên như vậy */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .subs-in { padding-bottom: calc(.5em + 12cqh + env(safe-area-inset-bottom, 0px)); }
+  }
   /* Thẻ <video> tự phóng to kiểu gốc (vd xoay ngang là trình duyệt tự phóng to): phụ đề gốc nằm sát đáy, cũng nâng lên */
   .player video:fullscreen::-webkit-media-text-track-container {
-    transform: translateY(calc(-8% - env(safe-area-inset-bottom, 0px)));
+    transform: translateY(calc(-12% - env(safe-area-inset-bottom, 0px)));
   }
   .player video:-webkit-full-screen::-webkit-media-text-track-container {
-    transform: translateY(calc(-8% - env(safe-area-inset-bottom, 0px)));
+    transform: translateY(calc(-12% - env(safe-area-inset-bottom, 0px)));
   }
   /* thanh điều khiển đang hiện (lớp .ui) thì đẩy phụ đề lên, khỏi che thanh tua */
   .player.ui .subs-in { transform: translateY(calc(-1 * min(58px, 34cqh))); }
