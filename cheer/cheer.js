@@ -21,7 +21,7 @@ const SITE = (window.VIETSUB || {}).site || {};
 const VIDEO_BASE = String(SITE.videoBase || '').trim().replace(/\/*$/, '/');
 
 const SEAT_KEY = 'lm_cheer_seat', TEAM_KEY = 'lm_cheer_team', SOUND_KEY = 'lm_cheer_sound', TOTAL_KEY = 'lm_cheer_total';
-const LEVEL_KEY = 'lm_cheer_level', OFFSET_KEY = 'lm_cheer_offset', BEST_PREFIX = 'lm_cheer_best:';
+const LEVEL_KEY = 'lm_cheer_level', OFFSET_KEY = 'lm_cheer_offset', BEST_PREFIX = 'lm_cheer_best:', SFX_VOL_KEY = 'lm_cheer_sfxvol';
 // cùng số ?v= với trang (GitHub Pages giữ file 10 phút: có ?v= thì sửa nốt là thấy ngay)
 const V = new URL(import.meta.url).searchParams.get('v') || String(Date.now());
 
@@ -101,6 +101,7 @@ const SONGS = ((window.LM_CHEER || {}).songs || []).map((s, i) => {
     title: String(tr(s, 'title') || '').trim(), artist: String(tr(s, 'artist') || '').trim(),
     bpm: bpm >= 40 && bpm <= 240 ? bpm : 0, theme: THEMES[s.hall] || THEMES.pink,
     chart: /^[\w.-]+\.json$/.test(String(s.chart || '')) ? String(s.chart) : '',
+    key: typeof s.key === 'string' ? s.key.trim() : '',
   };
 }).filter((s) => s && s.title && s.versions.length);
 
@@ -303,7 +304,7 @@ function loadChart(s) {
           lv[k] = (Array.isArray(c[k]) ? c[k] : []).filter((n) => Array.isArray(n) && Number.isFinite(Number(n[0])))
             .map((n) => ({ b: Number(n[0]), big: !!n[1] })).sort((a, b) => a.b - b.b);
         }
-        return { bpm: Number(c.bpm), lv };
+        return { bpm: Number(c.bpm), key: typeof c.key === 'string' ? c.key : '', lv };
       })
       .catch(() => null));
   }
@@ -661,7 +662,7 @@ $('sound').addEventListener('click', () => {
   soundOn = !soundOn;
   store(SOUND_KEY, soundOn ? '1' : '0');
   paintSound();
-  if (soundOn) tapSound('hit');
+  if (soundOn) tapSound('tap');
 });
 
 /* ================= cổ vũ ================= */
@@ -677,17 +678,17 @@ function cheer(ms) {
   const now = performance.now();
   if (!(ms > 0) || ms > now) ms = now;
   lastCheer = now;
-  if (sync) { syncTap(ms); tapSound('clap'); swing(); return; }
-  let power = 1, snd;
+  if (sync) { syncTap(ms); tapSound('tap'); swing(); return; }   // căn nhịp: tiếng phát ngay, không khớp lưới
+  let power = 1, snd = 'tap', hit = null;
   if (game.state === 'play') {
     const n = tryHit(ms);
-    if (n) { power = n.big ? 1.8 : 1.2; snd = n.big ? 'big' : n.j === 'good' ? 'clap' : 'hit'; }
-    else { addEnergy(ENERGY.free); power = 0.6; snd = 'miss'; }
-  } else { addEnergy(ENERGY.idle); snd = freeSound(ms); }
+    if (n) { power = n.big ? 1.8 : 1.2; snd = n.big ? 'big' : 'tap'; hit = n; }
+    else { addEnergy(ENERGY.free); power = 0.6; snd = 'soft'; }
+  } else addEnergy(ENERGY.idle);
   total += 1;
   store(TOTAL_KEY, String(total));
   paintCount();
-  tapSound(snd);
+  tapSound(snd, ms, hit);
   swing();
   cat.kick = Math.min(1, 0.55 + 0.25 * power);
   catSparkle(power >= 1.2 ? (small ? 2 : 3) : 1, now);
@@ -1150,29 +1151,35 @@ function spawnHeart() {
   ], { duration: 1000 + Math.random() * 500, easing: 'cubic-bezier(.2,.7,.3,1)' });
   a.onfinish = () => { h.remove(); hearts--; };
 }
-// Tiếng gõ lightstick (tự tạo bằng Web Audio, không cần file). Tiếng gõ không có cao độ nên không bao giờ lệch tông với bài hát;
-// vào tiếng thật gọn (< 2 ms) để nghe chắc, đúng chỗ gõ. Tiếng nghe theo nhịp:
-//   'hit'  vỗ tay + trống: gõ trúng nốt (Tuyệt / Hay), gõ đúng phách nhạc, hoặc gõ khi chưa phát nhạc
-//   'big'  như 'hit' + tiếng xèng: trúng tim vàng
-//   'clap' vỗ tay nhẹ: trúng nốt mức Được, hoặc gõ đúng nửa phách
-//   'tick' tiếng tách nhỏ: gõ lệch nhịp;  'miss' tách rất nhỏ: gõ lúc không có nốt khi đang chơi
+// Tiếng gõ lightstick (tự tạo bằng Web Audio, không cần file): TỰ KHỚP NHỊP + NỐT CHUÔNG THEO TÔNG BÀI.
+//  - Nhạc đang chạy: tiếng không phát đúng lúc ngón tay chạm mà rơi vào lưới nửa phách của bài. Gõ hơi sớm → chờ tới phách;
+//    gõ muộn không quá 70 ms → phát ngay; muộn hơn → sang ô kế tiếp. Mỗi ô chỉ một tiếng nên gõ dồn không thành loạn.
+//    Trong ván chơi, gõ trúng nốt thì tiếng rơi đúng lúc của nốt đó. Tim, đèn, mèo vẫn phản ứng ngay lúc gõ.
+//  - Mỗi ô lưới là một nốt trong thang ngũ cung của tông bài (SFX_RIFF, lặp lại mỗi 2 ô nhịp): gõ đều theo phách nghe thành
+//    một đoạn chuông đệm theo bài. Tông lấy ở songs.js (key) hoặc file nốt (tools/make-chart.mjs đo sẵn).
+//    Bài chưa biết tông thì chỉ có tiếng "tốc" trầm, không cao độ (không bao giờ lệch tông).
+//  - Chưa phát nhạc / đang căn nhịp bằng tai: phát ngay; chuông đi lần lượt các nốt của hợp âm chủ.
+//   kind: 'tap' gõ thường · 'big' trúng tim vàng (thêm nốt cao hơn một quãng tám) · 'soft' gõ lúc không có nốt khi đang chơi
+// Âm lượng tiếng gõ chỉnh được ở mục "Tiếng gõ, căn nhịp & giới thiệu" (mặc định 35%).
 let ac = null, sfxOut = null, noise = null;
-const BEAT_WIN = 0.14;      // lệch tối đa (phần của một phách) vẫn tính là "đúng phách" khi gõ tự do: 84 ms ở 100 BPM
+let sfxVol = clampInt(store(SFX_VOL_KEY) ?? 35, 0, 100);
+const SNAP_LATE = 0.07;     // gõ muộn hơn ô lưới không quá 70 ms vẫn phát ngay
 function audio() {
-  if (!soundOn) return null;
+  if (!soundOn || !sfxVol) return null;
   try {
     if (!ac) {
       ac = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
       sfxOut = sfxBus(ac);
       noise = noiseBuffer(ac);
     }
+    sfxOut.gain.value = sfxVol / 100;
     if (ac.state !== 'running') ac.resume();
   } catch (e) { return null; }
   return ac;
 }
-// chặn mềm ở cuối để gõ dồn dập không bị rè (không dùng bộ nén: bộ nén của Chrome làm tiếng trễ thêm ~6 ms)
+// âm lượng → chặn mềm ở cuối (không dùng bộ nén: bộ nén của Chrome làm tiếng trễ thêm ~6 ms)
 function sfxBus(c) {
-  const pre = c.createGain(), shaper = c.createWaveShaper(), n = 2049, curve = new Float32Array(n);
+  const vol = c.createGain(), pre = c.createGain(), shaper = c.createWaveShaper(), n = 2049, curve = new Float32Array(n);
   for (let i = 0; i < n; i++) {             // vào: ±1 ứng với ±2 (pre giảm một nửa); dưới 0.7 giữ nguyên, trên đó cong dần tới 0.98
     const x = (i / (n - 1)) * 4 - 2, a = Math.abs(x);
     curve[i] = Math.sign(x) * (a < 0.7 ? a : 0.7 + 0.28 * Math.tanh((a - 0.7) / 0.28));
@@ -1180,82 +1187,119 @@ function sfxBus(c) {
   pre.gain.value = 0.5;
   shaper.curve = curve;
   shaper.oversample = 'none';
-  pre.connect(shaper).connect(c.destination);
-  return pre;
+  vol.connect(pre).connect(shaper).connect(c.destination);
+  return vol;
 }
 function noiseBuffer(c) {
-  const b = c.createBuffer(1, c.sampleRate, c.sampleRate), d = b.getChannelData(0);
+  const b = c.createBuffer(1, Math.round(c.sampleRate * 0.5), c.sampleRate), d = b.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   return b;
 }
-function sfxNoise(c, buf, t, dur) {
-  const s = c.createBufferSource();
-  s.buffer = buf;
-  s.start(t, Math.random() * 0.5);
-  s.stop(t + dur);
-  return s;
-}
-// vỗ tay kiểu trống máy: 3 nhịp ồn thật nhanh (nhiều bàn tay) rồi đuôi ngắn
-function sfxClap(c, out, buf, t, vol) {
-  const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 700;
-  const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1350; bp.Q.value = 0.8;
+// vỏ âm lượng: lên trong 2 ms rồi tắt dần trong `len` giây
+function sfxEnv(c, out, t, vol, len) {
   const g = c.createGain();
   g.gain.setValueAtTime(0, t);
-  for (const d of [0, 0.010, 0.021]) {
-    g.gain.setValueAtTime(vol, t + d);
-    g.gain.exponentialRampToValueAtTime(vol * 0.12, t + d + 0.008);
-  }
-  g.gain.setValueAtTime(vol * 0.5, t + 0.031);
-  g.gain.exponentialRampToValueAtTime(0.0005, t + 0.17);
-  sfxNoise(c, buf, t, 0.22).connect(hp).connect(bp).connect(g).connect(out);
+  g.gain.linearRampToValueAtTime(vol, t + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.0005, t + len);
+  g.connect(out);
+  return g;
 }
-// trống: tiếng "thịch" trầm, cao độ tụt nhanh (loa điện thoại vẫn nghe được phần đầu)
-function sfxKick(c, out, t, vol) {
-  const o = c.createOscillator(), g = c.createGain();
+function sfxOsc(c, out, t, vol, f0, f1, len) {
+  const o = c.createOscillator();
   o.type = 'sine';
-  o.frequency.setValueAtTime(190, t);
-  o.frequency.exponentialRampToValueAtTime(52, t + 0.11);
-  g.gain.setValueAtTime(vol, t);
-  g.gain.exponentialRampToValueAtTime(0.0005, t + 0.2);
-  o.connect(g).connect(out);
+  o.frequency.setValueAtTime(f0, t);
+  if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + 0.04);
+  o.connect(sfxEnv(c, out, t, vol, len));
   o.start(t);
-  o.stop(t + 0.22);
+  o.stop(t + len + 0.02);
 }
-// tiếng tách (như hi-hat đóng)
-function sfxTick(c, out, buf, t, vol) {
-  const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 7000;
-  const g = c.createGain();
-  g.gain.setValueAtTime(vol, t);
-  g.gain.exponentialRampToValueAtTime(0.0005, t + 0.045);
-  sfxNoise(c, buf, t, 0.06).connect(hp).connect(g).connect(out);
+// "tốc": thân trầm tụt cao độ (như gõ trống da nhỏ) + bồi âm cho loa điện thoại / laptop nghe rõ + tiếng chạm
+function sfxThump(c, out, buf, t, v) {
+  sfxOsc(c, out, t, v, 210, 82, 0.22);
+  sfxOsc(c, out, t, v * 0.32, 420, 170, 0.09);
+  const s = c.createBufferSource(), f = c.createBiquadFilter();
+  s.buffer = buf;
+  f.type = 'lowpass'; f.frequency.value = 1500; f.Q.value = 0.7;
+  s.connect(f).connect(sfxEnv(c, out, t, v * 0.33, 0.025));
+  s.start(t, Math.random() * 0.3);
+  s.stop(t + 0.05);
 }
-// tiếng xèng sáng, ngân (cho tim vàng)
-function sfxSplash(c, out, buf, t, vol) {
-  const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 5200;
-  const g = c.createGain();
-  g.gain.setValueAtTime(vol, t);
-  g.gain.exponentialRampToValueAtTime(0.0005, t + 0.55);
-  sfxNoise(c, buf, t, 0.6).connect(hp).connect(g).connect(out);
+// chuông kiểu hộp nhạc: âm gốc ngân + bồi âm quãng 8, quãng 12 tắt nhanh + chút ánh kim
+function sfxBell(c, out, t, f, v) {
+  for (const [m, a, len] of [[1, 1, 0.9], [2, 0.3, 0.42], [3, 0.09, 0.22], [4.2, 0.05, 0.1]]) sfxOsc(c, out, t, v * a, f * m, f * m, len);
 }
-function sfxPlay(c, out, buf, kind, t) {
-  if (kind === 'hit' || kind === 'big') { sfxClap(c, out, buf, t, 0.6); sfxKick(c, out, t, kind === 'big' ? 0.75 : 0.55); }
-  if (kind === 'big') sfxSplash(c, out, buf, t, 0.2);
-  if (kind === 'clap') sfxClap(c, out, buf, t, 0.6);
-  if (kind === 'tick') sfxTick(c, out, buf, t, 0.11);
-  if (kind === 'miss') sfxTick(c, out, buf, t, 0.06);
+// tông: 'Db', 'F#m', 'Bb'… → { pc: cao độ chủ âm 0–11 (C = 0), minor }
+function parseKey(str) {
+  const m = /^([A-Ga-g])([#b]?)(m?)$/.exec(String(str || '').trim());
+  if (!m) return null;
+  const base = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[m[1].toUpperCase()];
+  return { pc: (base + (m[2] === '#' ? 1 : m[2] === 'b' ? 11 : 0)) % 12, minor: m[3] === 'm' };
 }
-function tapSound(kind) {
+// vai trò trong thang ngũ cung: 0 chủ âm · 1 quãng 3 · 2 quãng 5 · 3 quãng 6 (thứ: 7) · 4 nốt nối (trưởng: quãng 2, thứ: quãng 4)
+const SFX_ROLE = { major: [0, 4, 7, 9, 2], minor: [0, 3, 7, 10, 5] };
+// đoạn chuông theo 16 ô nửa phách (2 ô nhịp): [vai trò, quãng 8]; ô chẵn là đúng phách
+const SFX_RIFF = [[0, 1], [2, 0], [1, 0], [2, 0], [3, 0], [2, 0], [1, 0], [4, 0], [0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [0, 1], [3, 0], [2, 0]];
+const SFX_ARP = [[0, 0], [1, 0], [2, 0], [0, 1], [2, 0], [1, 0]];   // chưa có nhạc: lần lượt các nốt của hợp âm chủ
+function bellFreq(key, slot, count) {
+  if (!key) return 0;
+  let f = 440 * 2 ** ((key.pc - 9) / 12);
+  while (f < 370) f *= 2;
+  while (f >= 740) f /= 2;                  // chủ âm nằm trong khoảng F#4–F#5
+  const [role, oct] = slot == null ? SFX_ARP[count % SFX_ARP.length] : SFX_RIFF[((slot % 16) + 16) % 16];
+  return f * 2 ** ((SFX_ROLE[key.minor ? 'minor' : 'major'][role] + 12 * oct) / 12);
+}
+// ô nửa phách cho cú gõ: tapBeat = phách lúc gõ (đã trừ độ trễ người chơi), nowBeat = phách lúc này, late = SNAP_LATE tính theo phách
+function snapSlot(tapBeat, nowBeat, late) {
+  const slot = Math.round(tapBeat * 2);
+  return slot / 2 < nowBeat - late ? Math.ceil(nowBeat * 2 - 1e-9) : slot;
+}
+function sfxPlay(c, out, buf, kind, t, f) {
+  const v = kind === 'soft' ? 0.5 : 1;
+  sfxThump(c, out, buf, t, (f ? 0.4 : 0.85) * v);
+  if (!f) return;
+  sfxBell(c, out, t, f, 0.55 * v);
+  if (kind === 'big') sfxBell(c, out, t + 0.003, f * 2, 0.28);
+}
+// Khi nào phát (giây kể từ bây giờ) và ô lưới nào. null = phát ngay, không theo lưới (chưa phát nhạc, bài chưa có nhịp…)
+function sfxWhen(ms, note) {
+  const s = song(), bpm = (game.chart && game.chart.bpm) || (s && s.bpm);
+  const now = songTimeAt(performance.now());
+  if (ms == null || !s || !bpm || !player.playing || now == null) return null;
+  const a = s.versions[verI].anchor || 0, P = 60 / bpm, nowBeat = (now - a) / P;
+  if (note) return { delay: Math.max(0, note.t - now), slot: Math.floor((note.t - a) / P * 2 + 1e-6), note: true };
+  const tap = songTimeAt(ms);
+  if (tap == null) return null;
+  const slot = snapSlot((tap - offsetMs / 1000 - a) / P, nowBeat, SNAP_LATE / P);
+  return { delay: Math.max(0, (slot / 2 - nowBeat) * P), slot, note: false };
+}
+let sfxCount = 0, sfxSlot = null;
+// ms = lúc gõ (bỏ trống: phát ngay, như nghe thử / căn nhịp); note = nốt vừa gõ trúng trong ván chơi
+function tapSound(kind, ms, note) {
   const c = audio();
-  if (c) sfxPlay(c, sfxOut, noise, kind, c.currentTime);
+  if (!c) return;
+  const w = sfxWhen(ms, note);
+  if (w && !w.note) {
+    if (w.slot === sfxSlot) return;         // ô này đã có tiếng rồi
+    sfxSlot = w.slot;
+  }
+  const s = song();
+  const key = parseKey(s && s.key) || parseKey(game.chart && game.chart.key);
+  sfxPlay(c, sfxOut, noise, kind, c.currentTime + (w ? w.delay : 0), bellFreq(key, w ? w.slot : null, sfxCount++));
 }
-// Gõ tự do (không chơi nốt): nhạc đang chạy thì tiếng theo chỗ gõ so với phách nhạc
-function freeSound(ms) {
-  const st = songTimeAt(ms);
-  const b = st == null ? null : beatPos(st - offsetMs / 1000);
-  if (b == null) return 'hit';
-  if (Math.abs(b - Math.round(b)) <= BEAT_WIN) return 'hit';
-  return Math.abs(b * 2 - Math.round(b * 2)) / 2 <= BEAT_WIN ? 'clap' : 'tick';
+function setSfxVol(v) {
+  sfxVol = clampInt(v, 0, 100);
+  store(SFX_VOL_KEY, String(sfxVol));
+  $('sfxVol').value = String(sfxVol);
+  $('sfxOut').textContent = sfxVol + '%';
+  if (sfxOut) sfxOut.gain.value = sfxVol / 100;
 }
+setSfxVol(sfxVol);
+let sfxTry = 0;
+$('sfxVol').addEventListener('input', (e) => {
+  setSfxVol(e.target.value);
+  const now = performance.now();
+  if (sfxVol && now - sfxTry > 180) { sfxTry = now; tapSound('tap'); }   // kéo tới đâu nghe thử tới đó
+});
 // tạo sẵn bộ âm thanh ngay lần chạm / bấm phím đầu tiên trên trang, để tiếng gõ đầu tiên không bị trễ
 ['pointerdown', 'keydown'].forEach((type) => addEventListener(type, () => { if (!ac) audio(); }, { capture: true, passive: true }));
 

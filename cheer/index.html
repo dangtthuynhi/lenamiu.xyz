@@ -392,7 +392,9 @@
   </section>
 
   <details class="about">
-    <summary data-i18n="c.timing">Căn nhịp &amp; giới thiệu</summary>
+    <summary data-i18n="c.timing">Tiếng gõ, căn nhịp &amp; giới thiệu</summary>
+    <label class="offset"><span data-i18n="c.sfxVol">Âm lượng tiếng gõ</span> <output id="sfxOut">35%</output>
+      <input type="range" id="sfxVol" min="0" max="100" step="5" value="35"></label>
     <div class="sync">
       <button type="button" class="ghost" id="syncBtn" data-i18n="c.sync">Căn nhịp bằng tai</button>
       <span id="syncOut" data-i18n="c.syncHelp">Nốt lệch so với nhạc? Bấm phát video rồi bấm nút này, gõ theo phách nhạc 8 lần.</span>
