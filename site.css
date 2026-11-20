@@ -57,6 +57,15 @@
 }
 .btn-short { display: none; }
 @media (max-width: 420px) { .btn-long { display: none; } .btn-short { display: inline; } }
+/* điện thoại: 4 nút (Video · Fanfic · Cổ vũ · Nuôi Lumi) gọn lại cho vừa một hàng */
+@media (max-width: 440px) {
+  .top-nav { gap: 5px; }
+  .top-link, .donate-btn { padding: 5px 9px; font-size: .78rem; }
+}
+@media (max-width: 380px) {
+  .top-nav { gap: 4px; }
+  .top-link, .donate-btn { padding: 5px 6px; }
+}
 .top-extra { display: flex; align-items: center; gap: 4px; }
 .top-extra:empty { display: none; }
 

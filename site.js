@@ -1,6 +1,6 @@
 /* Phần dùng chung cho MỌI trang của lenamiu.xyz (trang video, Fanfic, 404). Đi cùng site.css.
      - Dải chữ chạy trên cùng: tỉ lệ PK LenaMiu vs MiuLena + lượt donate gần nhất + rủ tiếp sức
-     - Đầu trang: logo, dòng ghi công, nút 🎬 Video · 📖 Fanfic · 🍼 Nuôi Lumi
+     - Đầu trang: logo, dòng ghi công, nút 🎬 Video · 📖 Fanfic · 🎤 Cổ vũ · 🍼 Nuôi Lumi
      - Hộp "Mua sữa tã cho Lumi": chọn phe → mã QR, thanh PK; tung bông tung hoa khi có người donate
    Cách gắn vào một trang (đặt ngay đầu <body>, sau khi nạp site.css trong <head>):
      <script>(function(){var v=Date.now();document.write('<script src="videos.js?v='+v+'"><\/script><script src="site.js?v='+v+'"><\/script>');})();</script>
@@ -22,8 +22,9 @@
 
   const me = document.currentScript;
   const ROOT = new URL('./', (me && me.src) || location.href).href;          // thư mục gốc của trang web
-  // trang đang mở (để tô đậm nút tương ứng ở đầu trang): 'video' (trang chủ), 'fanfic', hoặc '' (vd trang 404)
+  // trang đang mở (để tô đậm nút tương ứng ở đầu trang): 'video' (trang chủ), 'fanfic', 'cheer', hoặc '' (vd trang 404)
   const PAGE = /\/fanfic(\/|$)/.test(location.pathname) ? 'fanfic'
+    : /\/cheer(\/|$)/.test(location.pathname) ? 'cheer'
     : (location.pathname === new URL(ROOT).pathname || /\/index\.html$/.test(location.pathname)) ? 'video' : '';
   const SITE = Object.assign({ tagline: '' }, (window.VIETSUB || {}).site);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -148,6 +149,7 @@
       '<nav class="top-nav" aria-label="' + esc(t('nav.aria')) + '">' +
         '<a class="top-link" href="' + ROOT + '" data-page="video">' + esc(t('nav.video')) + '</a>' +
         '<a class="top-link" href="' + ROOT + 'fanfic/" data-page="fanfic">' + esc(t('nav.fanfic')) + '</a>' +
+        '<a class="top-link" href="' + ROOT + 'cheer/" data-page="cheer">' + esc(t('nav.cheer')) + '</a>' +
         '<button type="button" class="donate-btn" id="donateBtn" hidden><span class="btn-long"></span><span class="btn-short"></span></button>' +
       '</nav>' +
       // nút đổi ngôn ngữ: link thật (?lang=...) để không có JavaScript vẫn bấm được

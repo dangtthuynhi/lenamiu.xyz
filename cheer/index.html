@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sảnh cổ vũ LenaMiu</title>
+<meta name="description" content="Chọn một chỗ trong sảnh, xem LenaMiu hát và gõ lightstick cổ vũ cùng cả khán phòng. Trang do fan làm.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="LenaMiu Sub">
+<meta property="og:locale" content="vi_VN">
+<meta property="og:title" content="Sảnh cổ vũ LenaMiu">
+<meta property="og:description" content="Chọn một chỗ trong sảnh, xem LenaMiu hát và gõ lightstick cổ vũ cùng cả khán phòng.">
+<meta property="og:url" content="https://lenamiu.xyz/cheer/">
+<meta property="og:image" content="https://lenamiu.xyz/og-image.png?v=3">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://lenamiu.xyz/cheer/">
+<link rel="icon" href="../favicon.ico" sizes="48x48">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="manifest" href="../site.webmanifest">
+<meta name="theme-color" content="#0b0810">
+<!-- YouTube cần biết trang nào đang nhúng nó, thiếu là báo "Lỗi 153" -->
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"
+      media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"></noscript>
+<!-- phần dùng chung mọi trang: đầu trang, dải chữ chạy, hộp donate (đi cùng ../site.js) -->
+<link rel="stylesheet" href="../site.css">
+<style>
+  /* Trang này luôn tối (đang ở trong sảnh hòa nhạc), không theo chế độ sáng / tối của máy */
+  :root {
+    color-scheme: dark;
+    --bg: #0b0810; --surface: #1d1624; --surface-2: #2a2132;
+    --text: #f6f0f8; --muted: #b9adc2; --line: rgba(255, 255, 255, .13);
+    --accent: #ff6fa8; --on-accent: #1a0d13; --danger: #ff7b72;
+    --team-a: #ff5c9d; --team-b: #9a6bff;      /* LenaMiu hồng, MiuLena tím (sáng hơn màu logo cho rực trong tối) */
+    --glass: rgba(20, 13, 28, .66);
+    --stick: var(--team-a);                    /* màu lightstick người xem chọn (đổi bằng JS) */
+    --glow: #ff5fa2;                           /* màu đèn sân khấu của bài đang chọn (đổi bằng JS) */
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; background: var(--bg); }
+  body {
+    margin: 0; min-height: 100svh; background: var(--bg); color: var(--text);
+    font: 400 16px/1.6 "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1120px; margin: 0 auto;
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  a:focus-visible, button:focus-visible, select:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  /* ---------- sảnh 3D (vẽ bằng three.js trong cheer.js), nằm sau mọi thứ ---------- */
+  #hall {
+    position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%; display: block;
+    background: radial-gradient(120% 70% at 50% 10%, #3a1d4a 0%, #160d1d 45%, var(--bg) 80%);
+  }
+  /* làm tối mép trên để chữ đầu trang luôn đọc được trên nền sảnh */
+  body::before {
+    content: ""; position: fixed; inset: 0 0 auto; height: 220px; z-index: 1; pointer-events: none;
+    background: linear-gradient(rgba(11, 8, 16, .92), rgba(11, 8, 16, 0));
+  }
+  .ticker, .top, .lang-note { position: relative; z-index: 2; }
+
+  /* ---------- màn hình sân khấu (video) ---------- */
+  .stagebox { position: relative; z-index: 2; padding-bottom: 210px; }
+  .stagebox:focus { outline: none; }   /* nhận lại bàn phím từ khung YouTube (cheer.js → keepKeys), không cần viền */
+  .screen {
+    position: relative; aspect-ratio: 16 / 9; margin: 2px auto 0;
+    width: min(100%, 760px, calc((100svh - 400px) * 16 / 9)); min-width: min(100%, 420px);
+    border-radius: 14px; overflow: hidden; background: #000;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, .1), 0 0 70px -12px var(--glow), 0 0 160px -40px var(--glow);
+    transition: box-shadow .8s ease;
+  }
+  .screen iframe, .screen video, .screen .facade, .screen > div {
+    position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
+  }
+  .screen video { background: #000; }
+  .facade {
+    display: block; padding: 0; margin: 0; background: #000; cursor: pointer; color: #fff; font: inherit;
+  }
+  .facade img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: .82; transition: opacity .25s ease; }
+  .facade:hover img { opacity: 1; }
+  .facade .play {
+    position: absolute; left: 50%; top: 50%; width: 76px; height: 76px; margin: -38px 0 0 -38px;
+    border-radius: 50%; background: linear-gradient(135deg, var(--team-a), var(--team-b));
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .45), 0 0 40px -6px var(--glow); transition: transform .2s ease;
+  }
+  .facade .play::after {
+    content: ""; position: absolute; left: 30px; top: 23px;
+    border-style: solid; border-width: 15px 0 15px 23px; border-color: transparent transparent transparent #fff;
+  }
+  .facade:hover .play { transform: scale(1.06); }
+  .facade .cap {
+    position: absolute; left: 0; right: 0; bottom: 0; padding: 36px 14px 11px; text-align: left;
+    font-size: .9rem; font-weight: 700; line-height: 1.35; text-shadow: 0 1px 6px rgba(0, 0, 0, .8);
+    background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, .82) 55%);   /* đọc được kể cả khi ảnh bìa có chữ */
+  }
+  .facade .cap small { display: block; font-size: .78rem; font-weight: 500; opacity: .85; }
+  .empty {
+    display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted);
+    background: radial-gradient(circle at 50% 40%, #2a1734, #0b0810 70%);
+  }
+
+  /* ---------- chọn bài / video / ghế / màu lightstick ---------- */
+  .bar { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; margin: 12px auto 0; }
+  .songs {
+    display: flex; gap: 2px; max-width: 100%; overflow-x: auto; padding: 3px; scrollbar-width: none;
+    background: var(--glass); border: 1px solid var(--line); border-radius: 999px;
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  }
+  .songs::-webkit-scrollbar { display: none; }
+  .song {
+    flex: none; font: inherit; font-size: .85rem; font-weight: 700; line-height: 1.25; min-height: 38px; padding: 5px 15px;
+    border: 0; border-radius: 999px; background: transparent; color: var(--muted); cursor: pointer; white-space: nowrap;
+  }
+  .song small { display: block; font-size: .7rem; font-weight: 500; opacity: .8; }
+  .song:hover { color: var(--text); }
+  .song[aria-selected="true"] { background: linear-gradient(135deg, var(--team-a), var(--team-b)); color: #fff; }
+  .picks { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .pick {
+    display: inline-flex; align-items: center; gap: 6px; min-width: 0; padding: 3px 3px 3px 12px;
+    background: var(--glass); border: 1px solid var(--line); border-radius: 999px;
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    font-size: .78rem; font-weight: 600; color: var(--muted);
+  }
+  .pick select {
+    min-width: 0; max-width: 100%; font: inherit; font-size: .85rem; font-weight: 700; color: var(--text);
+    min-height: 34px; padding: 5px 30px 5px 12px; border: 0; border-radius: 999px; cursor: pointer;
+    appearance: none; -webkit-appearance: none; text-overflow: ellipsis;
+    background: var(--surface-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23b9adc2' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center;
+  }
+  .pick select option { background: var(--surface); color: var(--text); }
+  .pill {
+    flex: none; width: 42px; height: 42px; padding: 0; font-size: 1.05rem; line-height: 1; cursor: pointer;
+    border: 1px solid var(--line); border-radius: 50%; background: var(--glass); color: var(--text);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  }
+
+  /* ---------- trò chơi gõ nhịp ---------- */
+  .game { width: min(100%, 760px, calc((100svh - 400px) * 16 / 9)); min-width: min(100%, 420px); margin: 12px auto 0; }
+  .hud { display: flex; align-items: baseline; gap: 10px; min-height: 28px; padding: 0 8px; }
+  .score { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; text-shadow: 0 0 14px var(--stick); }
+  .combo { font-size: .85rem; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .judge { margin-left: auto; font-size: 1rem; font-weight: 800; letter-spacing: .02em; opacity: 0; }
+  .judge[data-j="perfect"] { color: #ffd36e; text-shadow: 0 0 12px rgba(255, 211, 110, .8); }
+  .judge[data-j="great"] { color: var(--stick); text-shadow: 0 0 12px var(--stick); }
+  .judge[data-j="good"] { color: #8fd3ff; }
+  .judge[data-j="miss"] { color: var(--muted); }
+  .lane-wrap {
+    position: relative; height: 66px; border-radius: 999px; overflow: hidden;
+    background: linear-gradient(90deg, rgba(255, 255, 255, .1), var(--glass) 30%);
+    border: 1px solid var(--line); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  }
+  #lane { display: block; width: 100%; height: 100%; touch-action: manipulation; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .start {
+    position: absolute; inset: 0; margin: auto; height: 46px; width: fit-content; padding: 0 22px;
+    display: inline-flex; align-items: center; gap: 10px; font: inherit; font-size: .95rem; font-weight: 800;
+    border: 0; border-radius: 999px; cursor: pointer; color: #fff;
+    background: linear-gradient(135deg, var(--team-a), var(--team-b)); box-shadow: 0 6px 22px -6px var(--team-a);
+  }
+  .start small { font-size: .75rem; font-weight: 600; opacity: .85; }
+  .start small:empty { display: none; }
+  .start:disabled { cursor: progress; opacity: .7; }
+  .howto { margin: 6px 0 0; text-align: center; font-size: .78rem; color: var(--muted); }
+  .results {
+    display: flex; align-items: center; gap: 14px; margin: 10px auto 0; max-width: 560px; padding: 12px 16px;
+    border-radius: 16px; background: var(--glass); border: 1px solid var(--line);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); font-size: .85rem; color: var(--muted);
+  }
+  .results .grade {
+    flex: none; width: 54px; height: 54px; display: grid; place-items: center; border-radius: 50%;
+    font-size: 1.6rem; font-weight: 800; color: #fff; background: linear-gradient(135deg, var(--team-a), var(--team-b));
+  }
+  .results strong { color: var(--text); font-size: 1.05rem; }
+  .results p { margin: 0; line-height: 1.5; }
+  .results .best { color: #ffd36e; font-weight: 700; }
+  @media (min-width: 641px) { .game { max-width: calc(100vw - 300px); } }   /* chừa chỗ cho lightstick bên phải */
+
+  /* ---------- căn nhịp ---------- */
+  .sync { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 10px; }
+  .ghost {
+    flex: none; font: inherit; font-size: .82rem; font-weight: 700; min-height: 34px; padding: 5px 14px; cursor: pointer;
+    border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--text);
+  }
+  .offset { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 10px; font-weight: 600; color: var(--text); }
+  .offset output { min-width: 56px; font-variant-numeric: tabular-nums; color: var(--accent); }
+  .offset input { flex: 1 1 200px; accent-color: var(--accent); }
+
+  /* ---------- thanh năng lượng + lời nhắc ---------- */
+  .cheerbox { max-width: 560px; margin: 16px auto 0; text-align: center; }
+  .meta { display: flex; justify-content: space-between; gap: 12px; font-size: .8rem; font-weight: 600; color: var(--muted); }
+  .count { color: var(--text); font-variant-numeric: tabular-nums; }
+  .energy { height: 9px; margin-top: 5px; border-radius: 999px; background: rgba(255, 255, 255, .12); overflow: hidden; }
+  .energy i {
+    display: block; height: 100%; width: 0; border-radius: inherit;
+    background: linear-gradient(90deg, var(--team-b), var(--team-a), #ffd36e);
+    box-shadow: 0 0 16px var(--team-a);
+  }
+  .hint { margin: 10px 0 0; font-size: .88rem; color: var(--muted); text-shadow: 0 1px 6px rgba(0, 0, 0, .7); }
+  .say {
+    min-height: 1.5em; margin: 6px 0 0; font-size: 1.15rem; font-weight: 700; color: #fff;
+    text-shadow: 0 0 18px var(--team-a), 0 1px 4px rgba(0, 0, 0, .8);
+  }
+  .about {
+    max-width: 560px; margin: 18px auto 0; padding: 10px 14px; border-radius: 14px; font-size: .85rem; color: var(--muted);
+    background: var(--glass); border: 1px solid var(--line);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  }
+  .about summary { cursor: pointer; font-weight: 600; color: var(--text); }
+  .about p { margin: 8px 0 0; }
+  .about a { color: var(--accent); }
+
+  /* ---------- lightstick của người xem: bấm / gõ phím Space, F, J để cổ vũ ---------- */
+  .stick {
+    position: fixed; z-index: 3; right: max(18px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom));
+    width: 112px; height: 200px; padding: 0; border: 0; background: none; color: var(--stick); cursor: pointer;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
+  }
+  .stick svg { display: block; width: 100%; height: 100%; overflow: visible; transform-origin: 50% 95%; }
+  .stick .swing { transform-box: view-box; transform-origin: 50px 172px; }   /* xoay quanh chân cán */
+  .stick .halo { transform-box: fill-box; transform-origin: center; opacity: .55; }
+  .stick:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 18px; }
+  .stick .lbl {
+    position: absolute; right: calc(100% + 6px); bottom: 26px; padding: 4px 11px; border-radius: 999px; white-space: nowrap;
+    font-size: .78rem; font-weight: 600; color: var(--text); background: var(--glass); border: 1px solid var(--line);
+  }
+  /* ---------- mèo nhảy theo nhịp (vẽ riêng cho trang này; cheer.js điều khiển từng bộ phận theo phách của bài) ---------- */
+  .cat {
+    position: fixed; z-index: 3; left: max(30px, env(safe-area-inset-left)); bottom: max(6px, env(safe-area-inset-bottom));
+    width: 204px; pointer-events: none; color: var(--stick); filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .45));
+  }
+  .cat svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .cat g { transform-box: view-box; will-change: transform; }
+  /* chỉ thân mèo bắt chuột / chạm (bấm vào = vuốt ve); quầng sáng và vệt sáng thì không */
+  .cat-all { transform-origin: 100px 206px; pointer-events: auto; cursor: pointer; touch-action: manipulation; }
+  .cat-glow, .cat-ghost { pointer-events: none; }
+  .cat-shadow, .cat-spot { transform-box: view-box; transform-origin: 100px 207px; }
+  .cat-body { transform-origin: 100px 203px; }
+  .cat-head { transform-origin: 100px 134px; }
+  .cat-ear-l { transform-origin: 66px 62px; }
+  .cat-ear-r { transform-origin: 134px 62px; }
+  .cat-eyes { transform-origin: 100px 96px; }
+  .cat-eye-l { transform-origin: 74px 96px; }
+  .cat-eye-r { transform-origin: 126px 96px; }
+  .cat .cat-pupils { transform-box: fill-box; transform-origin: center; }
+  .cat-wh-l { transform-origin: 40px 104px; }
+  .cat-wh-r { transform-origin: 160px 104px; }
+  .cat-sing { transform-origin: 100px 116px; }
+  .cat-bow { transform-origin: 146px 44px; }
+  .cat-bell { transform-origin: 100px 139px; }
+  .cat-t1 { transform-origin: 126px 188px; }
+  .cat-t2 { transform-origin: 154px 176px; }
+  .cat-t3 { transform-origin: 152px 150px; }
+  .cat-arm-l { transform-origin: 76px 150px; }
+  .cat-arm-r { transform-origin: 124px 150px; }
+  .cat-stick { transform-origin: 50px 143px; }
+  .cat-glow { transform-origin: 26px 92px; }
+  /* biểu cảm (cheer.js gắn class): happy = mắt cười, star = mắt ngôi sao, oops = mắt > < và giọt mồ hôi,
+     wink = nháy một mắt, sleep = nhắm mắt (ngủ gật / ngáp) */
+  .cat-happy, .cat-star, .cat-oops, .cat-sleep, .cat-wink, .cat-sweat { display: none; }
+  .cat.happy .cat-happy, .cat.star .cat-star, .cat.oops .cat-oops, .cat.oops .cat-sweat,
+  .cat.sleep .cat-sleep, .cat.wink .cat-wink { display: inline; }
+  .cat.happy .cat-eyes, .cat.star .cat-eyes, .cat.oops .cat-eyes, .cat.sleep .cat-eyes, .cat.wink .cat-eye-r { display: none; }
+  /* bong bóng lời thoại của mèo */
+  .cat-say {
+    position: absolute; left: 60%; bottom: 84%; transform-origin: 0 100%; padding: 3px 10px; border-radius: 13px 13px 13px 3px;
+    background: #fff; color: #3a1f33; border: 2px solid var(--stick); font-size: .84rem; font-weight: 700; line-height: 1.35; white-space: nowrap;
+  }
+  .cat-say[hidden] { display: none; }
+  /* hạt bay ra từ mèo: nốt nhạc khi nhạc đang chạy, tim khi được vuốt, tia sáng từ đèn tim, chữ z lúc ngủ */
+  .cnote {
+    position: fixed; left: 0; top: 0; z-index: 3; pointer-events: none; font-size: 24px; font-weight: 700; line-height: 1;
+    color: #fff; text-shadow: 0 0 8px var(--stick), 0 0 3px var(--stick);
+  }
+  .cnote.cz { font-size: 19px; font-style: italic; }
+  .cnote.cstar { font-size: 15px; color: #fff3c4; }
+  .cnote.cheart { font-size: 21px; }
+  @media (max-width: 1100px) { .cat { width: 150px; left: max(16px, env(safe-area-inset-left)); } }
+  .heart {
+    position: fixed; left: 0; top: 0; z-index: 3; width: 30px; height: 28px; pointer-events: none;
+    color: var(--stick); filter: drop-shadow(0 0 6px var(--stick));
+  }
+  .heart svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .heart path { fill: currentColor; stroke: #fff; stroke-width: 7; stroke-linejoin: round; }
+
+  /* ---------- máy tính / máy tính bảng: cả trang vừa khít một màn hình, không phải cuộn ----------
+     Đầu trang ở trên; phần còn lại chia cho video (.fit co giãn theo chiều cao còn trống, video giữ 16:9 bên trong)
+     và các khối bên dưới. Chỉ khi màn hình quá thấp (video đã ở cỡ nhỏ nhất) trang mới dài hơn màn hình. */
+  @media (min-width: 641px) {
+    body { display: flex; flex-direction: column; }
+    .stagebox { flex: 1 0 auto; display: flex; flex-direction: column; width: 100%; padding-bottom: 14px; }
+    .fit { flex: 1 1 236px; min-height: 236px; max-height: 430px; container-type: size; }
+    .screen { width: min(100cqw, 760px, calc((100cqh - 2px) * 16 / 9)); min-width: 0; }
+    .bar, .cheerbox, .about { width: 100%; }
+    .game { width: min(100%, 760px); min-width: 0; }
+  }
+  /* chừa hai góc dưới cho mèo (trái) và lightstick (phải): màn hình hẹp thì thu hộp chữ, màn hình rộng (mèo to) thì thu làn nốt */
+  @media (min-width: 641px) and (max-width: 899px) { .cheerbox, .about, .results { max-width: max(260px, calc(100vw - 400px)); } }
+  @media (min-width: 1100px) { .game { max-width: calc(100vw - 500px); } }
+  @media (min-width: 641px) and (max-height: 720px) {
+    .bar, .game, .cheerbox, .about { margin-top: 8px; }
+    #game:not([hidden]) ~ .cheerbox .hint { display: none; }   /* màn hình thấp: dòng hướng dẫn dưới làn nốt đã nói đủ */
+  }
+
+  @media (max-width: 640px) {
+    .screen { width: auto; min-width: 0; margin: 0 calc(-1 * max(16px, env(safe-area-inset-left))); border-radius: 0; }
+    .bar { margin-top: 10px; gap: 7px; }
+    /* mỗi ô chọn rộng ít nhất 140px: 3 ô thì xuống 2 hàng (Video · Ghế / Lightstick · 🔊), 2 ô thì vừa 1 hàng */
+    .picks { width: 100%; gap: 6px; }
+    .pick { flex: 1 1 140px; padding: 2px; }
+    .pick > span { display: none; }
+    .pick select { width: 100%; padding-left: 10px; padding-right: 24px; background-position: right 9px center; font-size: .8rem; }
+    .lane-wrap { height: 58px; }
+    /* chừa lề phải cho lightstick (nút cố định góc dưới phải) khỏi che chữ */
+    .results, .cheerbox, .about { margin-right: 88px; margin-left: 82px; }
+    .cat { width: 90px; left: 8px; }
+    .cat-say { left: 46%; padding: 2px 7px; border-width: 1.5px; font-size: .72rem; }
+    .cnote { font-size: 17px; }
+    .cnote.cz, .cnote.cheart { font-size: 15px; }
+    .cnote.cstar { font-size: 12px; }
+    .stick { width: 92px; height: 164px; right: max(10px, env(safe-area-inset-right)); }
+    .stick .lbl { display: none; }
+    .stagebox { padding-bottom: 28px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="hall" aria-hidden="true"></canvas>
+<script>
+  // Dải chữ chạy + đầu trang + hộp donate + đổi ngôn ngữ: dùng chung với mọi trang
+  // (../site.js, chữ giao diện ở ../i18n.js, cấu hình ở ../videos.js)
+  (function () { var v = Date.now(); document.write('<script src="../videos.js?v=' + v + '"><\/script><script src="../i18n.js?v=' + v + '"><\/script><script src="../site.js?v=' + v + '"><\/script><script src="songs.js?v=' + v + '"><\/script>' +
+    '<script type="module" src="cheer.js?v=' + v + '"><\/script>'); })();
+</script>
+
+<!-- data-i18n / data-i18n-attr: chữ đổi theo ngôn ngữ (bảng chữ ở ../i18n.js) -->
+<main class="wrap stagebox" id="main" tabindex="-1">
+  <h1 class="sr-only" data-i18n="c.doc">Sảnh cổ vũ LenaMiu</h1>
+  <!-- .fit: khung chứa video; trên màn hình rộng nó co giãn theo chiều cao còn trống để cả trang vừa một màn hình -->
+  <div class="fit"><div class="screen" id="screen"></div></div>
+
+  <nav class="bar" data-i18n-attr="aria-label:c.controls" aria-label="Chọn bài, video và chỗ ngồi">
+    <div class="songs" id="songs" role="tablist" data-i18n-attr="aria-label:c.songs" aria-label="Chọn bài hát"></div>
+    <div class="picks">
+      <label class="pick" id="versionPick"><span data-i18n="c.video">Video</span><select id="version"></select></label>
+      <label class="pick"><span data-i18n="c.seat">Ghế</span><select id="seat"></select></label>
+      <label class="pick"><span data-i18n="c.stick">Lightstick</span><select id="team"></select></label>
+      <label class="pick" id="levelPick" hidden><span data-i18n="c.mode">Chế độ</span><select id="level"></select></label>
+      <button class="pill" id="sound" type="button"></button>
+    </div>
+  </nav>
+
+  <!-- trò chơi gõ nhịp: trái tim chạy từ phải sang, gõ khi chạm vòng bên trái (vẽ bằng canvas trong cheer.js) -->
+  <section class="game" id="game" hidden data-i18n-attr="aria-label:c.gameAria" aria-label="Trò chơi gõ nhịp">
+    <div class="hud">
+      <b class="score" id="score">0</b><span class="combo" id="combo"></span>
+      <span class="judge" id="judge" aria-hidden="true"></span>
+    </div>
+    <div class="lane-wrap">
+      <canvas id="lane" aria-hidden="true"></canvas>
+      <button class="start" id="start" type="button"><span id="startLabel"></span><small id="startBest"></small></button>
+    </div>
+    <p class="howto" id="howto"></p>
+    <div class="results" id="results" role="status" hidden></div>
+  </section>
+
+  <section class="cheerbox" data-i18n-attr="aria-label:c.energy" aria-label="Năng lượng khán đài">
+    <div class="meta"><span data-i18n="c.energy">Năng lượng khán đài</span><span class="count" id="count"></span></div>
+    <div class="energy" id="energy" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
+         data-i18n-attr="aria-label:c.energy" aria-label="Năng lượng khán đài"><i></i></div>
+    <p class="say" id="say" aria-live="polite"></p>
+    <p class="hint" id="hint" data-i18n="c.hint">Bấm ▶ để xem, rồi gõ lightstick theo nhạc để cả sảnh cùng cổ vũ.</p>
+  </section>
+
+  <details class="about">
+    <summary data-i18n="c.timing">Căn nhịp &amp; giới thiệu</summary>
+    <div class="sync">
+      <button type="button" class="ghost" id="syncBtn" data-i18n="c.sync">Căn nhịp bằng tai</button>
+      <span id="syncOut" data-i18n="c.syncHelp">Nốt lệch so với nhạc? Bấm phát video rồi bấm nút này, gõ theo phách nhạc 8 lần.</span>
+    </div>
+    <label class="offset"><span data-i18n="c.offset">Độ trễ</span> <output id="offOut">0 ms</output>
+      <input type="range" id="offset" min="-300" max="300" step="5" value="0"></label>
+    <p data-i18n="c.offsetHelp">Nốt tới muộn hơn nhạc? Kéo sang trái. Sớm hơn? Kéo sang phải.</p>
+    <p data-i18n="c.aboutText">Trang do fan làm cho vui. Video thuộc về kênh gốc; sảnh và đám đông được vẽ riêng cho trang này. Số lần cổ vũ chỉ lưu trên máy bạn.</p>
+    <p><a href="../" data-i18n="c.back">← Về trang video LenaMiu Sub</a></p>
+  </details>
+</main>
+
+<!-- mèo nhảy theo nhịp bài hát: tay cầm lightstick tim + nơ + vòng cổ đổi màu theo lightstick người xem, tai hồng / tím như hai phe.
+     Mỗi nhóm cat-* là một bộ phận cheer.js điều khiển riêng; bấm vào mèo để vuốt ve. -->
+<div class="cat" id="cat" aria-hidden="true">
+  <svg viewBox="0 0 200 220">
+    <defs>
+      <radialGradient id="catFur" cx=".4" cy=".3" r=".9"><stop offset="0" stop-color="#ffffff"/><stop offset=".6" stop-color="#fff6fa"/><stop offset="1" stop-color="#ffdcea"/></radialGradient>
+      <linearGradient id="catIris" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#33194a"/><stop offset=".5" stop-color="#7a3fc0"/><stop offset="1" stop-color="#ff8fd0"/></linearGradient>
+      <linearGradient id="catEarL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffb9d2"/><stop offset="1" stop-color="#ff7fae"/></linearGradient>
+      <linearGradient id="catEarR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d6c2ff"/><stop offset="1" stop-color="#9d7bff"/></linearGradient>
+      <radialGradient id="catGlow"><stop offset="0" stop-color="currentColor" stop-opacity=".85"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></radialGradient>
+      <radialGradient id="catHeart" cx=".5" cy=".4" r=".7"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#fff" stop-opacity=".8"/><stop offset="1" stop-color="currentColor"/></radialGradient>
+      <radialGradient id="catBell" cx=".38" cy=".32" r=".8"><stop offset="0" stop-color="#fff6cf"/><stop offset=".5" stop-color="#ffcf5a"/><stop offset="1" stop-color="#d99a1c"/></radialGradient>
+      <radialGradient id="catSpot"><stop offset="0" style="stop-color:var(--glow)" stop-opacity=".6"/><stop offset="1" style="stop-color:var(--glow)" stop-opacity="0"/></radialGradient>
+    </defs>
+    <ellipse class="cat-spot" cx="100" cy="207" rx="84" ry="13" fill="url(#catSpot)"/>
+    <g class="cat-shadow"><ellipse cx="100" cy="207" rx="45" ry="6.5" fill="#000" opacity=".42"/></g>
+    <g class="cat-spark" opacity="0">
+      <path d="M18 44l2.5 7.5 7.5 2.5-7.5 2.5-2.5 7.5-2.5-7.5-7.5-2.5 7.5-2.5z" fill="#ffd36e"/>
+      <path d="M184 66l1.8 5.4 5.4 1.8-5.4 1.8-1.8 5.4-1.8-5.4-5.4-1.8 5.4-1.8z" fill="#fff"/>
+      <path d="M172 14l1.5 4.5 4.5 1.5-4.5 1.5-1.5 4.5-1.5-4.5-4.5-1.5 4.5-1.5z" fill="#ffd36e"/>
+      <path d="M30 150l1.4 4.2 4.2 1.4-4.2 1.4-1.4 4.2-1.4-4.2-4.2-1.4 4.2-1.4z" fill="#fff"/>
+    </g>
+    <g class="cat-all" stroke="#d9a9bf" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+      <!-- đuôi 3 khúc lồng nhau (viền vẽ riêng một lượt bên dưới để khớp nối không lộ viền) -->
+      <g class="cat-t1" fill="none" stroke-width="16"><path d="M126 188Q146 192 154 176"/><g class="cat-t2"><path d="M154 176Q160 162 152 150"/><g class="cat-t3"><path d="M152 150Q150 138 160 132"/></g></g></g>
+      <g class="cat-t1" fill="none" stroke="#fffafc" stroke-width="12"><path d="M126 188Q146 192 154 176"/><g class="cat-t2"><path d="M154 176Q160 162 152 150"/><g class="cat-t3"><path d="M152 150Q150 138 160 132" stroke="#ff9dc4"/></g></g></g>
+      <g class="cat-foot-l"><ellipse cx="82" cy="202" rx="15" ry="8.5" fill="url(#catFur)"/><path d="M76 205v-4M83 206v-4" stroke-width="1.6"/></g>
+      <g class="cat-foot-r"><ellipse cx="118" cy="202" rx="15" ry="8.5" fill="url(#catFur)"/><path d="M117 206v-4M124 205v-4" stroke-width="1.6"/></g>
+      <g class="cat-body">
+        <path d="M74 138C60 160 60 198 80 203H120C140 198 140 160 126 138Z" fill="url(#catFur)"/>
+        <ellipse cx="100" cy="178" rx="19" ry="21" fill="#fff" stroke="none"/>
+        <path d="M50 84C20 64 9 45 20 29c9-13 25-11 30 1 5-12 21-14 30-1 11 16 0 35-30 55z" transform="translate(92.3 167) scale(.155)" fill="#ffb3cf" stroke="none"/>
+      </g>
+      <path d="M72 133Q100 151 128 133" fill="none" stroke="currentColor" stroke-width="8.5"/>
+      <g class="cat-head">
+        <path d="M50 98 33 104 47 109 37 119 56 115ZM150 98 167 104 153 109 163 119 144 115Z" fill="url(#catFur)"/>
+        <g class="cat-ears">
+          <g class="cat-ear-l"><path d="M50 72 45 18 94 46Z" fill="url(#catFur)"/><path d="M57 60 54 31 81 47Z" fill="url(#catEarL)" stroke="none"/><path d="M61 57l3-9M68 58l2-7" stroke="#fff" stroke-width="2.2"/></g>
+          <g class="cat-ear-r"><path d="M150 72 155 18 106 46Z" fill="url(#catFur)"/><path d="M143 60 146 31 119 47Z" fill="url(#catEarR)" stroke="none"/><path d="M139 57l-3-9M132 58l-2-7" stroke="#fff" stroke-width="2.2"/></g>
+        </g>
+        <path d="M100 42C138 42 162 64 162 94C162 122 137 138 100 138C63 138 38 122 38 94C38 64 62 42 100 42Z" fill="url(#catFur)"/>
+        <!-- má hồng + ria: trượt theo khi quay đầu, ria vểnh lên khi hát -->
+        <g class="cat-cheeks">
+          <g class="cat-blush" stroke="none" style="opacity:.5"><ellipse cx="57" cy="114" rx="10.5" ry="6.2" fill="#ff8fb8"/><ellipse cx="143" cy="114" rx="10.5" ry="6.2" fill="#ff8fb8"/></g>
+          <g class="cat-wh-l"><path d="M40 100 22 96M40 107 21 109" stroke="#e0c2cf" stroke-width="1.6"/></g>
+          <g class="cat-wh-r"><path d="M160 100 178 96M160 107 179 109" stroke="#e0c2cf" stroke-width="1.6"/></g>
+        </g>
+        <!-- cả khuôn mặt trượt trong khuôn đầu khi liếc / quay đầu -->
+        <g class="cat-face">
+          <path d="M91 49v8M100 47v10M109 49v8" stroke="#ffd0e1" stroke-width="3.2"/>
+          <g class="cat-eyes" stroke="none">
+            <g class="cat-eye-l">
+              <ellipse cx="74" cy="96" rx="13" ry="15.5" fill="#2b1633"/><g class="cat-pupils"><ellipse cx="74" cy="97" rx="10.5" ry="13" fill="url(#catIris)"/><ellipse cx="74" cy="97.5" rx="5" ry="7.5" fill="#1a0d22"/></g><circle cx="69" cy="89" r="4.6" fill="#fff"/><circle cx="79.5" cy="103" r="2.3" fill="#fff" opacity=".9"/>
+              <path d="M60 91Q74 75 88 91" fill="none" stroke="#2b1633" stroke-width="3.2"/><path d="M61 90l-5.5-3.5" fill="none" stroke="#2b1633" stroke-width="2.6"/>
+            </g>
+            <g class="cat-eye-r">
+              <ellipse cx="126" cy="96" rx="13" ry="15.5" fill="#2b1633"/><g class="cat-pupils"><ellipse cx="126" cy="97" rx="10.5" ry="13" fill="url(#catIris)"/><ellipse cx="126" cy="97.5" rx="5" ry="7.5" fill="#1a0d22"/></g><circle cx="121" cy="89" r="4.6" fill="#fff"/><circle cx="131.5" cy="103" r="2.3" fill="#fff" opacity=".9"/>
+              <path d="M112 91Q126 75 140 91" fill="none" stroke="#2b1633" stroke-width="3.2"/><path d="M139 90l5.5-3.5" fill="none" stroke="#2b1633" stroke-width="2.6"/>
+            </g>
+          </g>
+          <path class="cat-happy" d="M61 100Q74 83 87 100M113 100Q126 83 139 100" fill="none" stroke="#2b1633" stroke-width="4.2"/>
+          <path class="cat-wink" d="M113 100Q126 83 139 100" fill="none" stroke="#2b1633" stroke-width="4.2"/>
+          <path class="cat-sleep" d="M62 96Q74 106 86 96M114 96Q126 106 138 96" fill="none" stroke="#2b1633" stroke-width="3.8"/>
+          <g class="cat-star" stroke="#fff" stroke-width="1.6">
+            <path d="M74 80 78.2 91.8 90 96 78.2 100.2 74 112 69.800 100.2 58 96 69.800 91.8Z" fill="#ffd36e"/>
+            <path d="M126 80 130.2 91.8 142 96 130.2 100.2 126 112 121.800 100.2 110 96 121.800 91.8Z" fill="#ffd36e"/>
+          </g>
+          <path class="cat-oops" d="M63 88 82 96 63 104M137 88 118 96 137 104" fill="none" stroke="#2b1633" stroke-width="4.2"/>
+          <path d="M95.5 107Q100 104.5 104.5 107L100 112Z" fill="#ff6fa3" stroke="none"/>
+          <g class="cat-sing" style="transform:scale(0)"><ellipse cx="100" cy="121" rx="6.5" ry="6.5" fill="#b52e63" stroke="#2b1633" stroke-width="2"/><ellipse cx="100" cy="124.5" rx="4" ry="2.6" fill="#ff8fb8" stroke="none"/></g>
+          <path d="M100 112V115M91 116Q95.5 122 100 115Q104.5 122 109 116" fill="none" stroke="#2b1633" stroke-width="2.2"/>
+        </g>
+        <g class="cat-bow" stroke="#fff" stroke-width="1.6"><path d="M146 44 125 31Q120 44 127 55ZM146 44 168 33Q173 46 165 57Z" fill="currentColor"/><circle cx="146" cy="44" r="6.2" fill="currentColor"/></g>
+        <path class="cat-sweat" d="M176 50Q185 63 176 68Q167 63 176 50Z" fill="#9fdcff" stroke="#5fb6e8" stroke-width="1.3"/>
+      </g>
+      <g class="cat-bell"><circle cx="100" cy="147.5" r="7.5" fill="url(#catBell)" stroke="#b8811a" stroke-width="1.4"/><path d="M95.5 148.5h9M100 148.5v4" stroke="#8a5c0f" stroke-width="1.4"/><circle cx="97.5" cy="144.8" r="1.8" fill="#fff" opacity=".85" stroke="none"/></g>
+      <g class="cat-arm-r">
+        <ellipse cx="140" cy="146" rx="17" ry="9.5" fill="url(#catFur)" transform="rotate(-25 140 146)"/>
+        <ellipse cx="150.5" cy="140.5" rx="4.2" ry="3.4" fill="#ffb3cf" stroke="none" transform="rotate(-25 150.5 140.5)"/>
+        <circle cx="149" cy="134.5" r="1.7" fill="#ffb3cf" stroke="none"/><circle cx="154" cy="134" r="1.7" fill="#ffb3cf" stroke="none"/><circle cx="157.5" cy="137.5" r="1.7" fill="#ffb3cf" stroke="none"/>
+      </g>
+      <!-- vệt sáng: hai bóng tim đi sau đèn tim khi vung nhanh -->
+      <g class="cat-ghost" stroke="none" style="opacity:0"><path d="M50 84C20 64 9 45 20 29c9-13 25-11 30 1 5-12 21-14 30-1 11 16 0 35-30 55z" transform="translate(9 75) scale(.34)" fill="currentColor"/></g>
+      <g class="cat-ghost" stroke="none" style="opacity:0"><path d="M50 84C20 64 9 45 20 29c9-13 25-11 30 1 5-12 21-14 30-1 11 16 0 35-30 55z" transform="translate(9 75) scale(.34)" fill="currentColor"/></g>
+      <g class="cat-arm-l">
+        <g class="cat-stick">
+          <path d="M48 142 30 104" stroke="#f4eef8" stroke-width="5"/>
+          <g class="cat-glow" stroke="none"><circle cx="26" cy="92" r="30" fill="url(#catGlow)"/></g>
+          <path class="cat-lamp" d="M50 84C20 64 9 45 20 29c9-13 25-11 30 1 5-12 21-14 30-1 11 16 0 35-30 55z" transform="translate(9 75) scale(.34)" fill="url(#catHeart)" stroke="#fff" stroke-width="8"/>
+        </g>
+        <ellipse cx="60" cy="146" rx="17" ry="9.5" fill="url(#catFur)" transform="rotate(25 60 146)"/>
+      </g>
+    </g>
+  </svg>
+  <span class="cat-say" id="catSay" hidden></span>
+</div>
+
+<!-- lightstick của người xem (vẽ riêng cho trang này): đầu hình trái tim, màu theo phe đã chọn -->
+<button class="stick" id="stick" type="button" data-i18n-attr="aria-label:c.tap" aria-label="Cổ vũ: gõ lightstick (hoặc bấm Space, F, J)">
+  <span class="lbl" aria-hidden="true"><span data-i18n="c.tapShort">Gõ lightstick</span> · Space</span>
+  <svg viewBox="0 0 100 180" aria-hidden="true">
+    <defs>
+      <radialGradient id="stickHalo"><stop offset="0" stop-color="currentColor" stop-opacity=".9"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></radialGradient>
+      <radialGradient id="stickHeart" cx=".5" cy=".42" r=".62"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#fff" stop-opacity=".85"/><stop offset="1" stop-color="currentColor"/></radialGradient>
+      <linearGradient id="stickGrip" x1="0" x2="1"><stop offset="0" stop-color="#3a3044"/><stop offset=".45" stop-color="#5a4d66"/><stop offset="1" stop-color="#241c2b"/></linearGradient>
+    </defs>
+    <g class="swing">
+      <circle class="halo" cx="50" cy="50" r="54" fill="url(#stickHalo)"/>
+      <path d="M50 84C20 64 9 45 20 29c9-13 25-11 30 1 5-12 21-14 30-1 11 16 0 35-30 55z" fill="url(#stickHeart)" stroke="#fff" stroke-opacity=".9" stroke-width="2.5"/>
+      <rect x="42" y="82" width="16" height="10" rx="3" fill="#e9e3ef"/>
+      <rect x="39" y="90" width="22" height="84" rx="11" fill="url(#stickGrip)" stroke="#6b5c78" stroke-width="1.5"/>
+      <circle cx="50" cy="106" r="4.5" fill="currentColor"/>
+      <path d="M43 128h14M43 140h14M43 152h14" stroke="#fff" stroke-opacity=".14" stroke-width="2" stroke-linecap="round"/>
+    </g>
+  </svg>
+</button>
+
+</body>
+</html>
