@@ -242,6 +242,8 @@
   .stick svg { display: block; width: 100%; height: 100%; overflow: visible; transform-origin: 50% 95%; }
   .stick .swing { transform-box: view-box; transform-origin: 50px 172px; }   /* xoay quanh chân cán */
   .stick .halo { transform-box: fill-box; transform-origin: center; opacity: .55; }
+  .stick .stick-core { transform-box: fill-box; transform-origin: center; opacity: .75; }
+  .stick svg { filter: drop-shadow(0 8px 14px rgba(0, 0, 0, .55)); }
   .stick:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 18px; }
   .stick .lbl {
     position: absolute; right: calc(100% + 6px); bottom: 26px; padding: 4px 11px; border-radius: 999px; white-space: nowrap;
@@ -645,22 +647,50 @@
   <span class="cat-say" id="catSay" hidden></span>
 </div>
 
-<!-- lightstick của người xem (vẽ riêng cho trang này): đầu hình trái tim, màu theo phe đã chọn -->
+<!-- lightstick của người xem (vẽ riêng cho trang này): đầu trái tim mica pha lê có lõi sáng (nhịp theo phách, loé khi gõ),
+     khoen kim loại, cán trắng ngọc trai có sọc màu phe + nút nguồn sáng, dây đeo. Màu theo phe đã chọn (currentColor = --stick). -->
 <button class="stick" id="stick" type="button" data-i18n-attr="aria-label:c.tap" aria-label="Cổ vũ: gõ lightstick (hoặc bấm Space, F, J)">
   <span class="lbl" aria-hidden="true"><span data-i18n="c.tapShort">Gõ lightstick</span> · Space</span>
   <svg viewBox="0 0 100 180" aria-hidden="true">
     <defs>
-      <radialGradient id="stickHalo"><stop offset="0" stop-color="currentColor" stop-opacity=".9"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></radialGradient>
-      <radialGradient id="stickHeart" cx=".5" cy=".42" r=".62"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#fff" stop-opacity=".85"/><stop offset="1" stop-color="currentColor"/></radialGradient>
-      <linearGradient id="stickGrip" x1="0" x2="1"><stop offset="0" stop-color="#3a3044"/><stop offset=".45" stop-color="#5a4d66"/><stop offset="1" stop-color="#241c2b"/></linearGradient>
+      <radialGradient id="stickHalo"><stop offset="0" stop-color="currentColor" stop-opacity=".9"/><stop offset=".55" stop-color="currentColor" stop-opacity=".28"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></radialGradient>
+      <radialGradient id="stickBody" cx=".5" cy=".46" r=".62"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".3" stop-color="currentColor" stop-opacity=".92"/><stop offset="1" stop-color="currentColor" stop-opacity=".62"/></radialGradient>
+      <radialGradient id="stickShade" cx=".4" cy=".34" r=".78"><stop offset=".5" stop-color="#1c0618" stop-opacity="0"/><stop offset="1" stop-color="#1c0618" stop-opacity=".5"/></radialGradient>
+      <radialGradient id="stickCore"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#fff" stop-opacity=".7"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+      <linearGradient id="stickRim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#fff" stop-opacity=".3"/><stop offset="1" stop-color="#fff" stop-opacity=".75"/></linearGradient>
+      <linearGradient id="stickChrome" x1="0" x2="1"><stop offset="0" stop-color="#7d7589"/><stop offset=".18" stop-color="#f6f3fa"/><stop offset=".36" stop-color="#b3abbf"/><stop offset=".58" stop-color="#fff"/><stop offset=".8" stop-color="#958ea2"/><stop offset="1" stop-color="#565064"/></linearGradient>
+      <linearGradient id="stickGrip" x1="0" x2="1"><stop offset="0" stop-color="#bdb3c9"/><stop offset=".2" stop-color="#fff"/><stop offset=".5" stop-color="#f2edf6"/><stop offset=".8" stop-color="#c8bfd2"/><stop offset="1" stop-color="#8f85a0"/></linearGradient>
+      <clipPath id="stickClip"><path d="M50 84C20 64 9 45 20 29c9-13 25-11 30 1 5-12 21-14 30-1 11 16 0 35-30 55z"/></clipPath>
     </defs>
     <g class="swing">
-      <circle class="halo" cx="50" cy="50" r="54" fill="url(#stickHalo)"/>
-      <path d="M50 84C20 64 9 45 20 29c9-13 25-11 30 1 5-12 21-14 30-1 11 16 0 35-30 55z" fill="url(#stickHeart)" stroke="#fff" stroke-opacity=".9" stroke-width="2.5"/>
-      <rect x="42" y="82" width="16" height="10" rx="3" fill="#e9e3ef"/>
-      <rect x="39" y="90" width="22" height="84" rx="11" fill="url(#stickGrip)" stroke="#6b5c78" stroke-width="1.5"/>
-      <circle cx="50" cy="106" r="4.5" fill="currentColor"/>
-      <path d="M43 128h14M43 140h14M43 152h14" stroke="#fff" stroke-opacity=".14" stroke-width="2" stroke-linecap="round"/>
+      <circle class="halo" cx="50" cy="50" r="58" fill="url(#stickHalo)"/>
+      <!-- dây đeo (sau cán) -->
+      <path d="M50 172c-2 6 1 11 6 12 5 1 8-3 7-8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="50" cy="173" r="2.6" fill="none" stroke="#d9d2e2" stroke-width="1.5"/>
+      <!-- cán: trắng ngọc trai, bóng dọc bên trái, sọc màu phe, nút nguồn sáng, vân chống trượt, đáy kim loại -->
+      <rect x="40.5" y="95" width="19" height="73" rx="9.5" fill="url(#stickGrip)" stroke="#857b95" stroke-width=".8"/>
+      <rect x="40.5" y="116" width="19" height="3.2" fill="currentColor"/>
+      <circle cx="50" cy="106" r="5" fill="#2a2132"/>
+      <circle class="stick-led" cx="50" cy="106" r="3.2" fill="none" stroke="currentColor" stroke-width="1.7"/>
+      <path d="M44.5 130h11M44.5 135h11M44.5 140h11M44.5 145h11M44.5 150h11" stroke="#a89eb6" stroke-width="1.2" stroke-linecap="round"/>
+      <rect x="43" y="98" width="2.6" height="66" rx="1.3" fill="#fff" opacity=".8"/>
+      <rect x="41.8" y="163" width="16.4" height="8" rx="3" fill="url(#stickChrome)"/>
+      <!-- khoen kim loại nối đầu và cán -->
+      <path d="M36.5 82.5h27l-3.5 8.5h-20z" fill="url(#stickChrome)"/>
+      <rect x="39.5" y="90" width="21" height="6" rx="2.2" fill="url(#stickChrome)" stroke="#6f6880" stroke-width=".5"/>
+      <!-- đầu trái tim mica: thân màu phe sáng dần vào giữa, lõi sáng (nhịp theo phách), vân pha lê, tim nhỏ bên trong, bóng tối ở mép -->
+      <g clip-path="url(#stickClip)">
+        <path d="M50 84C20 64 9 45 20 29c9-13 25-11 30 1 5-12 21-14 30-1 11 16 0 35-30 55z" fill="url(#stickBody)"/>
+        <circle class="stick-core" cx="50" cy="48" r="28" fill="url(#stickCore)"/>
+        <path d="M50 49 18 26M50 49 82 26M50 49 50 90M50 49 26 72M50 49 74 72M50 49 50 12" stroke="#fff" stroke-opacity=".16" stroke-width="1.1"/>
+        <path d="M50 84C20 64 9 45 20 29c9-13 25-11 30 1 5-12 21-14 30-1 11 16 0 35-30 55z" transform="translate(50 51) scale(.4) translate(-50 -52)" fill="#fff" fill-opacity=".18" stroke="#fff" stroke-width="5.5" stroke-opacity=".95"/>
+        <path d="M50 84C20 64 9 45 20 29c9-13 25-11 30 1 5-12 21-14 30-1 11 16 0 35-30 55z" fill="url(#stickShade)"/>
+      </g>
+      <!-- viền sáng + vệt bóng -->
+      <path d="M50 84C20 64 9 45 20 29c9-13 25-11 30 1 5-12 21-14 30-1 11 16 0 35-30 55z" fill="none" stroke="url(#stickRim)" stroke-width="2.4"/>
+      <path d="M22.5 37c1.6-7 8.6-11.4 15.6-8.8" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-opacity=".9"/>
+      <path d="M61 25.5c4.6-1.8 9.6-.6 12.6 2.6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-opacity=".7"/>
+      <circle cx="27" cy="45" r="1.6" fill="#fff" opacity=".85"/>
     </g>
   </svg>
 </button>

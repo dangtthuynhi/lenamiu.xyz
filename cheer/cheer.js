@@ -698,6 +698,7 @@ $('sound').addEventListener('click', () => {
 let energy = 0, shownEnergy = -1, lastCheer = -1e9, burstUntil = 0, sayTimer = 0, hearts = 0;
 const swingEl = document.querySelector('#stick .swing');
 const haloEl = document.querySelector('#stick .halo');
+const coreEl = document.querySelector('#stick .stick-core');   // lõi sáng trong đầu tim: nhịp theo phách, loé khi gõ
 
 function paintCount() { $('count').textContent = t('c.count', { n: total.toLocaleString(LM.locale) }); }
 paintCount();
@@ -747,6 +748,7 @@ function swing() {
     { transform: 'rotate(4deg)', offset: 0.7 }, { transform: 'rotate(0deg)' },
   ], { duration: reduced ? 1 : 320, easing: 'ease-out' });
   haloEl.animate([{ opacity: 1, transform: 'scale(1.3)' }, { opacity: 0.55, transform: 'scale(1)' }], { duration: 450, easing: 'ease-out' });
+  if (coreEl) coreEl.animate([{ opacity: 1, transform: 'scale(1.4)' }, { opacity: 1, transform: 'none' }], { duration: 380, easing: 'ease-out' });
 }
 // Mèo "sống" (bản 4). cheer.js điều khiển từng bộ phận của hình SVG #cat mỗi khung hình.
 //  - Nhạc đang chạy: 7 điệu nhảy (catPose), mỗi câu 8 phách đổi một điệu; cuối câu nhún lấy đà, đầu câu bật lên + nháy mắt.
@@ -1518,7 +1520,7 @@ function syncTap(ms) {
 prepareSong();
 
 /* ================= vòng lặp mỗi khung hình ================= */
-let last = performance.now(), shownGlow = -1;
+let last = performance.now(), shownGlow = -1, shownCore = -1;
 const screenGlow = $('screenGlow');
 function frame(now) {
   requestAnimationFrame(frame);
@@ -1534,6 +1536,9 @@ function frame(now) {
   const bp = reduced ? null : beatPos(st), pulse = bp == null ? 0 : (1 - (bp - Math.floor(bp))) ** 3;
   const glow = Math.min(1, 0.22 + 0.36 * pulse + 0.22 * Math.min(1, energy / 100) + (bursting ? 0.3 : 0));
   if (Math.abs(glow - shownGlow) > 0.01) { shownGlow = glow; screenGlow.style.opacity = glow.toFixed(2); }
+  // lõi lightstick: loé mỗi phách khi nhạc chạy, thở nhẹ khi chưa có nhạc
+  const core = reduced ? 0.85 : bp == null ? 0.72 + 0.1 * Math.sin(now / 650) : 0.55 + 0.45 * pulse;
+  if (coreEl && Math.abs(core - shownCore) > 0.02) { shownCore = core; coreEl.style.opacity = core.toFixed(2); }
   // năng lượng tự giảm khi không gõ; đang chơi thì giảm chậm hơn (nốt thưa vẫn giữ được)
   if (!bursting) energy = Math.max(0, energy - dt * (now - lastCheer > 800 ? (game.state === 'play' ? 3 : 7) : 1.5));
   const e = Math.round(bursting ? 100 : energy);
