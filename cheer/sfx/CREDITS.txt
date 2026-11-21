@@ -2,3 +2,7 @@ Mẫu âm thanh nhạc cụ trong thư mục này lấy từ VCSL — Versilian 
 https://github.com/sgossner/VCSL — giấy phép CC0 1.0 (phạm vi công cộng, dùng tự do).
 Đã cắt im lặng đầu, giữ 0,45–2,6 giây, đưa về cùng độ to, nén WebM/Opus 64 kbps (bản chính) và MP3 96 kbps (dự phòng), một kênh. Tên tệp = số nốt MIDI (60 = C4);
 riêng clap/1–5 là 5 lần vỗ tay khác nhau.
+
+chant/ (tiếng hô fanchant "Lena!" / "Miu!"): tạo bằng giọng đọc có sẵn của Windows (Microsoft David, Zira, Mark,
+Huihui, Yaoyao, Kangkang), mỗi mẫu chồng 16 giọng lệch cao độ / thời điểm + tiếng vang cho thành tiếng cả khán đài.
+Có giọng thu âm thật của fan thì thay 4 tệp lena1/lena2/miu1/miu2 (webm + mp3) là xong.

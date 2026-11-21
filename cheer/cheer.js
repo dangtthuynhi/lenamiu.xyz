@@ -23,7 +23,7 @@ const VIDEO_BASE = String(SITE.videoBase || '').trim().replace(/\/*$/, '/');
 
 const SEAT_KEY = 'lm_cheer_seat', TEAM_KEY = 'lm_cheer_team', SOUND_KEY = 'lm_cheer_sfx_on', TOTAL_KEY = 'lm_cheer_total';
 const LEVEL_KEY = 'lm_cheer_level', OFFSET_KEY = 'lm_cheer_offset', BEST_PREFIX = 'lm_cheer_best:', SFX_VOL_KEY = 'lm_cheer_sfxvol', INST_KEY = 'lm_cheer_inst';
-const BADGE_KEY = 'lm_cheer_badges', OUTFIT_KEY = 'lm_cheer_outfit', BURSTS_KEY = 'lm_cheer_bursts', SHAKE_KEY = 'lm_cheer_shake',
+const BADGE_KEY = 'lm_cheer_badges', OUTFIT_KEY = 'lm_cheer_outfit', BURSTS_KEY = 'lm_cheer_bursts', SHAKE_KEY = 'lm_cheer_shake', CHANT_KEY = 'lm_cheer_chant',
   BUZZ_KEY = 'lm_cheer_buzz', BOARD_KEY = 'lm_cheer_board';
 // cùng số ?v= với trang (GitHub Pages giữ file 10 phút: có ?v= thì sửa nốt là thấy ngay)
 const V = new URL(import.meta.url).searchParams.get('v') || String(Date.now());
@@ -1281,14 +1281,22 @@ let sfxVol = clampInt(store(SFX_VOL_KEY) ?? 40, 0, 100);
 const INSTS = ['harp', 'piano', 'glock', 'kalimba', 'marimba', 'clap'];
 let inst = INSTS.includes(store(INST_KEY)) ? store(INST_KEY) : 'harp';
 const SNAP_LATE = 0.07;     // gõ muộn hơn ô lưới không quá 70 ms vẫn phát ngay
-function audio() {
-  if (!soundOn || !sfxVol) return null;
+// bộ âm thanh dùng chung (tiếng gõ + tiếng hô fanchant); phải tạo trong một cú chạm / bấm phím của người xem
+function ensureCtx() {
   try {
     if (!ac) {
       ac = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
       [sfxOut, sfxWet] = sfxBus(ac);
       noise = noiseBuffer(ac);
     }
+    if (ac.state !== 'running') ac.resume();
+  } catch (e) { return null; }
+  return ac;
+}
+function audio() {
+  if (!soundOn || !sfxVol) return null;
+  try {
+    if (!ensureCtx()) return null;
     loadInst(ac, inst, V);
     sfxOut.gain.value = sfxVol / 100;
     sfxWet.gain.value = SFX_SET[inst].wet;
@@ -1568,7 +1576,10 @@ $('inst').addEventListener('change', (e) => {
   if (c) loadInst(c, inst, V).then(() => { if (inst === e.target.value) tapSound('big'); });   // nghe thử: gảy cả hợp âm
 });
 // đã bật tiếng: tạo sẵn bộ âm thanh ngay lần chạm / bấm phím đầu tiên trên trang, để tiếng gõ đầu tiên không bị trễ
-['pointerdown', 'keydown'].forEach((type) => addEventListener(type, () => { if (!ac) audio(); }, { capture: true, passive: true }));
+['pointerdown', 'keydown'].forEach((type) => addEventListener(type, () => {
+  if (!ac) audio();
+  if (chantVoice && ensureCtx()) loadChant(ac);
+}, { capture: true, passive: true }));
 
 // Bấm / chạm lightstick (pointerdown: không chờ nhấc tay, gõ nhanh được), hoặc phím Space, F, J ở bất cứ đâu
 const stick = $('stick');
@@ -2109,6 +2120,48 @@ setInterval(fanPoll, 15000);
 /* ---- fanchant: câu hô "Lena · Miu · Lena · Miu" hiện như karaoke trên màn hình video, sáng từng tiếng đúng phách ----
    file nốt (make-chart) ghi chant: [[phách, tiếng], …] ở các đoạn sôi động. Gõ đúng lúc một tiếng hô: thêm năng lượng. */
 let chantLines = null, chantChart = null, chantShown = '', chantLit = -1, chantLast = -1;
+// Tiếng hô "Lena!" / "Miu!" của cả khán đài (sfx/chant/: tiếng đọc của Windows trộn nhiều giọng + tiếng vang, xem sfx/CREDITS.txt).
+// Lúc câu hô hiện lên (trước tiếng đầu 2 phách) thì hẹn sẵn từng tiếng đúng phách bằng Web Audio; dừng / tua video thì huỷ.
+let chantVoice = store(CHANT_KEY) !== '0', chantBank = null, chantOut = null, chantNodes = [], chantPrevBeat = null, chantPick = 0;
+function loadChant(c) {
+  if (chantBank) return chantBank;
+  chantOut = c.createGain();
+  chantOut.gain.value = 0.6;
+  chantOut.connect(c.destination);
+  const one = (n, ext) => fetch('sfx/chant/' + n + '.' + ext + '?v=' + V).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(r.status)))
+    .then((ab) => new Promise((res, rej) => c.decodeAudioData(ab, res, rej)));
+  chantBank = Promise.all(['lena1', 'lena2', 'miu1', 'miu2'].map((n) => one(n, 'webm').catch(() => one(n, 'mp3'))
+    .then((buf) => ({ n, buf, at: onsetOf(buf) })).catch(() => null)))
+    .then((list) => { chantBank.list = list.filter(Boolean); return chantBank.list; });
+  return chantBank;
+}
+function chantStop() {
+  for (const s of chantNodes) { try { s.stop(); } catch (e) { /* đã phát xong */ } }
+  chantNodes = [];
+}
+function chantSchedule(L, beat) {
+  chantStop();
+  if (!chantVoice || !ac || !chantBank || !chantBank.list || !chantBank.list.length || !game.chart) return;
+  const P = 60 / game.chart.bpm;
+  for (const [b, syl] of L.syl) {
+    const delay = (b - beat) * P;
+    if (delay < 0.02) continue;
+    const want = /miu/i.test(syl) ? 'miu' : 'lena', opts = chantBank.list.filter((x) => x.n.startsWith(want));
+    if (!opts.length) continue;
+    const x = opts[chantPick++ % opts.length], src = ac.createBufferSource();
+    src.buffer = x.buf;
+    src.connect(chantOut);
+    src.start(ac.currentTime + delay, x.at);
+    chantNodes.push(src);
+  }
+}
+$('chantTog').checked = chantVoice;
+$('chantTog').addEventListener('change', (e) => {
+  chantVoice = e.target.checked;
+  store(CHANT_KEY, chantVoice ? '1' : '0');
+  if (chantVoice && ensureCtx()) loadChant(ac); else chantStop();
+  chantShown = '';            // hẹn lại câu đang hiện (nếu có)
+});
 function chantPrep() {
   if (chantChart === game.chart) return chantLines;
   chantChart = game.chart;
@@ -2127,10 +2180,14 @@ function chantFrame(beat) {
   const box = $('chant');
   const lines = beat == null ? null : chantPrep();
   const L = lines && lines.find((l) => beat >= l.start - 2 && beat <= l.end + 1);
+  // dừng nhạc / tua: huỷ tiếng hô đã hẹn
+  if (beat == null || (chantPrevBeat != null && Math.abs(beat - chantPrevBeat) > 1)) { chantStop(); chantShown = chantShown && '!'; }
+  chantPrevBeat = beat;
   if (!L) { if (chantShown) { box.hidden = true; chantShown = ''; } return; }
   const id = String(L.start);
   if (chantShown !== id) {
     chantShown = id;
+    chantSchedule(L, beat);
     chantLit = -1;
     box.replaceChildren(...L.syl.map(([, s]) => el('span', '', s)));
     box.hidden = false;
