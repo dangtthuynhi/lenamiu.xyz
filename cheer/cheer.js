@@ -17,6 +17,7 @@ const { t, tr } = LM;
 const $ = (id) => document.getElementById(id);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const small = matchMedia('(max-width: 640px), (pointer: coarse)').matches;
+const touch = matchMedia('(pointer: coarse)').matches;          // màn hình cảm ứng: chữ hướng dẫn không nhắc phím Space, F, J
 const SITE = (window.VIETSUB || {}).site || {};
 const VIDEO_BASE = String(SITE.videoBase || '').trim().replace(/\/*$/, '/');
 
@@ -465,7 +466,7 @@ function paintGame() {
   $('levelPick').hidden = !has;
   const on = has && level !== 'off';
   $('game').hidden = !on;
-  $('hint').textContent = on ? t('c.hintGame') : started ? t('c.hint2') : t('c.hint');
+  $('hint').textContent = on ? t('c.hintGame') : started ? t(touch ? 'c.hint2Touch' : 'c.hint2') : t('c.hint');
   if (!on) return;
   const ready = playable();
   const btn = $('start');
@@ -474,7 +475,7 @@ function paintGame() {
   $('startLabel').textContent = !game.chart ? t('c.loading') : game.state === 'done' ? t('c.again') : t('c.start');
   const best = ready && readBest();
   $('startBest').textContent = best ? t('c.best', { n: fmt(best.score) }) : '';
-  $('howto').textContent = t('c.howto');
+  $('howto').textContent = t(touch ? 'c.howtoTouch' : 'c.howto');
 }
 let shownCombo = 0;
 function paintHud() {
@@ -1184,22 +1185,24 @@ function spawnHeart() {
   ], { duration: 1000 + Math.random() * 500, easing: 'cubic-bezier(.2,.7,.3,1)' });
   a.onfinish = () => { h.remove(); hearts--; };
 }
-// Tiếng gõ lightstick (tự tạo bằng Web Audio, không cần file). Bật bằng nút 🔊 (hoặc kéo thanh âm lượng / chọn nhạc cụ).
+// Tiếng gõ lightstick (Web Audio). Bật bằng nút 🔊 (hoặc kéo thanh âm lượng / chọn nhạc cụ).
 //  - GIAI ĐIỆU THEO HỢP ÂM CỦA BÀI: file nốt (tools/make-chart.mjs) ghi tông + hợp âm theo từng phách. Mỗi lần gõ là một nốt
 //    trong hợp âm đang vang, rải theo hình ARP8 (lên dần trong ô nhịp), đầu ô nhịp thêm nốt trầm. Nốt luôn nằm trong hợp âm
 //    nên luôn hợp với bài; hợp âm được xếp gần một cao độ giữa nên đổi hợp âm vẫn liền mạch. Trúng tim vàng: gảy cả hợp âm.
 //  - TỰ KHỚP NHỊP: tiếng rơi vào lưới nửa phách của bài thay vì đúng lúc chạm. Gõ hơi sớm → chờ tới phách; muộn không quá
 //    70 ms → phát ngay; muộn hơn → ô kế tiếp. Mỗi ô một tiếng. Trong ván chơi, trúng nốt thì tiếng rơi đúng lúc của nốt.
-//  - Nhạc cụ: đàn hạc (dây gảy Karplus–Strong, chỉnh cao độ chính xác bằng tốc độ mẫu riêng), piano điện (FM như Rhodes),
-//    trống nhẹ ("tốc" không cao độ). Có tiếng vang của sảnh (convolver, tiếng vang tự tạo).
-//  - Chưa phát nhạc / căn nhịp bằng tai / nghe thử: phát ngay; rải hợp âm chủ của bài. Bài chưa có tông: trống nhẹ.
+//  - NHẠC CỤ THU ÂM THẬT (thư viện VCSL, CC0 — xem sfx/CREDITS.txt): đàn hạc, piano, chuông glockenspiel, kalimba, marimba,
+//    vỗ tay. Mỗi nhạc cụ có vài nốt thu sẵn (sfx/<nhạc cụ>/<số MIDI>.webm, dự phòng .mp3); nốt khác lấy mẫu gần nhất rồi
+//    nâng / hạ tốc độ phát.
+//    Chỉ tải nhạc cụ đang chọn, lúc người xem bật tiếng. Đang tải thì dùng tạm dây gảy tự tạo (Karplus–Strong).
+//    Có tiếng vang của sảnh (convolver, tiếng vang tự tạo).
+//  - Chưa phát nhạc / căn nhịp bằng tai / nghe thử: phát ngay; rải hợp âm chủ của bài. Bài chưa có tông: tiếng "tốc" không cao độ.
 //   kind: 'tap' gõ thường · 'big' trúng tim vàng · 'soft' gõ lúc không có nốt khi đang chơi
 let ac = null, sfxOut = null, sfxWet = null, noise = null;
 let sfxVol = clampInt(store(SFX_VOL_KEY) ?? 40, 0, 100);
-const INSTS = ['harp', 'piano', 'drum'];
+const INSTS = ['harp', 'piano', 'glock', 'kalimba', 'marimba', 'clap'];
 let inst = INSTS.includes(store(INST_KEY)) ? store(INST_KEY) : 'harp';
 const SNAP_LATE = 0.07;     // gõ muộn hơn ô lưới không quá 70 ms vẫn phát ngay
-const SFX_WET = { harp: 0.3, piano: 0.24, drum: 0.08 };
 function audio() {
   if (!soundOn || !sfxVol) return null;
   try {
@@ -1208,8 +1211,9 @@ function audio() {
       [sfxOut, sfxWet] = sfxBus(ac);
       noise = noiseBuffer(ac);
     }
+    loadInst(ac, inst, V);
     sfxOut.gain.value = sfxVol / 100;
-    sfxWet.gain.value = SFX_WET[inst];
+    sfxWet.gain.value = SFX_SET[inst].wet;
     if (ac.state !== 'running') ac.resume();
   } catch (e) { return null; }
   return ac;
@@ -1307,31 +1311,64 @@ function playPluck(c, out, t, midi, v) {
   s.connect(g).connect(out);
   s.start(t);
 }
-// piano điện kiểu FM: sóng mang + sóng điều chế cùng tần số (độ điều chế giảm dần → tiếng sáng lúc gõ rồi tròn lại),
-// thêm "ting" kim loại rất ngắn lúc gõ; hai sóng mang lệch nhau chút xíu cho tiếng ấm, dày
-function playEP(c, out, t, midi, v) {
-  const f = mtof(midi), len = Math.min(2.6, 2.1 * (440 / f) ** 0.3);
-  const env = sfxEnv(c, out, t, v * 0.5, len, 0.004);
-  const mod = c.createOscillator(), mg = c.createGain(), tine = c.createOscillator(), tg = c.createGain();
-  mod.frequency.value = f;
-  mg.gain.setValueAtTime(f * 2.4, t);
-  mg.gain.exponentialRampToValueAtTime(f * 0.2, t + 0.9);
-  tine.frequency.value = f * 14;
-  tg.gain.setValueAtTime(f * 1.1, t);
-  tg.gain.exponentialRampToValueAtTime(f * 0.01, t + 0.07);
-  mod.connect(mg); tine.connect(tg);
-  for (const det of [1, 1.0026]) {
-    const car = c.createOscillator();
-    car.frequency.value = f * det;
-    mg.connect(car.frequency); tg.connect(car.frequency);
-    car.connect(env);
-    car.start(t); car.stop(t + len + 0.05);
+// Nhạc cụ thu âm: notes = các nốt có mẫu (số MIDI, cũng là tên tệp), shift = chơi cao lên mấy nửa cung (chuông vốn kêu cao),
+// bass = có chơi nốt trầm không, wet = độ vang, vol = cân độ to giữa các nhạc cụ
+const SFX_SET = {
+  harp:    { notes: [45, 52, 55, 59, 62, 65, 69, 72, 76, 79, 83, 86, 89], shift: 0, bass: true, wet: 0.26, vol: 0.9 },
+  piano:   { notes: [48, 52, 56, 60, 64, 68, 72, 75, 78, 81, 84, 87, 90], shift: 0, bass: true, wet: 0.22, vol: 0.85 },
+  glock:   { notes: [67, 72, 79, 84, 92, 96], shift: 12, bass: false, wet: 0.24, vol: 0.5 },
+  kalimba: { notes: [49, 53, 55, 58, 61, 62, 63, 65, 67, 70, 71, 73, 76, 78, 80, 85], shift: 0, bass: true, wet: 0.2, vol: 0.85 },
+  marimba: { notes: [43, 47, 53, 60, 67, 71, 77, 84], shift: 0, bass: true, wet: 0.18, vol: 0.85 },
+  clap:    { notes: [1, 2, 3, 4, 5], clap: true, wet: 0.16, vol: 0.75 },
+};
+const sfxBank = {}, SFX_READY = {};
+// tải + giải mã mẫu của một nhạc cụ (một lần); ghi lại chỗ bắt đầu kêu của từng mẫu để phát đúng lúc
+function loadInst(c, name, ver) {
+  if (!sfxBank[name]) {
+    // WebM (Opus) trước; trình duyệt không giải mã được (Safari đời cũ) hoặc mạng chặn tệp đó thì lấy bản MP3
+    const one = (m, ext) => fetch('sfx/' + name + '/' + m + '.' + ext + '?v=' + ver)
+      .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
+      .then((ab) => new Promise((res, rej) => c.decodeAudioData(ab, res, rej)));
+    sfxBank[name] = Promise.all(SFX_SET[name].notes.map((m) => one(m, 'webm').catch(() => one(m, 'mp3'))
+      .then((buf) => ({ m, buf, at: onsetOf(buf) }))
+      .catch(() => null)))
+      .then((list) => { SFX_READY[name] = list.filter(Boolean); return SFX_READY[name]; });
   }
-  mod.start(t); mod.stop(t + len + 0.05);
-  tine.start(t); tine.stop(t + 0.12);
+  return sfxBank[name];
 }
-function playNote(c, out, buf, t, midi, v) {
-  if (inst === 'piano') playEP(c, out, t, midi, v); else playPluck(c, out, t, midi, v);
+function onsetOf(buf) {
+  const d = buf.getChannelData(0), n = Math.min(d.length, Math.round(buf.sampleRate * 0.3));
+  let pk = 0;
+  for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(d[i]));
+  for (let i = 0; i < n; i++) if (Math.abs(d[i]) >= pk * 0.08) return Math.max(0, i / buf.sampleRate - 0.002);
+  return 0;
+}
+// phát nốt `midi` bằng mẫu gần nhất (đổi tốc độ phát cho đúng cao độ); mẫu chưa tải xong thì dùng dây gảy tự tạo
+function playSample(c, out, t, midi, v) {
+  const set = SFX_SET[inst], bank = SFX_READY[inst];
+  if (!bank || !bank.length || set.clap) { playPluck(c, out, t, midi, v * 0.9); return; }
+  const m = midi + set.shift;
+  let best = bank[0];
+  for (const x of bank) if (Math.abs(x.m - m) < Math.abs(best.m - m)) best = x;
+  const src = c.createBufferSource(), g = c.createGain();
+  src.buffer = best.buf;
+  src.playbackRate.value = 2 ** ((m - best.m) / 12);
+  g.gain.value = v * set.vol;
+  src.connect(g).connect(out);
+  src.start(t, best.at);
+}
+// vỗ tay: chọn ngẫu nhiên trong 5 lần thu, lệch tốc độ chút xíu cho tự nhiên; trúng tim vàng thì như cả nhóm cùng vỗ
+function playClap(c, out, buf, t, v, n) {
+  const bank = SFX_READY.clap;
+  if (!bank || !bank.length) { sfxThump(c, out, buf, t, v); return; }
+  for (let i = 0; i < n; i++) {
+    const x = bank[(Math.random() * bank.length) | 0], src = c.createBufferSource(), g = c.createGain();
+    src.buffer = x.buf;
+    src.playbackRate.value = 0.94 + Math.random() * 0.12;
+    g.gain.value = v * SFX_SET.clap.vol * (i ? 0.55 : 1);
+    src.connect(g).connect(out);
+    src.start(t + (i ? 0.006 + Math.random() * 0.018 : 0), x.at);
+  }
 }
 // hợp âm 'Db', 'F#', 'Bbm'… → các cao độ (0–11): chủ âm, quãng 3, quãng 5
 function parseChord(str) {
@@ -1380,12 +1417,16 @@ function sfxNotes(M, slot, count, kind) {
   if (pos === 0 || change) n.unshift(V.bass);
   return n;
 }
-// phát một tiếng gõ lúc t: trống nhẹ, hoặc các nốt (gảy lần lượt cách nhau chút xíu như rải đàn); nhấn ở đầu ô nhịp
+// phát một tiếng gõ lúc t: vỗ tay, tiếng "tốc" (bài chưa có tông), hoặc các nốt (gảy lần lượt cách nhau chút xíu như rải đàn);
+// nhấn ở đầu ô nhịp. Nhạc cụ không chơi nốt trầm (chuông) thì bỏ nốt trầm.
 function sfxPlay(c, out, buf, kind, t, notes, slot) {
   const v = (kind === 'soft' ? 0.5 : 1) * (slot == null ? 0.9 : slot % 8 === 0 ? 1 : slot % 2 === 0 ? 0.86 : 0.72);
-  if (inst === 'drum' || !notes.length) { sfxThump(c, out, buf, t, (kind === 'big' ? 1 : 0.85) * v); return; }
+  const set = SFX_SET[inst];
+  if (set.clap) { playClap(c, out, buf, t, v, kind === 'big' ? 4 : 1); return; }
+  if (!notes.length) { sfxThump(c, out, buf, t, (kind === 'big' ? 1 : 0.85) * v); return; }
+  const list = set.bass ? notes : notes.filter((m) => m >= 57);
   const strum = kind === 'big' ? 0.022 : 0.012;
-  notes.forEach((m, i) => playNote(c, out, buf, t + i * strum, m, v * (notes.length > 2 ? 0.62 : i === 0 && notes.length === 2 ? 0.55 : 0.9)));
+  list.forEach((m, i) => playSample(c, out, t + i * strum, m, v * (list.length > 2 ? 0.62 : list.length === 2 && i === 0 && m < 57 ? 0.55 : 0.9)));
 }
 // ô nửa phách cho cú gõ: tapBeat = phách lúc gõ (đã trừ độ trễ người chơi), nowBeat = phách lúc này, late = SNAP_LATE tính theo phách
 function snapSlot(tapBeat, nowBeat, late) {
@@ -1445,7 +1486,8 @@ $('inst').addEventListener('change', (e) => {
   inst = INSTS.includes(e.target.value) ? e.target.value : 'harp';
   store(INST_KEY, inst);
   wantSound();
-  if (audio()) tapSound('big');             // nghe thử: gảy cả hợp âm
+  const c = audio();
+  if (c) loadInst(c, inst, V).then(() => { if (inst === e.target.value) tapSound('big'); });   // nghe thử: gảy cả hợp âm
 });
 // đã bật tiếng: tạo sẵn bộ âm thanh ngay lần chạm / bấm phím đầu tiên trên trang, để tiếng gõ đầu tiên không bị trễ
 ['pointerdown', 'keydown'].forEach((type) => addEventListener(type, () => { if (!ac) audio(); }, { capture: true, passive: true }));

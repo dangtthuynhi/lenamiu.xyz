@@ -1,0 +1,4 @@
+Mẫu âm thanh nhạc cụ trong thư mục này lấy từ VCSL — Versilian Community Sample Library
+https://github.com/sgossner/VCSL — giấy phép CC0 1.0 (phạm vi công cộng, dùng tự do).
+Đã cắt im lặng đầu, giữ 0,45–2,6 giây, đưa về cùng độ to, nén WebM/Opus 64 kbps (bản chính) và MP3 96 kbps (dự phòng), một kênh. Tên tệp = số nốt MIDI (60 = C4);
+riêng clap/1–5 là 5 lần vỗ tay khác nhau.
