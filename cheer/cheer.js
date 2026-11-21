@@ -1827,108 +1827,210 @@ $('boardTxt').addEventListener('input', (e) => {
   }, 350);
 });
 
-/* ---- thẻ kết quả để khoe: vẽ ảnh 1080×1350 (hạng, điểm, combo, mèo, lightstick, màu phe) → chia sẻ / tải về ---- */
+/* ---- thẻ kết quả để khoe: vé concert 1080×1350 (tên bài, ngày / ghế / phe / mức, hạng, điểm, thống kê) → chia sẻ / tải về ---- */
 let lastRun = null;      // kết quả ván vừa chơi (finishGame ghi vào)
-function svgImage(svgEl, prep) {
-  const c = svgEl.cloneNode(true);
-  prep(c);
-  c.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-  const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(c)], { type: 'image/svg+xml' }));
-  return new Promise((res) => {
-    const img = new Image();
-    img.onload = () => { URL.revokeObjectURL(url); res(img); };
-    img.onerror = () => { URL.revokeObjectURL(url); res(null); };
-    img.src = url;
-  });
-}
-// mèo đứng yên, mắt cười, đội trang phục đang chọn; lightstick màu phe
-function catImage() {
-  return svgImage(catEl.querySelector('svg'), (c) => {
-    c.style.color = TEAM[team];
-    c.querySelectorAll('[style]').forEach((n) => { if (n !== c) n.removeAttribute('style'); });
-    c.querySelectorAll('.cat-eyes, .cat-star, .cat-oops, .cat-sleep, .cat-wink, .cat-sweat, .cat-ghost, .cat-spark, .cat-spot').forEach((n) => n.remove());
-    OUTFITS.forEach(([o]) => { if (o !== outfit) c.querySelectorAll('.cat-o-' + o).forEach((n) => n.remove()); });
-    c.querySelectorAll('.cat-sing').forEach((n) => n.setAttribute('transform', 'translate(100 116) scale(.7 .8) translate(-100 -116)'));
-  });
-}
-function stickImage() {
-  return svgImage($('stick').querySelector('svg'), (c) => {
-    c.style.color = TEAM[team];
-    c.querySelectorAll('[style]').forEach((n) => { if (n !== c) n.removeAttribute('style'); });
-  });
-}
 function roundRect(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+// hình vé: bo góc, hai lỗ khuyết nửa tròn ở hai mép tại chỗ xé cuống vé
+function ticketPath(g, x, y, w, h, r, ny, nr) {
+  g.beginPath();
+  g.moveTo(x + r, y);
+  g.lineTo(x + w - r, y); g.arcTo(x + w, y, x + w, y + r, r);
+  g.lineTo(x + w, ny - nr); g.arc(x + w, ny, nr, -Math.PI / 2, Math.PI / 2, true);
+  g.lineTo(x + w, y + h - r); g.arcTo(x + w, y + h, x + w - r, y + h, r);
+  g.lineTo(x + r, y + h); g.arcTo(x, y + h, x, y + h - r, r);
+  g.lineTo(x, ny + nr); g.arc(x, ny, nr, Math.PI / 2, -Math.PI / 2, true);
+  g.lineTo(x, y + r); g.arcTo(x, y, x + r, y, r);
+  g.closePath();
+}
+// dải màu ánh kim (hologram) chạy chéo
+function holo(g, x0, y0, x1, y1) {
+  const h = g.createLinearGradient(x0, y0, x1, y1);
+  ['#ff9fcf', '#c7a6ff', '#9ee9ff', '#fff1a8', '#ffb0d9', '#b99bff'].forEach((c, i, a) => h.addColorStop(i / (a.length - 1), c));
+  return h;
+}
+// Thẻ kết quả kiểu vé concert (1080×1350): phần vé chính (tên bài, ngày / ghế / phe / mức, hạng + điểm + thống kê) và cuống vé
+// (link trang, mã vạch trang trí, số vé = số lần người xem đã cổ vũ). Đấu 2 người: hai cột điểm, người thắng có vương miện.
 async function makeCard(R) {
-  try { await Promise.all(['800 80px "Be Vietnam Pro"', '600 40px "Be Vietnam Pro"'].map((f) => document.fonts.load(f))); } catch (e) { /* bỏ qua */ }
+  try { await Promise.all(['800 80px "Be Vietnam Pro"', '700 40px "Be Vietnam Pro"', '600 30px "Be Vietnam Pro"'].map((f) => document.fonts.load(f))); } catch (e) { /* bỏ qua */ }
   const W = 1080, H = 1350, cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
-  const g = cv.getContext('2d'), col = TEAM[team], F = (w, s) => w + ' ' + s + 'px "Be Vietnam Pro", system-ui, sans-serif';
-  // nền: tối tím, quầng sáng màu phe, lưới đèn LED
-  const bg = g.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, '#2a0f2c'); bg.addColorStop(0.55, '#140a1c'); bg.addColorStop(1, '#07040b');
+  const g = cv.getContext('2d'), col = TEAM[team], other = TEAM[team === 'a' ? 'b' : 'a'];
+  const F = (w, s) => w + ' ' + s + 'px "Be Vietnam Pro", system-ui, sans-serif';
+  const spaced = (px) => { try { g.letterSpacing = px + 'px'; } catch (e) { /* trình duyệt cũ: không giãn chữ */ } };
+  const rnd = mulberry32((R.duel ? R.players[0].score * 7 + R.players[1].score : R.score) + total * 31 + 7);
+
+  // nền: tím đêm, đốm sáng màu hai phe + vàng, tia đèn sân khấu, lưới LED mờ
+  const bg = g.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, '#1c0a24'); bg.addColorStop(0.5, '#0f0718'); bg.addColorStop(1, '#06030a');
   g.fillStyle = bg; g.fillRect(0, 0, W, H);
-  const rg = g.createRadialGradient(W / 2, 330, 40, W / 2, 330, 760);
-  rg.addColorStop(0, hexA(col, 0.55)); rg.addColorStop(1, hexA(col, 0));
-  g.fillStyle = rg; g.fillRect(0, 0, W, H);
-  for (let y = 40; y < 640; y += 26) for (let x = 20; x < W; x += 26) {
-    const a = 0.05 + 0.13 * Math.max(0, Math.sin(x * 0.013 + y * 0.021)) * (1 - y / 700);
-    g.fillStyle = hexA(col, a.toFixed(3)); g.beginPath(); g.arc(x, y, 5, 0, 6.283); g.fill();
+  for (const [x, y, r, c, a] of [[160, 140, 520, col, 0.55], [960, 380, 480, other, 0.45], [820, 1240, 520, '#ffd36e', 0.22], [80, 1100, 420, col, 0.3]]) {
+    const rg = g.createRadialGradient(x, y, 0, x, y, r);
+    rg.addColorStop(0, hexA(c, a)); rg.addColorStop(1, hexA(c, 0));
+    g.fillStyle = rg; g.fillRect(0, 0, W, H);
   }
-  g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillStyle = '#fff';
-  g.font = F(800, 34); g.letterSpacing = '6px';
-  g.fillStyle = 'rgba(255,255,255,.8)'; g.fillText(t('c.card.title'), W / 2, 92);
-  g.letterSpacing = '0px';
+  g.save();
+  g.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 5; i++) {
+    const cx = 120 + i * 210 + rnd() * 60, spread = 160 + rnd() * 120;
+    const lg = g.createLinearGradient(cx, 0, cx, H * 0.9);
+    lg.addColorStop(0, hexA(i % 2 ? other : col, 0.16)); lg.addColorStop(1, hexA(col, 0));
+    g.fillStyle = lg;
+    g.beginPath(); g.moveTo(cx - 14, -10); g.lineTo(cx + 14, -10); g.lineTo(cx + spread, H); g.lineTo(cx - spread, H); g.closePath(); g.fill();
+  }
+  g.restore();
+  for (let y = 18; y < H; y += 24) for (let x = 18; x < W; x += 24) {
+    g.fillStyle = 'rgba(255,255,255,' + (0.025 + 0.03 * Math.max(0, Math.sin(x * 0.011 + y * 0.017))).toFixed(3) + ')';
+    g.fillRect(x, y, 3, 3);
+  }
+
+  // tấm vé
+  const X = 80, Y = 70, TW = W - 160, TH = H - 140, NY = Y + TH - 270, NR = 34, PAD = 64;
+  g.save();
+  g.shadowColor = 'rgba(0,0,0,.6)'; g.shadowBlur = 60; g.shadowOffsetY = 24;
+  ticketPath(g, X, Y, TW, TH, 44, NY, NR);
+  const tf = g.createLinearGradient(0, Y, 0, Y + TH);
+  tf.addColorStop(0, 'rgba(40,18,52,.94)'); tf.addColorStop(0.62, 'rgba(22,11,32,.96)'); tf.addColorStop(1, 'rgba(30,14,42,.96)');
+  g.fillStyle = tf; g.fill();
+  g.restore();
+  ticketPath(g, X, Y, TW, TH, 44, NY, NR);
+  g.lineWidth = 5; g.strokeStyle = holo(g, X, Y, X + TW, Y + TH); g.stroke();
+  // ánh sáng lướt chéo trên mặt vé
+  g.save();
+  ticketPath(g, X, Y, TW, TH, 44, NY, NR); g.clip();
+  const sheen = g.createLinearGradient(X, Y, X + TW, Y + TH * 0.6);
+  sheen.addColorStop(0.3, 'rgba(255,255,255,0)'); sheen.addColorStop(0.42, 'rgba(255,255,255,.07)'); sheen.addColorStop(0.5, 'rgba(255,255,255,0)');
+  g.fillStyle = sheen; g.fillRect(X, Y, TW, TH);
+  const topGlow = g.createRadialGradient(X + TW * 0.2, Y, 0, X + TW * 0.2, Y, 620);
+  topGlow.addColorStop(0, hexA(col, 0.28)); topGlow.addColorStop(1, hexA(col, 0));
+  g.fillStyle = topGlow; g.fillRect(X, Y, TW, TH);
+  g.restore();
+  // đường răng cưa xé cuống vé
+  g.save();
+  g.setLineDash([16, 14]); g.lineWidth = 3; g.strokeStyle = 'rgba(255,255,255,.22)';
+  g.beginPath(); g.moveTo(X + NR + 18, NY); g.lineTo(X + TW - NR - 18, NY); g.stroke();
+  g.restore();
+
+  const L = X + PAD, Rt = X + TW - PAD;
+  g.textBaseline = 'alphabetic';
+  // dòng đầu: tên sảnh + nhãn LIVE
+  g.textAlign = 'left'; g.font = F(800, 26); spaced(7); g.fillStyle = 'rgba(255,255,255,.72)';
+  g.fillText(t('c.card.title'), L, Y + 92, TW - PAD * 2 - 150);
+  spaced(4); g.font = F(800, 24);
+  const liveW = g.measureText('LIVE').width + 58;
+  roundRect(g, Rt - liveW, Y + 58, liveW, 46, 23); g.fillStyle = 'rgba(0,0,0,.45)'; g.fill();
+  g.lineWidth = 2; g.strokeStyle = 'rgba(255,255,255,.3)'; g.stroke();
+  g.fillStyle = '#ff3b5c'; g.beginPath(); g.arc(Rt - liveW + 24, Y + 81, 7, 0, 6.283); g.fill();
+  g.fillStyle = '#fff'; g.fillText('LIVE', Rt - liveW + 40, Y + 90);
+  spaced(0);
+  // tên bài (chữ ánh hồng) + người hát
   const s = song();
-  g.font = F(800, 96); g.fillStyle = '#fff'; g.shadowColor = col; g.shadowBlur = 30;
-  g.fillText(s ? s.title : '', W / 2, 205, W - 120);
+  let tsz = 128;
+  g.font = F(800, tsz);
+  while (tsz > 64 && g.measureText(s ? s.title : '').width > TW - PAD * 2) { tsz -= 6; g.font = F(800, tsz); }
+  const tg = g.createLinearGradient(0, Y + 140, 0, Y + 140 + tsz);
+  tg.addColorStop(0, '#ffffff'); tg.addColorStop(1, '#ffc2df');
+  g.fillStyle = tg; g.shadowColor = hexA(col, 0.8); g.shadowBlur = 34;
+  g.fillText(s ? s.title : '', L - 4, Y + 130 + tsz * 0.82);
   g.shadowBlur = 0;
-  g.font = F(600, 36); g.fillStyle = 'rgba(255,255,255,.75)';
-  g.fillText([s && s.artist, R.level ? t('c.level.' + R.level) : ''].filter(Boolean).join(' · '), W / 2, 258, W - 120);
-  // khung kết quả
-  g.fillStyle = 'rgba(20,12,28,.72)'; roundRect(g, 70, 300, W - 140, R.duel ? 520 : 470, 40); g.fill();
-  g.strokeStyle = hexA(col, 0.7); g.lineWidth = 3; g.stroke();
+  g.font = F(600, 34); g.fillStyle = 'rgba(255,255,255,.72)';
+  const v = s && s.versions[verI];
+  g.fillText([s && s.artist, v && v.named ? v.label : ''].filter(Boolean).join(' · '), L, Y + 150 + tsz * 0.82 + 52, TW - PAD * 2);
+  // hàng thông tin như vé thật: ngày · ghế · phe · mức
+  const fy = Y + 150 + tsz * 0.82 + 120;
+  const fields = [['c.card.date', new Date().toLocaleDateString(LM.locale)], ['c.card.seat', t('c.seat.' + seatId)],
+    ['c.card.team', t('c.stick.' + team)], ['c.card.level', R.level ? t('c.level.' + R.level) : '—']];
+  const fw = (TW - PAD * 2) / fields.length;
+  fields.forEach(([k, val], i) => {
+    const fx = L + i * fw;
+    g.font = F(700, 20); spaced(4); g.fillStyle = 'rgba(255,255,255,.5)'; g.fillText(t(k), fx, fy, fw - 16);
+    spaced(0); g.font = F(700, 32); g.fillStyle = i === 2 ? col : '#fff'; g.fillText(val, fx, fy + 44, fw - 16);
+  });
+  g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(L, fy + 78, TW - PAD * 2, 2);
+
+  const top = fy + 118;
   if (R.duel) {
-    g.font = F(800, 64); g.fillStyle = '#ffd36e';
-    g.fillText(R.winner == null ? t('c.duel.tie') : t('c.duel.win', { who: t(R.winner ? 'c.duel.p2' : 'c.duel.p1') }), W / 2, 395, W - 180);
+    // đấu 2 người: tiêu đề + người thắng, rồi hai cột điểm
+    g.textAlign = 'center';
+    g.font = F(800, 24); spaced(6); g.fillStyle = 'rgba(255,255,255,.6)'; g.fillText(t('c.card.duel'), X + TW / 2, top + 20);
+    spaced(0); g.font = F(800, 62); g.fillStyle = holo(g, X + 200, 0, X + TW - 200, 0);
+    g.fillText(R.winner == null ? t('c.duel.tie') : t('c.duel.win', { who: t(R.winner ? 'c.duel.p2' : 'c.duel.p1') }), X + TW / 2, top + 100, TW - PAD * 2);
+    const cw = (TW - PAD * 2 - 30) / 2;
     R.players.forEach((p, i) => {
-      const y = 480 + i * 150;
-      g.fillStyle = TEAM[i ? 'b' : 'a']; roundRect(g, 120, y, 16, 110, 8); g.fill();
-      g.textAlign = 'left'; g.font = F(800, 46); g.fillStyle = '#fff';
-      g.fillText(t(i ? 'c.duel.p2' : 'c.duel.p1'), 160, y + 48);
-      g.font = F(600, 32); g.fillStyle = 'rgba(255,255,255,.78)';
-      g.fillText(t('c.res.acc', { n: p.acc }) + ' · ' + t('c.res.maxCombo', { n: p.maxCombo }), 160, y + 96);
-      g.textAlign = 'right'; g.font = F(800, 72); g.fillStyle = '#fff';
-      g.fillText(fmt(p.score), W - 120, y + 78);
+      const cx = L + i * (cw + 30), cy = top + 128, ch = Math.min(290, NY - 34 - cy), pc = TEAM[i ? 'b' : 'a'], win = R.winner === i;
+      roundRect(g, cx, cy, cw, ch, 30);
+      g.fillStyle = hexA(pc, win ? 0.22 : 0.1); g.fill();
+      g.lineWidth = win ? 4 : 2; g.strokeStyle = win ? holo(g, cx, cy, cx + cw, cy + ch) : hexA(pc, 0.5); g.stroke();
       g.textAlign = 'center';
+      g.font = F(800, 34); g.fillStyle = '#fff'; g.fillText(t(i ? 'c.duel.p2' : 'c.duel.p1'), cx + cw / 2, cy + 62, cw - 30);
+      g.font = F(800, 96); g.fillStyle = win ? '#fff' : 'rgba(255,255,255,.85)'; g.shadowColor = pc; g.shadowBlur = win ? 30 : 0;
+      g.fillText(fmt(p.score), cx + cw / 2, cy + ch * 0.58, cw - 30);
+      g.shadowBlur = 0;
+      g.font = F(600, 27); g.fillStyle = 'rgba(255,255,255,.7)';
+      g.fillText(t('c.res.acc', { n: p.acc }), cx + cw / 2, cy + ch - 62, cw - 30);
+      g.fillText(t('c.res.maxCombo', { n: p.maxCombo }), cx + cw / 2, cy + ch - 26, cw - 30);
     });
   } else {
-    // huy hiệu hạng ánh kim
-    const cx = 250, cy = 525, rr = 150;
-    const cg = g.createConicGradient ? g.createConicGradient(3.6, cx, cy) : null;
-    if (cg) { ['#ffd36e', '#fff6cf', '#ff9fcf', '#b99bff', '#ffd36e'].forEach((c, i) => cg.addColorStop(i / 4, c)); g.fillStyle = cg; } else g.fillStyle = '#ffd36e';
-    g.shadowColor = 'rgba(255,211,110,.7)'; g.shadowBlur = 40;
-    g.beginPath(); g.arc(cx, cy, rr, 0, 6.283); g.fill();
-    g.shadowBlur = 0; g.lineWidth = 8; g.strokeStyle = 'rgba(255,255,255,.7)'; g.stroke();
-    g.font = F(800, 190); g.fillStyle = '#2a1030'; g.textBaseline = 'middle'; g.fillText(R.grade, cx, cy + 8); g.textBaseline = 'alphabetic';
+    // hạng trong vòng tròn ánh kim + điểm thật to
+    const gx = L + 130, gy = top + 140, gr = 128;
+    g.save();
+    g.shadowColor = 'rgba(255,211,110,.55)'; g.shadowBlur = 50;
+    g.beginPath(); g.arc(gx, gy, gr, 0, 6.283);
+    g.fillStyle = g.createConicGradient ? (() => { const cg = g.createConicGradient(-1.2, gx, gy); ['#ffe08a', '#fff6cf', '#ff9fcf', '#c7a6ff', '#9ee9ff', '#ffe08a'].forEach((c, i, a) => cg.addColorStop(i / (a.length - 1), c)); return cg; })() : '#ffd36e';
+    g.fill();
+    g.restore();
+    g.beginPath(); g.arc(gx, gy, gr - 12, 0, 6.283); g.lineWidth = 3; g.strokeStyle = 'rgba(255,255,255,.75)'; g.stroke();
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = F(800, 170); g.fillStyle = '#2a1030';
+    g.fillText(R.grade, gx, gy + 10);
+    g.textBaseline = 'alphabetic';
+    const sx = gx + gr + 56, sw = Rt - sx;
     g.textAlign = 'left';
-    g.font = F(800, 92); g.fillStyle = '#fff'; g.fillText(fmt(R.score), 450, 470, 560);
-    g.font = F(600, 38); g.fillStyle = 'rgba(255,255,255,.8)';
-    g.fillText(t('c.res.acc', { n: R.acc }), 455, 535, 560);
-    g.fillText(t('c.res.maxCombo', { n: R.maxCombo }), 455, 590, 560);
-    g.font = F(600, 30); g.fillStyle = 'rgba(255,255,255,.65)';
-    g.fillText(t('c.res.counts', { p: R.counts.perfect, g: R.counts.great, o: R.counts.good, m: R.counts.miss }), 455, 645, 560);
-    if (R.best) { g.font = F(800, 34); g.fillStyle = '#ffd36e'; g.fillText(t('c.res.newBest'), 455, 712, 560); }
-    g.textAlign = 'center';
+    g.font = F(700, 22); spaced(5); g.fillStyle = 'rgba(255,255,255,.55)'; g.fillText(t('c.card.score'), sx, top + 52);
+    spaced(0); g.font = F(800, 120); g.fillStyle = '#fff'; g.shadowColor = hexA(col, 0.9); g.shadowBlur = 30;
+    g.fillText(fmt(R.score), sx - 4, top + 168, sw);
+    g.shadowBlur = 0;
+    // hai ô thống kê: độ chính xác, combo cao nhất
+    const half = (sw - 20) / 2;
+    [[t('c.res.acc', { n: R.acc }).replace(/\s*[\d.,]+%$/, ''), R.acc + '%'], [t('c.res.maxCombo', { n: '' }).trim(), String(R.maxCombo)]].forEach(([lab, val], i) => {
+      const bx = sx + i * (half + 20), by = top + 200;
+      roundRect(g, bx, by, half, 96, 22); g.fillStyle = 'rgba(255,255,255,.06)'; g.fill();
+      g.lineWidth = 2; g.strokeStyle = 'rgba(255,255,255,.12)'; g.stroke();
+      g.font = F(600, 22); g.fillStyle = 'rgba(255,255,255,.6)'; g.fillText(lab, bx + 20, by + 34, half - 30);
+      g.font = F(800, 40); g.fillStyle = '#fff'; g.fillText(val, bx + 20, by + 80, half - 30);
+    });
+    // bốn ô Tuyệt / Hay / Được / Trượt
+    const cy = top + 340, cw4 = (TW - PAD * 2 - 3 * 16) / 4;
+    [['perfect', '#ffd36e'], ['great', col], ['good', '#8fd3ff'], ['miss', 'rgba(255,255,255,.45)']].forEach(([k, c], i) => {
+      const bx = L + i * (cw4 + 16);
+      roundRect(g, bx, cy, cw4, 86, 43); g.fillStyle = 'rgba(255,255,255,.05)'; g.fill();
+      g.lineWidth = 2; g.strokeStyle = c; g.stroke();
+      g.textAlign = 'center';
+      g.font = F(800, 36); g.fillStyle = '#fff'; g.fillText(String(R.counts[k]), bx + cw4 / 2, cy + 46);
+      g.font = F(600, 20); g.fillStyle = c; g.fillText(t('c.j.' + k).replace(/!$/, ''), bx + cw4 / 2, cy + 74, cw4 - 20);
+    });
+    if (R.best) {
+      // ruy băng "kỷ lục mới" chéo góc trên phải phần kết quả
+      g.save();
+      g.translate(Rt + 10, top + 8); g.rotate(0.1);
+      g.font = F(800, 26);
+      const bw = g.measureText(t('c.res.newBest')).width + 44;
+      roundRect(g, -bw, -24, bw, 52, 26); g.fillStyle = holo(g, -bw, 0, 0, 0); g.fill();
+      g.textAlign = 'right'; g.fillStyle = '#2a1030'; g.fillText(t('c.res.newBest'), -22, 11);
+      g.restore();
+    }
   }
-  // mèo + lightstick đứng trên sàn sân khấu
-  const fl = g.createRadialGradient(W / 2, 1180, 20, W / 2, 1180, 520);
-  fl.addColorStop(0, hexA(col, 0.45)); fl.addColorStop(1, hexA(col, 0));
-  g.fillStyle = fl; g.fillRect(0, 880, W, 470);
-  const [ci, si] = await Promise.all([catImage(), stickImage()]);
-  if (ci) g.drawImage(ci, 150, 838, 360, 396);
-  if (si) { g.save(); g.translate(790, 858); g.rotate(-0.18); g.drawImage(si, -100, 0, 200, 360); g.restore(); }
-  g.font = F(600, 30); g.fillStyle = 'rgba(255,255,255,.7)'; g.fillText(t('c.card.join'), W / 2, 1268);
-  g.font = F(800, 44); g.fillStyle = '#fff'; g.fillText('lenamiu.xyz/cheer', W / 2, 1322);
+
+  // cuống vé: vé vào sảnh + link, mã vạch, số vé
+  g.textAlign = 'left';
+  g.font = F(800, 22); spaced(6); g.fillStyle = col; g.fillText(t('c.card.admit'), L, NY + 82, TW * 0.55);
+  spaced(0); g.font = F(800, 50); g.fillStyle = '#fff'; g.fillText('lenamiu.xyz/cheer', L, NY + 148, TW * 0.55);
+  g.font = F(600, 26); g.fillStyle = 'rgba(255,255,255,.6)'; g.fillText(t('c.card.join').replace(/:$/, ''), L, NY + 196, TW * 0.55);
+  const bx0 = Rt - 290, by0 = NY + 58;
+  let bx = bx0;
+  g.fillStyle = 'rgba(255,255,255,.9)';
+  while (bx < Rt) { const w = 2 + ((rnd() * 4) | 0); g.fillRect(bx, by0, Math.min(w, Rt - bx), 104); bx += w + 2 + ((rnd() * 4) | 0); }
+  g.textAlign = 'right'; g.font = F(700, 22); spaced(4); g.fillStyle = 'rgba(255,255,255,.55)';
+  g.fillText(t('c.card.no') + ' ' + String(total).padStart(6, '0'), Rt, by0 + 142);
+  spaced(0);
   return new Promise((res) => cv.toBlob(res, 'image/png'));
 }
 let cardBlob = null;
