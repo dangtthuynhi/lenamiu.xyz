@@ -475,6 +475,101 @@
     .stick .lbl { display: none; }
     .stagebox { padding-bottom: 28px; }
   }
+  /* ---------- thêm vui: đấu 2 người, fanchant, PK cả fandom, cài đặt, lightstick toàn màn hình, thẻ kết quả, huy hiệu ---------- */
+  .game.duel #score { filter: drop-shadow(0 0 9px var(--team-a)); }
+  #score2 { filter: drop-shadow(0 0 9px var(--team-b)); }
+  .game.duel .judge { margin: 0 auto; }
+  .judge[data-p="a"]:not([data-j="perfect"]) { color: var(--team-a); }
+  .judge[data-p="b"]:not([data-j="perfect"]) { color: var(--team-b); }
+  .duel-btn {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%); min-height: 32px; padding: 4px 12px;
+    font: inherit; font-size: .76rem; font-weight: 800; color: var(--text); cursor: pointer; white-space: nowrap;
+    border: 1px solid var(--line); border-radius: 999px; background: rgba(20, 13, 28, .75);
+  }
+  .duel-btn[aria-pressed="true"] { color: #fff; border-color: transparent; background: linear-gradient(135deg, var(--team-a), var(--team-b)); }
+  .game.duel .lane-wrap::after {
+    content: ""; position: absolute; left: 50%; top: 10px; bottom: 10px; border-left: 1px dashed rgba(255, 255, 255, .18); pointer-events: none;
+  }
+  .share-btn { margin-top: 8px; }
+  /* fanchant: chữ hô như karaoke ở dưới màn hình video */
+  .screen-ov {
+    position: absolute; z-index: 1; left: 0; right: 0; top: 2px; margin: 0 auto; aspect-ratio: 16 / 9; width: min(100%, 760px);
+    display: flex; align-items: flex-end; justify-content: center; pointer-events: none;
+  }
+  @media (min-width: 641px) { .screen-ov { width: min(100cqw, 760px, calc((100cqh - 2px) * 16 / 9)); } }
+  .chant {
+    display: flex; gap: .4em; margin-bottom: 16%; padding: .2em .8em; border-radius: 999px; background: rgba(10, 6, 14, .55);
+    font-size: clamp(1.05rem, 3vw, 2rem); font-weight: 800; letter-spacing: .04em; color: rgba(255, 255, 255, .42);
+    -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  }
+  .chant span { display: inline-block; transition: transform .12s ease, color .12s ease; }
+  .chant span.on { color: #fff; text-shadow: 0 0 14px var(--stick), 0 0 3px #fff; }
+  .chant span.now { color: #ffd36e; transform: scale(1.2); }
+  /* PK cổ vũ cả fandom */
+  .fanpk { margin-top: 8px; }
+  .fan-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 10px; font-size: .74rem; font-weight: 600; color: var(--muted); }
+  .fan-meta b { color: var(--text); font-weight: 700; }
+  .fan-bar { height: 6px; margin-top: 4px; border-radius: 999px; overflow: hidden; background: var(--team-b); box-shadow: 0 0 10px -2px var(--team-b); }
+  .fan-bar i { display: block; width: 50%; height: 100%; background: var(--team-a); box-shadow: 0 0 10px var(--team-a); transition: width .6s ease; }
+  /* bảng cài đặt */
+  .set-h { margin: 16px 0 0; font-size: .74rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  .set-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .tog { display: flex; align-items: center; gap: 9px; margin-top: 10px; font-weight: 600; color: var(--text); cursor: pointer; }
+  .tog input { flex: none; width: 18px; height: 18px; accent-color: var(--accent); }
+  .txt {
+    flex: 1 1 170px; min-width: 0; min-height: 34px; padding: 6px 12px; font: inherit; font-size: .9rem; font-weight: 700; color: var(--text);
+    border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2);
+  }
+  .badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 6px; margin-top: 8px; }
+  .bdg {
+    display: grid; place-items: center; height: 40px; border-radius: 12px; font-size: 1.25rem; cursor: default;
+    background: rgba(255, 255, 255, .05); filter: grayscale(1); opacity: .32;
+  }
+  .bdg.got { filter: none; opacity: 1; background: linear-gradient(135deg, rgba(255, 92, 157, .26), rgba(154, 107, 255, .26)); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18); }
+  /* máy tính: cài đặt mở thành ngăn bên phải */
+  @media (min-width: 641px) {
+    .about[open] {
+      position: fixed; z-index: 6; top: 12px; right: 12px; bottom: 12px; width: min(440px, calc(100vw - 24px)); max-width: none; margin: 0;
+      overflow: auto; background: rgba(20, 13, 28, .96); box-shadow: 0 20px 60px rgba(0, 0, 0, .7); animation: sheet .22s ease-out;
+    }
+    .about[open] summary { display: flex; justify-content: space-between; gap: 12px; }
+    .about[open] summary::after { content: "✕"; flex: none; color: var(--muted); }
+  }
+  body:has(.about[open]) .cat, body:has(.about[open]) .stick { visibility: hidden; }
+  /* lightstick toàn màn hình */
+  .glowmode {
+    position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; overflow: hidden; cursor: pointer;
+    touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+    background: radial-gradient(circle at 50% 46%, var(--stick) 0%, color-mix(in srgb, var(--stick) 50%, #000) 55%, #050208 100%);
+  }
+  .gm-flash { position: absolute; inset: 0; opacity: .5; will-change: opacity; background: radial-gradient(circle at 50% 46%, #fff 0%, var(--stick) 35%, rgba(0, 0, 0, 0) 75%); }
+  .gm-heart { position: relative; width: min(72vw, 62vh); aspect-ratio: 100 / 92; will-change: transform; filter: drop-shadow(0 0 30px #fff) drop-shadow(0 0 70px var(--stick)); }
+  .gm-heart svg { display: block; width: 100%; height: 100%; }
+  .gm-tip { position: absolute; left: 0; right: 0; bottom: max(22px, env(safe-area-inset-bottom)); margin: 0; text-align: center; font-weight: 700; color: rgba(255, 255, 255, .88); text-shadow: 0 1px 6px rgba(0, 0, 0, .6); }
+  .gm-close {
+    position: absolute; top: max(14px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); width: 46px; height: 46px;
+    border-radius: 50%; border: 1px solid rgba(255, 255, 255, .45); background: rgba(0, 0, 0, .35); color: #fff; font-size: 1.2rem; cursor: pointer;
+  }
+  /* thông báo huy hiệu */
+  .toast {
+    position: fixed; z-index: 10; left: 50%; top: max(14px, env(safe-area-inset-top)); transform: translateX(-50%); max-width: calc(100vw - 32px);
+    padding: 9px 16px; border-radius: 999px; text-align: center; font-size: .88rem; font-weight: 700; color: #fff;
+    background: rgba(20, 13, 28, .95); border: 1px solid rgba(255, 211, 110, .55); box-shadow: 0 10px 30px rgba(0, 0, 0, .6);
+  }
+  /* thẻ kết quả */
+  .cardbox { position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; padding: 16px; background: rgba(5, 3, 8, .8); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+  .cardbox .inner { display: flex; flex-direction: column; align-items: center; gap: 12px; max-height: 100%; }
+  .cardbox img { width: auto; max-width: min(92vw, 432px); max-height: calc(100svh - 110px); aspect-ratio: 4 / 5; border-radius: 18px; background: #140a1c; box-shadow: 0 20px 60px rgba(0, 0, 0, .7); }
+  .cardbox .row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  /* trang phục mèo (mở khoá bằng huy hiệu) */
+  .cat-o { display: none; }
+  .cat[data-outfit="flower"] .cat-o-flower, .cat[data-outfit="glasses"] .cat-o-glasses, .cat[data-outfit="headphones"] .cat-o-headphones,
+  .cat[data-outfit="partyhat"] .cat-o-partyhat, .cat[data-outfit="crown"] .cat-o-crown { display: inline; }
+  @media (max-width: 640px) {
+    .screen-ov { top: 0; left: calc(-1 * max(16px, env(safe-area-inset-left))); right: calc(-1 * max(16px, env(safe-area-inset-right))); width: auto; margin: 0; }
+    .duel-btn { right: 6px; padding: 3px 9px; font-size: .7rem; }
+  }
+
   /* ---------- điện thoại dọc ----------
      một cột vừa màn hình: đầu trang gọn (ẩn dòng ghi công), video tràn ngang, 1 hàng ô chọn, làn nốt, thanh năng lượng;
      dưới cùng là "sàn sân khấu": mèo bên trái, lightstick bên phải, nút ⚙ Cài đặt ở giữa (mở thành bảng trượt từ dưới lên).
@@ -528,6 +623,7 @@
     .top-link, .donate-btn { min-height: 30px; padding: 4px 10px; font-size: .8rem; }
     .btn-long { display: none; }
     .btn-short { display: inline; }
+    #fanpk { display: none; }   /* máy ngang chật: PK cả fandom xem khi xoay dọc */
     .meta > span:first-child { display: none; }   /* chữ "Năng lượng khán đài": thanh sáng đã nói đủ, chừa chỗ cho số lần cổ vũ */
     .stagebox {
       display: grid; grid-template-columns: minmax(0, 1fr) min(330px, 40vw); grid-template-rows: auto auto auto 1fr;
@@ -552,7 +648,7 @@
     .about .sum-long { display: none; }
     .about .sum-short { display: inline; }
     .about[open] {
-      position: fixed; z-index: 6; left: 0; right: 0; bottom: 0; margin: 0; max-height: 86svh; overflow: auto;
+      position: fixed; z-index: 6; left: 0; right: 0; top: auto; bottom: 0; width: auto; margin: 0; max-height: 86svh; overflow: auto;
       border-radius: 18px 18px 0 0; padding: 12px 18px max(14px, env(safe-area-inset-bottom)); background: rgba(20, 13, 28, .96);
       box-shadow: 0 -16px 40px rgba(0, 0, 0, .6); animation: sheet .22s ease-out;
     }
@@ -585,7 +681,7 @@
 <main class="wrap stagebox" id="main" tabindex="-1">
   <h1 class="sr-only" data-i18n="c.doc">Sảnh cổ vũ LenaMiu</h1>
   <!-- .fit: khung chứa video; trên màn hình rộng nó co giãn theo chiều cao còn trống để cả trang vừa một màn hình -->
-  <div class="fit"><div class="screen-glow" id="screenGlow" aria-hidden="true"></div><div class="screen" id="screen"></div></div>
+  <div class="fit"><div class="screen-glow" id="screenGlow" aria-hidden="true"></div><div class="screen" id="screen"></div><div class="screen-ov" aria-hidden="true"><div class="chant" id="chant" hidden></div></div></div>
 
   <nav class="bar" data-i18n-attr="aria-label:c.controls" aria-label="Chọn bài, video và chỗ ngồi">
     <div class="songs" id="songs" role="tablist" data-i18n-attr="aria-label:c.songs" aria-label="Chọn bài hát"></div>
@@ -595,6 +691,7 @@
       <label class="pick"><span data-i18n="c.stick">Lightstick</span><select id="team"></select></label>
       <label class="pick" id="levelPick" hidden><span data-i18n="c.mode">Chế độ</span><select id="level"></select></label>
       <button class="pill" id="sound" type="button"></button>
+      <button class="pill" id="glowBtn2" type="button" data-i18n-attr="aria-label:c.glow.open,title:c.glow.open" aria-label="Lightstick toàn màn hình" title="Lightstick toàn màn hình">🔦</button>
     </div>
   </nav>
 
@@ -603,10 +700,12 @@
     <div class="hud">
       <b class="score" id="score">0</b><span class="combo" id="combo"></span>
       <span class="judge" id="judge" aria-hidden="true"></span>
+      <span class="combo" id="combo2" hidden></span><b class="score" id="score2" hidden>0</b>
     </div>
     <div class="lane-wrap">
       <canvas id="lane" aria-hidden="true"></canvas>
       <button class="start" id="start" type="button"><span id="startLabel"></span><small id="startBest"></small></button>
+      <button class="duel-btn" id="duelBtn" type="button" aria-pressed="false" data-i18n="c.duel">👥 Đấu 2 người</button>
     </div>
     <p class="howto" id="howto"></p>
     <div class="results" id="results" role="status" hidden></div>
@@ -616,16 +715,32 @@
     <div class="meta"><span data-i18n="c.energy">Năng lượng khán đài</span><span class="count" id="count"></span></div>
     <div class="energy" id="energy" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
          data-i18n-attr="aria-label:c.energy" aria-label="Năng lượng khán đài"><i></i></div>
+    <div class="fanpk" id="fanpk" hidden>
+      <div class="fan-meta"><span id="fanTotal"></span><span><b id="fanA"></b> · <b id="fanB"></b></span></div>
+      <div class="fan-bar"><i id="fanBar"></i></div>
+    </div>
     <p class="say" id="say" aria-live="polite"></p>
     <p class="hint" id="hint" data-i18n="c.hint">Bấm ▶ để xem, rồi gõ lightstick theo nhạc để cả sảnh cùng cổ vũ.</p>
   </section>
 
-  <details class="about">
+  <details class="about" id="settings">
     <summary><span class="sum-long" data-i18n="c.timing">Tiếng gõ, căn nhịp &amp; giới thiệu</span><span class="sum-short" data-i18n="c.settings">⚙ Cài đặt</span></summary>
+    <h3 class="set-h" data-i18n="c.set.sound">🎵 Tiếng gõ</h3>
     <label class="offset"><span data-i18n="c.inst">Nhạc cụ</span> <select id="inst" class="sel"></select></label>
     <label class="offset"><span data-i18n="c.sfxVol">Âm lượng tiếng gõ</span> <output id="sfxOut">40%</output>
       <input type="range" id="sfxVol" min="0" max="100" step="5" value="40"></label>
     <p data-i18n="c.instHelp">Mỗi lần gõ là một nốt trong hợp âm đang vang của bài, tự rơi đúng nhịp. Bấm 🔊 để bật.</p>
+    <h3 class="set-h" data-i18n="c.set.fun">✨ Thêm vui</h3>
+    <div class="set-row"><button type="button" class="ghost" id="glowBtn" data-i18n="c.glow.open">🔦 Lightstick toàn màn hình</button></div>
+    <label class="tog" id="shakeRow" hidden><input type="checkbox" id="shakeTog"><span data-i18n="c.shake">📳 Lắc điện thoại để cổ vũ</span></label>
+    <label class="tog" id="buzzRow" hidden><input type="checkbox" id="buzzTog"><span data-i18n="c.buzz">Rung nhẹ khi gõ trúng</span></label>
+    <label class="offset"><span data-i18n="c.board">🪧 Bảng cổ vũ của bạn</span>
+      <input type="text" id="boardTxt" class="txt" maxlength="24" autocomplete="off" spellcheck="false" data-i18n-attr="placeholder:c.boardPh" placeholder="LENA ♥ MIU"></label>
+    <p data-i18n="c.boardHelp">Một khán giả phía trước chỗ ngồi của bạn sẽ giơ bảng này trong sảnh. Gõ &lt;3 sẽ thành ♥.</p>
+    <label class="offset"><span data-i18n="c.outfit">🐱 Trang phục mèo</span> <select id="outfit" class="sel"></select></label>
+    <h3 class="set-h" id="badgeHead">🏅</h3>
+    <div class="badges" id="badges"></div>
+    <h3 class="set-h" data-i18n="c.set.timing">⏱ Căn nhịp</h3>
     <div class="sync">
       <button type="button" class="ghost" id="syncBtn" data-i18n="c.sync">Căn nhịp bằng tai</button>
       <span id="syncOut" data-i18n="c.syncHelp">Nốt lệch so với nhạc? Bấm phát video rồi bấm nút này, gõ theo phách nhạc 8 lần.</span>
@@ -633,10 +748,32 @@
     <label class="offset"><span data-i18n="c.offset">Độ trễ</span> <output id="offOut">0 ms</output>
       <input type="range" id="offset" min="-300" max="300" step="5" value="0"></label>
     <p data-i18n="c.offsetHelp">Nốt tới muộn hơn nhạc? Kéo sang trái. Sớm hơn? Kéo sang phải.</p>
+    <h3 class="set-h" data-i18n="c.set.about">ℹ️ Giới thiệu</h3>
     <p data-i18n="c.aboutText">Trang do fan làm cho vui. Video thuộc về kênh gốc; sảnh và đám đông được vẽ riêng cho trang này. Số lần cổ vũ chỉ lưu trên máy bạn.</p>
     <p><a href="../" data-i18n="c.back">← Về trang video LenaMiu Sub</a></p>
   </details>
 </main>
+
+<!-- lightstick toàn màn hình: cả màn hình thành lightstick màu phe, nháy theo nhịp; chạm = cổ vũ (cheer.js → openGlow) -->
+<div class="glowmode" id="glowMode" hidden>
+  <div class="gm-flash" id="gmFlash"></div>
+  <div class="gm-heart" id="gmHeart"><svg viewBox="0 0 100 92" aria-hidden="true"><path d="M50 84C20 64 9 45 20 29c9-13 25-11 30 1 5-12 21-14 30-1 11 16 0 35-30 55z" fill="#fff" fill-opacity=".93"/></svg></div>
+  <p class="gm-tip" data-i18n="c.glow.tip">Chạm để cổ vũ · nháy theo nhịp bài</p>
+  <button type="button" class="gm-close" id="glowClose" data-i18n-attr="aria-label:c.glow.close" aria-label="Đóng">✕</button>
+</div>
+<!-- thông báo huy hiệu mới -->
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<!-- thẻ kết quả để khoe (cheer.js → makeCard) -->
+<div class="cardbox" id="cardBox" hidden>
+  <div class="inner">
+    <img id="cardImg" alt="" width="1080" height="1350">
+    <div class="row">
+      <button type="button" class="ghost" id="cardSend" hidden data-i18n="c.share.send">Chia sẻ</button>
+      <button type="button" class="ghost" id="cardSave" data-i18n="c.share.save">Tải ảnh</button>
+      <button type="button" class="ghost" id="cardClose" data-i18n="c.share.close">Đóng</button>
+    </div>
+  </div>
+</div>
 
 <!-- chữ "bùng nổ" to giữa màn hình khi năng lượng đầy (cheer.js → burst) -->
 <div class="burst-fx" id="burstFx" aria-hidden="true"><b></b></div>
@@ -701,6 +838,10 @@
               <path d="M112 91Q126 75 140 91" fill="none" stroke="#2b1633" stroke-width="3.2"/><path d="M139 90l5.5-3.5" fill="none" stroke="#2b1633" stroke-width="2.6"/>
             </g>
           </g>
+          <g class="cat-o cat-o-glasses" stroke="#fff" stroke-width="1.6">
+            <rect x="57" y="84" width="34" height="24" rx="10" fill="#1d1426" fill-opacity=".86"/><rect x="109" y="84" width="34" height="24" rx="10" fill="#1d1426" fill-opacity=".86"/>
+            <path d="M91 92q9-5 18 0" fill="none" stroke-width="2.4"/><path d="M63 91l9-4M115 91l9-4" stroke-opacity=".75" stroke-width="2.4"/>
+          </g>
           <path class="cat-happy" d="M61 100Q74 83 87 100M113 100Q126 83 139 100" fill="none" stroke="#2b1633" stroke-width="4.2"/>
           <path class="cat-wink" d="M113 100Q126 83 139 100" fill="none" stroke="#2b1633" stroke-width="4.2"/>
           <path class="cat-sleep" d="M62 96Q74 106 86 96M114 96Q126 106 138 96" fill="none" stroke="#2b1633" stroke-width="3.8"/>
@@ -714,6 +855,21 @@
           <path d="M100 112V115M91 116Q95.5 122 100 115Q104.5 122 109 116" fill="none" stroke="#2b1633" stroke-width="2.2"/>
         </g>
         <g class="cat-bow" stroke="#fff" stroke-width="1.6"><path d="M146 44 125 31Q120 44 127 55ZM146 44 168 33Q173 46 165 57Z" fill="currentColor"/><circle cx="146" cy="44" r="6.2" fill="currentColor"/></g>
+        <g class="cat-o cat-o-flower" stroke="#fff" stroke-width="1.2">
+          <circle cx="58" cy="54" r="6" fill="#ffb3cf"/><circle cx="66" cy="47" r="6" fill="#ffb3cf"/><circle cx="73" cy="55" r="6" fill="#ffb3cf"/><circle cx="67" cy="63" r="6" fill="#ffb3cf"/><circle cx="58" cy="62" r="6" fill="#ffb3cf"/>
+          <circle cx="65" cy="56" r="4.6" fill="#ffd36e"/>
+        </g>
+        <g class="cat-o cat-o-headphones">
+          <path d="M38 98C30 22 170 22 162 98" fill="none" stroke="#2c2236" stroke-width="7"/><path d="M38 98C30 22 170 22 162 98" fill="none" stroke="currentColor" stroke-width="2.2"/>
+          <rect x="25" y="82" width="19" height="34" rx="8" fill="#2c2236" stroke="currentColor" stroke-width="2"/><rect x="156" y="82" width="19" height="34" rx="8" fill="#2c2236" stroke="currentColor" stroke-width="2"/>
+        </g>
+        <g class="cat-o cat-o-partyhat" stroke="#fff" stroke-width="1.8">
+          <path d="M60 50 72 6 96 44Z" fill="#9a6bff"/><path d="M65 33 88 30M69 19 81 18" stroke="#ffd36e" stroke-width="3"/><circle cx="72" cy="6" r="5" fill="#ffd36e" stroke-width="1.4"/>
+        </g>
+        <g class="cat-o cat-o-crown" stroke="#b8811a" stroke-width="1.6">
+          <path d="M78 48 82 24 92 37 100 19 108 37 118 24 122 48Z" fill="#ffd36e"/><rect x="78" y="44" width="44" height="7" rx="2" fill="#f2b636"/>
+          <circle cx="100" cy="32" r="3.2" fill="#ff5c9d" stroke="#fff" stroke-width="1"/><circle cx="84" cy="31" r="2.2" fill="#9a6bff" stroke="none"/><circle cx="116" cy="31" r="2.2" fill="#9a6bff" stroke="none"/>
+        </g>
         <path class="cat-sweat" d="M176 50Q185 63 176 68Q167 63 176 50Z" fill="#9fdcff" stroke="#5fb6e8" stroke-width="1.3"/>
       </g>
       <g class="cat-bell"><circle cx="100" cy="147.5" r="7.5" fill="url(#catBell)" stroke="#b8811a" stroke-width="1.4"/><path d="M95.5 148.5h9M100 148.5v4" stroke="#8a5c0f" stroke-width="1.4"/><circle cx="97.5" cy="144.8" r="1.8" fill="#fff" opacity=".85" stroke="none"/></g>

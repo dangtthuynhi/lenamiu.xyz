@@ -23,6 +23,8 @@ const VIDEO_BASE = String(SITE.videoBase || '').trim().replace(/\/*$/, '/');
 
 const SEAT_KEY = 'lm_cheer_seat', TEAM_KEY = 'lm_cheer_team', SOUND_KEY = 'lm_cheer_sfx_on', TOTAL_KEY = 'lm_cheer_total';
 const LEVEL_KEY = 'lm_cheer_level', OFFSET_KEY = 'lm_cheer_offset', BEST_PREFIX = 'lm_cheer_best:', SFX_VOL_KEY = 'lm_cheer_sfxvol', INST_KEY = 'lm_cheer_inst';
+const BADGE_KEY = 'lm_cheer_badges', OUTFIT_KEY = 'lm_cheer_outfit', BURSTS_KEY = 'lm_cheer_bursts', SHAKE_KEY = 'lm_cheer_shake',
+  BUZZ_KEY = 'lm_cheer_buzz', BOARD_KEY = 'lm_cheer_board';
 // cùng số ?v= với trang (GitHub Pages giữ file 10 phút: có ?v= thì sửa nốt là thấy ngay)
 const V = new URL(import.meta.url).searchParams.get('v') || String(Date.now());
 
@@ -288,10 +290,14 @@ function beatPos(time) {
 /* ================= trò chơi gõ nhịp ================= */
 // Nốt trong charts/<bài>.json ghi theo số phách từ mốc phách; đổi ra giây của video đang chọn: anchor + phách × 60 / bpm.
 // Trạng thái: idle (chờ bấm Bắt đầu) → play → done (bảng kết quả). Đổi bài / video / mức là về idle.
+// Đấu 2 người (game.duel): game là người 1 (phím F / nửa trái làn, phe Lena), game.p2 là người 2 (phím J / nửa phải, phe Miu);
+// hai người cùng gõ một bộ nốt, mỗi người một bản sao nốt + điểm + combo riêng.
 const game = {
   state: 'idle', chart: null, notes: [], i: 0, endT: 0, lastT: null,
   score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, great: 0, good: 0, miss: 0 }, fx: [],
+  duel: false, p2: null,
 };
+const runs = () => (game.p2 ? [game, game.p2] : [game]);
 const charts = new Map();
 function loadChart(s) {
   if (!charts.has(s.chart)) {
@@ -307,7 +313,9 @@ function loadChart(s) {
         // tông + hợp âm theo phách (make-chart đo sẵn) cho giai điệu tiếng gõ
         const chords = (Array.isArray(c.chords) ? c.chords : []).filter((r) => Array.isArray(r) && Number.isFinite(Number(r[0])) && parseChord(r[1]))
           .map((r) => [Number(r[0]), String(r[1])]).sort((x, y) => x[0] - y[0]);
-        return { bpm: Number(c.bpm), lv, key: parseChord(c.key) ? String(c.key) : '', bar: clampInt(c.bar, 0, 3), chords };
+        const chant = (Array.isArray(c.chant) ? c.chant : []).filter((r) => Array.isArray(r) && Number.isFinite(Number(r[0])) && typeof r[1] === 'string')
+          .map((r) => [Number(r[0]), r[1].slice(0, 12)]).sort((x, y) => x[0] - y[0]);
+        return { bpm: Number(c.bpm), lv, key: parseChord(c.key) ? String(c.key) : '', bar: clampInt(c.bar, 0, 3), chords, chant };
       })
       .catch(() => null));
   }
@@ -337,6 +345,8 @@ function resetRun(state) {
     counts: { perfect: 0, great: 0, good: 0, miss: 0 },
     endT: game.notes.length ? game.notes[game.notes.length - 1].t + 2 : 0,
   });
+  game.p2 = game.duel && game.notes.length
+    ? { notes: game.notes.map((n) => ({ ...n })), i: 0, score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, great: 0, good: 0, miss: 0 } } : null;
   $('results').hidden = true;
   paintHud();
 }
@@ -367,67 +377,72 @@ function updateGame(st) {
     else if (st > game.lastT + 1.2) skipTo(tj);              // tua tới: nốt bị bỏ qua không tính trượt
   }
   game.lastT = st;
-  while (game.i < game.notes.length) {
-    const n = game.notes[game.i];
-    if (n.st) { game.i++; continue; }
-    if (tj - n.t > WIN.good) { judgeNote(n, 'miss'); game.i++; continue; }
-    break;
+  for (const R of runs()) {
+    while (R.i < R.notes.length) {
+      const n = R.notes[R.i];
+      if (n.st) { R.i++; continue; }
+      if (tj - n.t > WIN.good) { judgeNote(n, 'miss', R); R.i++; continue; }
+      break;
+    }
   }
   if (tj > game.endT || player.ended) finishGame();
 }
 function rewindTo(tj) {
-  for (const n of game.notes) {
-    if (!n.st || n.t <= tj - WIN.good) continue;
-    if (n.j && n.j !== 'skip') { game.counts[n.j]--; game.score -= n.pts; }
-    Object.assign(n, { st: 0, j: '', pts: 0 });
+  for (const R of runs()) {
+    for (const n of R.notes) {
+      if (!n.st || n.t <= tj - WIN.good) continue;
+      if (n.j && n.j !== 'skip') { R.counts[n.j]--; R.score -= n.pts; }
+      Object.assign(n, { st: 0, j: '', pts: 0 });
+    }
+    R.i = 0;
+    R.combo = 0;
   }
-  game.i = 0;
-  game.combo = 0;
   paintHud();
 }
 function skipTo(tj) {
-  for (const n of game.notes) if (!n.st && n.t < tj - WIN.good) Object.assign(n, { st: 3, j: 'skip' });
+  for (const R of runs()) for (const n of R.notes) if (!n.st && n.t < tj - WIN.good) Object.assign(n, { st: 3, j: 'skip' });
 }
 // gõ lúc ms: tìm nốt gần nhất còn chờ trong khoảng ±WIN.good
-function tryHit(ms) {
+function tryHit(ms, R = game) {
   if (game.state !== 'play') return null;
   const st = songTimeAt(ms);
   if (st == null) return null;
   const tj = st - offsetMs / 1000;
   let best = null;
-  for (let k = game.i; k < game.notes.length; k++) {
-    const n = game.notes[k];
+  for (let k = R.i; k < R.notes.length; k++) {
+    const n = R.notes[k];
     if (n.t - tj > WIN.good) break;
     if (n.st) continue;
     const d = Math.abs(tj - n.t);
     if (d <= WIN.good && (!best || d < best.d)) best = { n, d };
   }
   if (!best) return null;
-  judgeNote(best.n, best.d <= WIN.perfect ? 'perfect' : best.d <= WIN.great ? 'great' : 'good');
+  judgeNote(best.n, best.d <= WIN.perfect ? 'perfect' : best.d <= WIN.great ? 'great' : 'good', R);
   return best.n;
 }
-function judgeNote(n, j) {
+function judgeNote(n, j, R = game) {
   n.j = j;
   if (j === 'miss') {
     n.st = 2;
-    game.counts.miss++;
-    game.combo = 0;
+    R.counts.miss++;
+    R.combo = 0;
     addEnergy(ENERGY.miss);
     if (performance.now() - lastCheer < 3000) { cat.oopsUntil = performance.now() + 450; cat.flinch = 1; }   // chỉ khi người chơi đang gõ thật
   } else {
     n.st = 1;
-    game.combo++;
-    game.maxCombo = Math.max(game.maxCombo, game.combo);
-    n.pts = Math.round(POINTS[j] * (n.big ? 2 : 1) * (1 + Math.min(game.combo, 100) / 100));
-    game.score += n.pts;
-    game.counts[j]++;
+    R.combo++;
+    R.maxCombo = Math.max(R.maxCombo, R.combo);
+    n.pts = Math.round(POINTS[j] * (n.big ? 2 : 1) * (1 + Math.min(R.combo, 100) / 100));
+    R.score += n.pts;
+    R.counts[j]++;
     addEnergy(ENERGY[j] * (n.big ? 1.5 : 1));
-    game.fx.push({ t0: performance.now(), big: n.big });
-    if (j === 'perfect' && game.combo % 4 === 0) cat.happyUntil = performance.now() + 450;
+    game.fx.push({ t0: performance.now(), big: n.big, p: R === game.p2 ? 1 : 0 });
+    if (j === 'perfect' && R.combo % 4 === 0) cat.happyUntil = performance.now() + 450;
     if (n.big) cat.starUntil = performance.now() + 900;
-    if (game.combo === 10 || game.combo === 25 || (game.combo >= 50 && game.combo % 50 === 0)) catCombo(game.combo);
+    if (R.combo === 10 || R.combo === 25 || (R.combo >= 50 && R.combo % 50 === 0)) catCombo(R.combo);
+    comboBadges(R.combo);
   }
-  showJudge(j);
+  showJudge(j, game.p2 ? (R === game.p2 ? 'b' : 'a') : '');
   paintHud();
 }
 const bestKey = () => BEST_PREFIX + (song() ? song().id : '') + ':' + level;
@@ -435,17 +450,48 @@ function readBest() {
   try { const b = JSON.parse(store(bestKey()) || 'null'); return b && b.score > 0 ? b : null; } catch (e) { return null; }
 }
 const fmt = (n) => Math.round(n).toLocaleString(LM.locale);
+const accOf = (c) => { const n = c.perfect + c.great + c.good + c.miss; return n ? Math.round((c.perfect + c.great * 0.7 + c.good * 0.4) / n * 1000) / 10 : 0; };
+function finishDuel() {
+  const P = [game, game.p2].map((R) => ({ score: R.score, acc: accOf(R.counts), maxCombo: R.maxCombo }));
+  const winner = P[0].score === P[1].score ? null : P[0].score > P[1].score ? 0 : 1;
+  lastRun = { duel: true, players: P, winner, level };
+  badge('duel');
+  catResult(winner == null ? 'B' : 'S');
+  const box = $('results'), info = el('div');
+  info.append(el('p', 'best', winner == null ? t('c.duel.tie') : t('c.duel.win', { who: t(winner ? 'c.duel.p2' : 'c.duel.p1') })));
+  P.forEach((x, i) => {
+    const row = el('p');
+    row.append(el('strong', '', t(i ? 'c.duel.p2' : 'c.duel.p1') + ' ' + fmt(x.score)), ' · ' + t('c.res.acc', { n: x.acc }) + ' · ' + t('c.res.maxCombo', { n: x.maxCombo }));
+    info.append(row);
+  });
+  const sh = el('button', 'ghost share-btn', t('c.share'));
+  sh.type = 'button';
+  sh.addEventListener('click', showCard);
+  info.append(sh);
+  box.replaceChildren(el('b', 'grade', winner == null ? '=' : winner ? '2' : '1'), info);
+  box.setAttribute('aria-label', t('c.res.title'));
+  box.hidden = false;
+  paintGame();
+}
 function finishGame() {
   if (game.state !== 'play') return;
   game.state = 'done';
+  if (game.p2) { finishDuel(); return; }
   const c = game.counts;
   const judged = c.perfect + c.great + c.good + c.miss;
-  const acc = judged ? Math.round((c.perfect + c.great * 0.7 + c.good * 0.4) / judged * 1000) / 10 : 0;
+  const acc = accOf(c);
   const grade = acc >= 95 ? 'S' : acc >= 88 ? 'A' : acc >= 75 ? 'B' : acc >= 60 ? 'C' : 'D';
   catResult(grade);
+  if (judged) {
+    if (grade === 'A' || grade === 'S') badge('gradeA');
+    if (grade === 'S') badge('gradeS');
+    if (!c.miss) badge('fc');
+    if (level === 'hard') badge('hard');
+  }
   const prev = readBest();
   const isBest = game.score > 0 && (!prev || game.score > prev.score);
   if (isBest) store(bestKey(), JSON.stringify({ score: game.score, acc, combo: game.maxCombo, at: Date.now() }));
+  lastRun = { duel: false, score: game.score, acc, grade, maxCombo: game.maxCombo, counts: { ...c }, best: isBest, level };
   const box = $('results');
   const info = el('div');
   const p1 = el('p');
@@ -453,6 +499,10 @@ function finishGame() {
   info.append(p1, el('p', '', t('c.res.counts', { p: c.perfect, g: c.great, o: c.good, m: c.miss })));
   if (isBest) info.append(el('p', 'best', t('c.res.newBest')));
   else if (prev) info.append(el('p', '', t('c.best', { n: fmt(prev.score) })));
+  const sh = el('button', 'ghost share-btn', t('c.share'));
+  sh.type = 'button';
+  sh.addEventListener('click', showCard);
+  info.append(sh);
   box.replaceChildren(el('b', 'grade', grade), info);
   box.setAttribute('aria-label', t('c.res.title'));
   box.hidden = false;
@@ -472,23 +522,33 @@ function paintGame() {
   const btn = $('start');
   btn.hidden = game.state === 'play';
   btn.disabled = !ready;
+  $('duelBtn').hidden = game.state === 'play';
+  $('duelBtn').setAttribute('aria-pressed', String(game.duel));
   $('startLabel').textContent = !game.chart ? t('c.loading') : game.state === 'done' ? t('c.again') : t('c.start');
   const best = ready && readBest();
   $('startBest').textContent = best ? t('c.best', { n: fmt(best.score) }) : '';
-  $('howto').textContent = t(touch ? 'c.howtoTouch' : 'c.howto');
+  $('howto').textContent = game.duel ? t(touch ? 'c.duel.howtoTouch' : 'c.duel.howto') : t(touch ? 'c.howtoTouch' : 'c.howto');
 }
 let shownCombo = 0;
 function paintHud() {
-  $('score').textContent = fmt(game.score);
+  const d = game.p2;
+  $('game').classList.toggle('duel', !!d);
+  $('score2').hidden = $('combo2').hidden = !d;
+  $('score').textContent = d ? '🩷 ' + fmt(game.score) : fmt(game.score);
+  if (d) {
+    $('score2').textContent = fmt(d.score) + ' 💜';
+    $('combo2').textContent = d.combo >= 3 ? '×' + d.combo : '';
+  }
   const cb = $('combo');
-  cb.textContent = game.combo >= 3 ? t('c.combo', { n: game.combo }) : '';
+  cb.textContent = game.combo >= 3 ? (d ? '×' + game.combo : t('c.combo', { n: game.combo })) : '';
   if (game.combo > shownCombo && game.combo >= 3 && cb.animate && !reduced) cb.animate([{ transform: 'scale(1.3)' }, { transform: 'none' }], { duration: 220, easing: 'ease-out' });
   shownCombo = game.combo;
 }
-function showJudge(j) {
+function showJudge(j, who = '') {
   const n = $('judge');
   n.textContent = t('c.j.' + j);
   n.dataset.j = j;
+  n.dataset.p = who;
   if (!n.animate) { n.style.opacity = '1'; return; }
   n.animate([
     { transform: reduced ? 'none' : 'scale(1.35)', opacity: 1 }, { transform: 'none', opacity: 1, offset: 0.25 },
@@ -557,8 +617,8 @@ function drawLane(st, now) {
   // gõ trúng: trái tim loang ra từ vòng đích
   game.fx = game.fx.filter((f) => now - f.t0 < 420);
   for (const f of game.fx) {
-    const k = (now - f.t0) / 420;
-    heart(tx, cy, laneH * (0.64 + 0.55 * k) * (f.big ? 1.15 : 1), null, f.big ? '#ffd36e' : stickCol, 1 - k, 3);
+    const k = (now - f.t0) / 420, fc = game.p2 ? TEAM[f.p ? 'b' : 'a'] : stickCol;
+    heart(tx, cy, laneH * (0.64 + 0.55 * k) * (f.big ? 1.15 : 1), null, f.big ? '#ffd36e' : fc, 1 - k, 3);
     // tia lửa toé ra quanh vòng đích
     lctx.fillStyle = f.big ? '#ffd36e' : '#fff';
     lctx.globalAlpha = 1 - k;
@@ -571,18 +631,25 @@ function drawLane(st, now) {
     lctx.globalAlpha = 1;
   }
   if (game.state !== 'play') return;
-  for (let k = Math.max(0, game.i - 6); k < game.notes.length; k++) {
-    const n = game.notes[k];
+  const P2 = game.p2;
+  for (let k = Math.max(0, Math.min(game.i, P2 ? P2.i : game.i) - 6); k < game.notes.length; k++) {
+    let n = game.notes[k];
     const x = X(n.t);
     if (x > laneW + 30) break;
+    let laneCol = stickCol;
+    if (P2) {           // 2 người: nốt còn ai chưa gõ thì mang màu người đó (cả hai chưa gõ: màu phe đang chọn)
+      const m = P2.notes[k], w1 = !n.st, w2 = !m.st;
+      if (!w1 && !w2) n = n.st === 2 && m.st === 2 ? n : { ...n, st: 1 };
+      else { if (!w1) n = m; laneCol = w1 && w2 ? stickCol : TEAM[w1 ? 'a' : 'b']; }
+    }
     if (x < -30 || n.st === 1 || n.st === 3) continue;
     const size = laneH * (n.big ? 0.66 : 0.46);
     if (n.st === 2) heart(x, cy, size, 'rgba(150,140,165,.55)', null, Math.max(0, Math.min(0.8, (x + 30) / (tx + 30))), 0);
     else {
-      const col = n.big ? '#ffd36e' : stickCol;
+      const col = n.big ? '#ffd36e' : laneCol;
       heart(x + size * 0.5, cy, size * 0.78, col, null, 0.2, 0);      // vệt đuôi
       heart(x + size * 0.95, cy, size * 0.58, col, null, 0.09, 0);
-      heart(x, cy, size, col, '#fff', 1, n.big ? 3 : 2, n.big ? '#ffb347' : stickCol);
+      heart(x, cy, size, col, '#fff', 1, n.big ? 3 : 2, n.big ? '#ffb347' : laneCol);
     }
   }
 }
@@ -687,6 +754,7 @@ $('team').addEventListener('change', (e) => {
   team = e.target.value === 'b' ? 'b' : 'a';
   store(TEAM_KEY, team);
   applyTeam();
+  applyBoard();
 });
 $('sound').addEventListener('click', () => {
   soundOn = !soundOn;
@@ -705,20 +773,26 @@ function paintCount() { $('count').textContent = t('c.count', { n: total.toLocal
 paintCount();
 
 // ms = thời điểm gõ (e.timeStamp của sự kiện, cùng mốc với performance.now) để chấm nốt chính xác
-function cheer(ms) {
+// who: 2 người thì 0 = người 1, 1 = người 2, null = không rõ ai (Space…: chỉ cổ vũ, không chấm nốt)
+function cheer(ms, who = null) {
   const now = performance.now();
   if (!(ms > 0) || ms > now) ms = now;
   lastCheer = now;
   if (sync) { syncTap(ms); tapSound('tap'); swing(); return; }   // căn nhịp: tiếng phát ngay, không khớp lưới
   let power = 1, snd = 'tap', hit = null;
   if (game.state === 'play') {
-    const n = tryHit(ms);
+    const R = game.p2 ? (who === 1 ? game.p2 : who === 0 ? game : null) : game;
+    const n = R ? tryHit(ms, R) : null;
     if (n) { power = n.big ? 1.8 : 1.2; snd = n.big ? 'big' : 'tap'; hit = n; }
     else { addEnergy(ENERGY.free); power = 0.6; snd = 'soft'; }
   } else addEnergy(ENERGY.idle);
+  if (chantHit(ms)) power = Math.max(power, 1.2);
   total += 1;
   store(TOTAL_KEY, String(total));
   paintCount();
+  cheerBadges();
+  fanAdd();
+  buzz(hit ? (hit.big ? 30 : 16) : 6);
   tapSound(snd, ms, hit);
   swing();
   cat.kick = Math.min(1, 0.55 + 0.25 * power);
@@ -734,6 +808,10 @@ function addEnergy(d) {
 // Năng lượng đầy: cả sảnh nhảy, pháo giấy rơi (rồi hạ năng lượng xuống để lần sau phải gõ tiếp mới đầy lại)
 function burst(now) {
   burstUntil = now + 3500;
+  bursts++;
+  store(BURSTS_KEY, String(bursts));
+  badge('burst');
+  if (bursts >= 10) badge('burst10');
   energy = 60;
   if (hall) hall.burst();
   $('say').textContent = t('c.burst');
@@ -1494,11 +1572,17 @@ $('inst').addEventListener('change', (e) => {
 
 // Bấm / chạm lightstick (pointerdown: không chờ nhấc tay, gõ nhanh được), hoặc phím Space, F, J ở bất cứ đâu
 const stick = $('stick');
-stick.addEventListener('pointerdown', (e) => { if (e.button > 0) return; cheer(e.timeStamp); });
-stick.addEventListener('click', (e) => { if (e.detail === 0 && performance.now() - lastCheer > 150) cheer(e.timeStamp); });   // Enter khi đang chọn nút
+const stickWho = () => (game.p2 ? (team === 'a' ? 0 : 1) : null);   // 2 người: lightstick tính cho người cùng phe đang chọn
+stick.addEventListener('pointerdown', (e) => { if (e.button > 0) return; cheer(e.timeStamp, stickWho()); });
+stick.addEventListener('click', (e) => { if (e.detail === 0 && performance.now() - lastCheer > 150) cheer(e.timeStamp, stickWho()); });   // Enter khi đang chọn nút
 stick.addEventListener('contextmenu', (e) => e.preventDefault());
 // chạm vào làn nốt cũng là gõ (điện thoại: chỗ chạm to, ngay dưới video)
-lane.addEventListener('pointerdown', (e) => { if (e.button > 0) return; e.preventDefault(); cheer(e.timeStamp); });
+lane.addEventListener('pointerdown', (e) => {
+  if (e.button > 0) return;
+  e.preventDefault();
+  const r = lane.getBoundingClientRect();
+  cheer(e.timeStamp, game.p2 ? (e.clientX < r.left + r.width / 2 ? 0 : 1) : null);
+});
 lane.addEventListener('contextmenu', (e) => e.preventDefault());
 // Space không bao giờ được kéo trang xuống: chặn cả lúc giữ phím (e.repeat) và lúc đang chọn một đường link.
 // Chỉ nhường cho trình duyệt khi đang gõ / chọn trong ô, hoặc Space trên một nút khác (Space = bấm nút đó).
@@ -1513,7 +1597,14 @@ document.addEventListener('keydown', (e) => {
   }
   if (document.querySelector('dialog[open], details.lang[open]')) return;
   e.preventDefault();
-  if (!e.repeat) cheer(e.timeStamp);
+  if (!e.repeat) cheer(e.timeStamp, k === 'f' ? 0 : k === 'j' ? 1 : null);
+});
+// nút đấu 2 người (trên làn nốt, lúc chưa chơi)
+$('duelBtn').addEventListener('click', () => {
+  game.duel = !game.duel;
+  resetRun('idle');
+  paintGame();
+  $('main').focus({ preventScroll: true });
 });
 
 /* ================= mức chơi, căn nhịp ================= */
@@ -1561,6 +1652,415 @@ function syncTap(ms) {
 }
 prepareSong();
 
+/* ================= thêm vui: huy hiệu, trang phục mèo, lắc máy, lightstick toàn màn hình, bảng cổ vũ, thẻ kết quả,
+   bộ đếm cổ vũ chung cả fandom, fanchant ================= */
+
+/* ---- huy hiệu (lưu trên máy) + trang phục mèo mở khoá theo huy hiệu ---- */
+const BADGES = [
+  ['first', '👋'], ['c100', '💯'], ['c1000', '🔥'], ['c10000', '🏟️'], ['combo25', '⚡'], ['combo50', '😎'], ['combo100', '💫'],
+  ['gradeA', '🅰️'], ['gradeS', '🌟'], ['fc', '💎'], ['hard', '🥵'], ['burst', '🎆'], ['burst10', '🎇'], ['chant', '📣'],
+  ['duel', '🤝'], ['shake', '📳'], ['glow', '🔦'], ['board', '🪧'], ['share', '📸'],
+];
+// [trang phục, huy hiệu mở khoá]
+const OUTFITS = [['none', ''], ['flower', 'c100'], ['glasses', 'combo50'], ['headphones', 'c1000'], ['partyhat', 'burst10'], ['crown', 'gradeS']];
+let badges = {};
+try { badges = JSON.parse(store(BADGE_KEY) || '{}') || {}; } catch (e) { badges = {}; }
+let outfit = OUTFITS.some(([o, b]) => o === store(OUTFIT_KEY) && (!b || badges[b])) ? store(OUTFIT_KEY) : 'none';
+let bursts = clampInt(store(BURSTS_KEY), 0, 1e9);
+let toastTimer = 0;
+function toast(text) {
+  const n = $('toast');
+  n.textContent = text;
+  n.hidden = false;
+  if (n.animate && !reduced) n.animate([{ transform: 'translate(-50%, -14px)', opacity: 0 }, { transform: 'translate(-50%, 0)', opacity: 1 }], { duration: 220, easing: 'ease-out' });
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { n.hidden = true; }, 2800);
+}
+function badge(id) {
+  if (badges[id] || !BADGES.some(([b]) => b === id)) return;
+  badges[id] = Date.now();
+  store(BADGE_KEY, JSON.stringify(badges));
+  const o = OUTFITS.find(([, b]) => b === id);
+  toast(t('c.badgeNew', { name: t('c.b.' + id) }) + (o ? ' · ' + t('c.outfitNew', { name: t('c.o.' + o[0]) }) : ''));
+  if (o) catSay('✨', 1200);
+  paintBadges();
+}
+function paintBadges() {
+  const got = BADGES.filter(([b]) => badges[b]).length;
+  $('badgeHead').textContent = t('c.badges', { n: got, m: BADGES.length });
+  $('badges').replaceChildren(...BADGES.map(([b, icon]) => {
+    const n = el('span', 'bdg' + (badges[b] ? ' got' : ''), icon);
+    n.title = t('c.b.' + b) + (badges[b] ? '' : ' 🔒');
+    n.setAttribute('aria-label', n.title);
+    n.setAttribute('role', 'img');
+    return n;
+  }));
+  $('outfit').replaceChildren(...OUTFITS.map(([o, b]) => {
+    const open = !b || badges[b];
+    const n = el('option', '', open ? t('c.o.' + o) : t('c.o.locked', { name: t('c.o.' + o), badge: t('c.b.' + b) }));
+    n.value = o;
+    n.disabled = !open;
+    return n;
+  }));
+  $('outfit').value = outfit;
+}
+function applyOutfit() { if (catEl) catEl.dataset.outfit = outfit; }
+$('outfit').addEventListener('change', (e) => {
+  const o = OUTFITS.find(([x, b]) => x === e.target.value && (!b || badges[b]));
+  outfit = o ? o[0] : 'none';
+  store(OUTFIT_KEY, outfit);
+  applyOutfit();
+  cat.happyUntil = performance.now() + 900;
+  catSay('♥', 900);
+});
+paintBadges();
+applyOutfit();
+// huy hiệu theo số lần cổ vũ (gọi sau mỗi lần gõ)
+function cheerBadges() {
+  badge('first');
+  if (total >= 100) badge('c100');
+  if (total >= 1000) badge('c1000');
+  if (total >= 10000) badge('c10000');
+}
+function comboBadges(c) {
+  if (c >= 25) badge('combo25');
+  if (c >= 50) badge('combo50');
+  if (c >= 100) badge('combo100');
+}
+
+/* ---- lắc điện thoại để cổ vũ (cảm biến chuyển động) + rung nhẹ khi gõ trúng ---- */
+const MOTION = touch && typeof DeviceMotionEvent !== 'undefined';
+const BUZZ = touch && typeof navigator.vibrate === 'function';
+let shakeOn = false, buzzOn = store(BUZZ_KEY) !== '0';
+const shk = { g: 9.8, last: 0 };
+function onMotion(e) {
+  const a = e.accelerationIncludingGravity;
+  if (!a || a.x == null) return;
+  const m = Math.hypot(a.x, a.y || 0, a.z || 0);
+  shk.g += (m - shk.g) * 0.08;                 // trọng lực + rung tay chậm; lắc mạnh thì vọt khỏi mức này
+  const now = performance.now();
+  if (m - shk.g > 7.5 && now - shk.last > 200) {
+    shk.last = now;
+    cheer(now, game.p2 ? (team === 'a' ? 0 : 1) : null);
+    badge('shake');
+  }
+}
+function applyShake(on) {
+  shakeOn = on;
+  store(SHAKE_KEY, on ? '1' : '0');
+  $('shakeTog').checked = on;
+  removeEventListener('devicemotion', onMotion);
+  if (on) addEventListener('devicemotion', onMotion);
+}
+// iPhone phải hỏi quyền (từ một cú chạm); Android thì bật luôn
+function wantShake(on) {
+  if (on && typeof DeviceMotionEvent.requestPermission === 'function') {
+    DeviceMotionEvent.requestPermission().then((r) => applyShake(r === 'granted'), () => applyShake(false));
+  } else applyShake(on);
+}
+if (MOTION) {
+  $('shakeRow').hidden = false;
+  $('shakeTog').addEventListener('change', (e) => wantShake(e.target.checked));
+  if (store(SHAKE_KEY) === '1') {
+    if (typeof DeviceMotionEvent.requestPermission === 'function') addEventListener('pointerdown', () => wantShake(true), { once: true });
+    else applyShake(true);
+  }
+}
+if (BUZZ) {
+  $('buzzRow').hidden = false;
+  $('buzzTog').checked = buzzOn;
+  $('buzzTog').addEventListener('change', (e) => { buzzOn = e.target.checked; store(BUZZ_KEY, buzzOn ? '1' : '0'); });
+}
+function buzz(ms) { if (BUZZ && buzzOn) { try { navigator.vibrate(ms); } catch (e) { /* bỏ qua */ } } }
+
+/* ---- lightstick toàn màn hình: cả màn hình thành lightstick màu phe, nháy theo nhịp bài; chạm = cổ vũ ---- */
+const glowEl = $('glowMode');
+let glowOn = false, wake = null, glowKick = 0;
+function openGlow() {
+  glowOn = true;
+  glowEl.hidden = false;
+  $('settings').open = false;
+  badge('glow');
+  try { if (glowEl.requestFullscreen) glowEl.requestFullscreen().catch(() => {}); } catch (e) { /* iPhone: không có toàn màn hình, vẫn phủ kín trang */ }
+  try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then((w) => { wake = w; }, () => {}); } catch (e) { /* bỏ qua */ }
+}
+function closeGlow() {
+  glowOn = false;
+  glowEl.hidden = true;
+  try { if (document.fullscreenElement === glowEl) document.exitFullscreen(); } catch (e) { /* bỏ qua */ }
+  if (wake) { wake.release().catch(() => {}); wake = null; }
+}
+$('glowBtn').addEventListener('click', openGlow);
+$('glowBtn2').addEventListener('click', openGlow);
+$('glowClose').addEventListener('click', (e) => { e.stopPropagation(); closeGlow(); });
+glowEl.addEventListener('pointerdown', (e) => {
+  if (e.target.closest('#glowClose')) return;
+  glowKick = 1;
+  cheer(e.timeStamp, game.p2 ? (team === 'a' ? 0 : 1) : null);
+});
+document.addEventListener('fullscreenchange', () => { if (glowOn && !document.fullscreenElement && !glowEl.hidden) { /* thoát toàn màn hình bằng nút trình duyệt: vẫn phủ trang, bấm ✕ để đóng */ } });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (glowOn) closeGlow(); $('settings').open = false; $('cardBox').hidden = true; } });
+function glowFrame(beat, dt) {
+  if (!glowOn) return;
+  glowKick = Math.max(0, glowKick - dt * 4);
+  const pulse = beat == null || reduced ? 0.45 + 0.2 * Math.sin(performance.now() / 500) : (1 - (beat - Math.floor(beat))) ** 2.2;
+  const v = Math.min(1, 0.35 + 0.55 * pulse + 0.5 * glowKick);
+  $('gmFlash').style.opacity = v.toFixed(2);
+  $('gmHeart').style.transform = `scale(${(0.92 + 0.12 * pulse + 0.12 * glowKick).toFixed(3)})`;
+}
+
+/* ---- bảng cổ vũ của riêng người xem: một khán giả phía trước chỗ ngồi giơ bảng này trong sảnh ---- */
+let boardText = String(store(BOARD_KEY) || '').slice(0, 18);
+const normBoard = (s) => String(s || '').replace(/<3/g, '♥').replace(/\s+/g, ' ').trim().slice(0, 18);
+function applyBoard() {
+  if (hall) hall.setMyBoard(boardText, TEAM[team]);
+}
+$('boardTxt').value = boardText;
+let boardTimer = 0;
+$('boardTxt').addEventListener('input', (e) => {
+  clearTimeout(boardTimer);
+  boardTimer = setTimeout(() => {
+    boardText = normBoard(e.target.value);
+    store(BOARD_KEY, boardText);
+    applyBoard();
+    if (boardText) badge('board');
+  }, 350);
+});
+
+/* ---- thẻ kết quả để khoe: vẽ ảnh 1080×1350 (hạng, điểm, combo, mèo, lightstick, màu phe) → chia sẻ / tải về ---- */
+let lastRun = null;      // kết quả ván vừa chơi (finishGame ghi vào)
+function svgImage(svgEl, prep) {
+  const c = svgEl.cloneNode(true);
+  prep(c);
+  c.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(c)], { type: 'image/svg+xml' }));
+  return new Promise((res) => {
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); res(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); res(null); };
+    img.src = url;
+  });
+}
+// mèo đứng yên, mắt cười, đội trang phục đang chọn; lightstick màu phe
+function catImage() {
+  return svgImage(catEl.querySelector('svg'), (c) => {
+    c.style.color = TEAM[team];
+    c.querySelectorAll('[style]').forEach((n) => { if (n !== c) n.removeAttribute('style'); });
+    c.querySelectorAll('.cat-eyes, .cat-star, .cat-oops, .cat-sleep, .cat-wink, .cat-sweat, .cat-ghost, .cat-spark, .cat-spot').forEach((n) => n.remove());
+    OUTFITS.forEach(([o]) => { if (o !== outfit) c.querySelectorAll('.cat-o-' + o).forEach((n) => n.remove()); });
+    c.querySelectorAll('.cat-sing').forEach((n) => n.setAttribute('transform', 'translate(100 116) scale(.7 .8) translate(-100 -116)'));
+  });
+}
+function stickImage() {
+  return svgImage($('stick').querySelector('svg'), (c) => {
+    c.style.color = TEAM[team];
+    c.querySelectorAll('[style]').forEach((n) => { if (n !== c) n.removeAttribute('style'); });
+  });
+}
+function roundRect(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+async function makeCard(R) {
+  try { await Promise.all(['800 80px "Be Vietnam Pro"', '600 40px "Be Vietnam Pro"'].map((f) => document.fonts.load(f))); } catch (e) { /* bỏ qua */ }
+  const W = 1080, H = 1350, cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const g = cv.getContext('2d'), col = TEAM[team], F = (w, s) => w + ' ' + s + 'px "Be Vietnam Pro", system-ui, sans-serif';
+  // nền: tối tím, quầng sáng màu phe, lưới đèn LED
+  const bg = g.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#2a0f2c'); bg.addColorStop(0.55, '#140a1c'); bg.addColorStop(1, '#07040b');
+  g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  const rg = g.createRadialGradient(W / 2, 330, 40, W / 2, 330, 760);
+  rg.addColorStop(0, hexA(col, 0.55)); rg.addColorStop(1, hexA(col, 0));
+  g.fillStyle = rg; g.fillRect(0, 0, W, H);
+  for (let y = 40; y < 640; y += 26) for (let x = 20; x < W; x += 26) {
+    const a = 0.05 + 0.13 * Math.max(0, Math.sin(x * 0.013 + y * 0.021)) * (1 - y / 700);
+    g.fillStyle = hexA(col, a.toFixed(3)); g.beginPath(); g.arc(x, y, 5, 0, 6.283); g.fill();
+  }
+  g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillStyle = '#fff';
+  g.font = F(800, 34); g.letterSpacing = '6px';
+  g.fillStyle = 'rgba(255,255,255,.8)'; g.fillText(t('c.card.title'), W / 2, 92);
+  g.letterSpacing = '0px';
+  const s = song();
+  g.font = F(800, 96); g.fillStyle = '#fff'; g.shadowColor = col; g.shadowBlur = 30;
+  g.fillText(s ? s.title : '', W / 2, 205, W - 120);
+  g.shadowBlur = 0;
+  g.font = F(600, 36); g.fillStyle = 'rgba(255,255,255,.75)';
+  g.fillText([s && s.artist, R.level ? t('c.level.' + R.level) : ''].filter(Boolean).join(' · '), W / 2, 258, W - 120);
+  // khung kết quả
+  g.fillStyle = 'rgba(20,12,28,.72)'; roundRect(g, 70, 300, W - 140, R.duel ? 520 : 470, 40); g.fill();
+  g.strokeStyle = hexA(col, 0.7); g.lineWidth = 3; g.stroke();
+  if (R.duel) {
+    g.font = F(800, 64); g.fillStyle = '#ffd36e';
+    g.fillText(R.winner == null ? t('c.duel.tie') : t('c.duel.win', { who: t(R.winner ? 'c.duel.p2' : 'c.duel.p1') }), W / 2, 395, W - 180);
+    R.players.forEach((p, i) => {
+      const y = 480 + i * 150;
+      g.fillStyle = TEAM[i ? 'b' : 'a']; roundRect(g, 120, y, 16, 110, 8); g.fill();
+      g.textAlign = 'left'; g.font = F(800, 46); g.fillStyle = '#fff';
+      g.fillText(t(i ? 'c.duel.p2' : 'c.duel.p1'), 160, y + 48);
+      g.font = F(600, 32); g.fillStyle = 'rgba(255,255,255,.78)';
+      g.fillText(t('c.res.acc', { n: p.acc }) + ' · ' + t('c.res.maxCombo', { n: p.maxCombo }), 160, y + 96);
+      g.textAlign = 'right'; g.font = F(800, 72); g.fillStyle = '#fff';
+      g.fillText(fmt(p.score), W - 120, y + 78);
+      g.textAlign = 'center';
+    });
+  } else {
+    // huy hiệu hạng ánh kim
+    const cx = 250, cy = 525, rr = 150;
+    const cg = g.createConicGradient ? g.createConicGradient(3.6, cx, cy) : null;
+    if (cg) { ['#ffd36e', '#fff6cf', '#ff9fcf', '#b99bff', '#ffd36e'].forEach((c, i) => cg.addColorStop(i / 4, c)); g.fillStyle = cg; } else g.fillStyle = '#ffd36e';
+    g.shadowColor = 'rgba(255,211,110,.7)'; g.shadowBlur = 40;
+    g.beginPath(); g.arc(cx, cy, rr, 0, 6.283); g.fill();
+    g.shadowBlur = 0; g.lineWidth = 8; g.strokeStyle = 'rgba(255,255,255,.7)'; g.stroke();
+    g.font = F(800, 190); g.fillStyle = '#2a1030'; g.textBaseline = 'middle'; g.fillText(R.grade, cx, cy + 8); g.textBaseline = 'alphabetic';
+    g.textAlign = 'left';
+    g.font = F(800, 92); g.fillStyle = '#fff'; g.fillText(fmt(R.score), 450, 470, 560);
+    g.font = F(600, 38); g.fillStyle = 'rgba(255,255,255,.8)';
+    g.fillText(t('c.res.acc', { n: R.acc }), 455, 535, 560);
+    g.fillText(t('c.res.maxCombo', { n: R.maxCombo }), 455, 590, 560);
+    g.font = F(600, 30); g.fillStyle = 'rgba(255,255,255,.65)';
+    g.fillText(t('c.res.counts', { p: R.counts.perfect, g: R.counts.great, o: R.counts.good, m: R.counts.miss }), 455, 645, 560);
+    if (R.best) { g.font = F(800, 34); g.fillStyle = '#ffd36e'; g.fillText(t('c.res.newBest'), 455, 712, 560); }
+    g.textAlign = 'center';
+  }
+  // mèo + lightstick đứng trên sàn sân khấu
+  const fl = g.createRadialGradient(W / 2, 1180, 20, W / 2, 1180, 520);
+  fl.addColorStop(0, hexA(col, 0.45)); fl.addColorStop(1, hexA(col, 0));
+  g.fillStyle = fl; g.fillRect(0, 880, W, 470);
+  const [ci, si] = await Promise.all([catImage(), stickImage()]);
+  if (ci) g.drawImage(ci, 150, 838, 360, 396);
+  if (si) { g.save(); g.translate(790, 858); g.rotate(-0.18); g.drawImage(si, -100, 0, 200, 360); g.restore(); }
+  g.font = F(600, 30); g.fillStyle = 'rgba(255,255,255,.7)'; g.fillText(t('c.card.join'), W / 2, 1268);
+  g.font = F(800, 44); g.fillStyle = '#fff'; g.fillText('lenamiu.xyz/cheer', W / 2, 1322);
+  return new Promise((res) => cv.toBlob(res, 'image/png'));
+}
+let cardBlob = null;
+async function showCard() {
+  if (!lastRun) return;
+  $('cardBox').hidden = false;
+  $('cardImg').removeAttribute('src');
+  $('cardSend').hidden = true;
+  cardBlob = await makeCard(lastRun);
+  if (!cardBlob) return;
+  const url = URL.createObjectURL(cardBlob);
+  $('cardImg').src = url;
+  const file = new File([cardBlob], 'lenamiu-cheer.png', { type: 'image/png' });
+  $('cardSend').hidden = !(navigator.canShare && navigator.canShare({ files: [file] }));
+}
+$('cardSave').addEventListener('click', () => {
+  if (!cardBlob) return;
+  const a = el('a');
+  a.href = $('cardImg').src;
+  a.download = 'lenamiu-cheer.png';
+  document.body.append(a); a.click(); a.remove();
+  badge('share');
+});
+$('cardSend').addEventListener('click', () => {
+  if (!cardBlob) return;
+  const file = new File([cardBlob], 'lenamiu-cheer.png', { type: 'image/png' });
+  navigator.share({ files: [file], text: t('c.share.text'), url: 'https://lenamiu.xyz/cheer/' }).then(() => badge('share'), () => {});
+});
+$('cardClose').addEventListener('click', () => { $('cardBox').hidden = true; });
+$('cardBox').addEventListener('click', (e) => { if (e.target === $('cardBox')) $('cardBox').hidden = true; });
+
+/* ---- bộ đếm cổ vũ chung cả fandom + PK hai phe (máy chủ lenamiu-cheer trên Cloudflare, xem worker-cheer/) ----
+   Gom số lần gõ theo phe rồi gửi mỗi 6 giây (và lúc rời trang); hỏi tổng mỗi 15 giây. Máy chủ chưa chạy thì giấu phần này. */
+const CHEER_API = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? 'http://127.0.0.1:8791' : 'https://lenamiu-cheer.dangthithuynhi2000.workers.dev';
+const fan = { pend: { a: 0, b: 0 }, srv: null, timer: 0, busy: false };
+function fanAdd() {
+  fan.pend[team]++;
+  if (!fan.timer) fan.timer = setTimeout(() => fanFlush(false), 6000);
+  paintFan();
+}
+function fanBody() { const b = 'a=' + fan.pend.a + '&b=' + fan.pend.b; fan.pend = { a: 0, b: 0 }; return b; }
+function fanFlush(leaving) {
+  clearTimeout(fan.timer);
+  fan.timer = 0;
+  if (!fan.pend.a && !fan.pend.b) return;
+  const sent = { ...fan.pend }, body = fanBody();
+  if (leaving && navigator.sendBeacon) { navigator.sendBeacon(CHEER_API + '/add', new Blob([body], { type: 'text/plain' })); return; }
+  fetch(CHEER_API + '/add', { method: 'POST', body, headers: { 'Content-Type': 'text/plain' }, keepalive: true })
+    .then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then(fanShow)
+    .catch(() => { fan.pend.a += sent.a; fan.pend.b += sent.b; });   // lỗi mạng: giữ lại, gửi lần sau
+}
+function fanPoll() {
+  if (document.hidden) return;
+  fetch(CHEER_API + '/stats').then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then(fanShow).catch(() => {});
+}
+function fanShow(d) {
+  if (!d || !Number.isFinite(d.a) || !Number.isFinite(d.b)) return;
+  fan.srv = { a: d.a, b: d.b };
+  paintFan();
+}
+function paintFan() {
+  if (!fan.srv) return;
+  const a = fan.srv.a + fan.pend.a, b = fan.srv.b + fan.pend.b, tot = a + b;
+  const pa = tot ? Math.round(a / tot * 100) : 50;
+  $('fanpk').hidden = false;
+  $('fanTotal').textContent = t('c.fan.total', { n: fmt(tot) });
+  $('fanA').textContent = t('c.fan.a') + ' ' + pa + '%';
+  $('fanB').textContent = (100 - pa) + '% ' + t('c.fan.b');
+  $('fanBar').style.width = pa + '%';
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) fanFlush(true); else fanPoll(); });
+addEventListener('pagehide', () => fanFlush(true));
+fanPoll();
+setInterval(fanPoll, 15000);
+
+/* ---- fanchant: câu hô "LE · NA · MIU!" hiện như karaoke trên màn hình video, sáng từng tiếng đúng phách ----
+   file nốt (make-chart) ghi chant: [[phách, tiếng], …] ở các đoạn sôi động. Gõ đúng lúc một tiếng hô: thêm năng lượng. */
+let chantLines = null, chantChart = null, chantShown = '', chantLit = -1, chantLast = -1;
+function chantPrep() {
+  if (chantChart === game.chart) return chantLines;
+  chantChart = game.chart;
+  chantLines = [];
+  const C = game.chart && game.chart.chant;
+  if (!C || !C.length) return chantLines;
+  let cur = null;
+  for (const [b, syl] of C) {
+    if (!cur || b - cur.end > 2) { cur = { start: b, end: b, syl: [] }; chantLines.push(cur); }
+    cur.syl.push([b, syl]);
+    cur.end = b;
+  }
+  return chantLines;
+}
+function chantFrame(beat) {
+  const box = $('chant');
+  const lines = beat == null ? null : chantPrep();
+  const L = lines && lines.find((l) => beat >= l.start - 2 && beat <= l.end + 1);
+  if (!L) { if (chantShown) { box.hidden = true; chantShown = ''; } return; }
+  const id = String(L.start);
+  if (chantShown !== id) {
+    chantShown = id;
+    chantLit = -1;
+    box.replaceChildren(...L.syl.map(([, s]) => el('span', '', s)));
+    box.hidden = false;
+  }
+  let lit = -1;
+  L.syl.forEach(([b], i) => { if (beat >= b - 0.03) lit = i; });
+  if (lit !== chantLit) {
+    chantLit = lit;
+    [...box.children].forEach((n, i) => { n.className = i < lit ? 'on' : i === lit ? 'on now' : ''; });
+    // mỗi tiếng hô: cả sảnh sáng theo, tiếng có "!" thì nhảy mạnh hơn
+    const key = id + ':' + lit;
+    if (lit >= 0 && key !== chantLast && beat - L.syl[lit][0] < 0.3) {
+      chantLast = key;
+      if (hall) hall.chant(/!$/.test(L.syl[lit][1]) ? 1 : 0.5);
+      cat.kick = Math.max(cat.kick, 0.6);
+    }
+  }
+}
+// gõ trúng lúc một tiếng hô (±0.15 phách) → thêm năng lượng + huy hiệu
+function chantHit(ms) {
+  const lines = chantPrep();
+  if (!lines || !lines.length) return false;
+  const st = songTimeAt(ms);
+  const b = st == null ? null : beatPos(st - offsetMs / 1000);
+  if (b == null) return false;
+  for (const l of lines) {
+    if (b < l.start - 0.5 || b > l.end + 0.5) continue;
+    if (l.syl.some(([sb]) => Math.abs(sb - b) <= 0.15)) { addEnergy(2.5); badge('chant'); return true; }
+  }
+  return false;
+}
+
 /* ================= vòng lặp mỗi khung hình ================= */
 let last = performance.now(), shownGlow = -1, shownCore = -1;
 const screenGlow = $('screenGlow');
@@ -1581,6 +2081,8 @@ function frame(now) {
   // lõi lightstick: loé mỗi phách khi nhạc chạy, thở nhẹ khi chưa có nhạc
   const core = reduced ? 0.85 : bp == null ? 0.72 + 0.1 * Math.sin(now / 650) : 0.55 + 0.45 * pulse;
   if (coreEl && Math.abs(core - shownCore) > 0.02) { shownCore = core; coreEl.style.opacity = core.toFixed(2); }
+  glowFrame(bp, dt);
+  chantFrame(reduced ? beatPos(st) : bp);
   // năng lượng tự giảm khi không gõ; đang chơi thì giảm chậm hơn (nốt thưa vẫn giữ được)
   if (!bursting) energy = Math.max(0, energy - dt * (now - lastCheer > 800 ? (game.state === 'play' ? 3 : 7) : 1.5));
   const e = Math.round(bursting ? 100 : energy);
@@ -1605,6 +2107,7 @@ initHall().then((h) => {
   applyTheme();
   applyTeam();
   hall.setSeat(seatId, true);
+  applyBoard();
 });
 
 async function initHall() {
@@ -1939,6 +2442,21 @@ function makeHall(THREE, canvas, fx) {
     });
   }
 
+  // bảng cổ vũ người xem tự viết: một khán giả đứng trước chỗ ngồi 2.5–7 m giơ lên, to hơn bảng thường. Màn hình ngang: người đó
+  // đứng lệch phải để bảng hiện cạnh khung video (khung video che giữa); màn hình dọc: gần giữa, hiện bên dưới video
+  let myBoard = null, myP = null;
+  function pickHolder() {
+    let best = null, bd = 1e9;
+    const floorY = toPos.y - 1.72, ox = portrait ? 0.5 : 1.9;
+    for (const p of people) {
+      const dz = toPos.z - p.z;
+      if (dz < 2.5 || dz > 7 || Math.abs(p.y - floorY) > 1.5) continue;
+      const d = Math.hypot(p.x - (toPos.x + ox), dz - 3.4);
+      if (d < bd) { bd = d; best = p; }
+    }
+    return best;
+  }
+
   /* ---- trái tim bay lên từ đám đông mỗi lần người xem gõ (gõ trúng nốt thì nhiều hơn) ---- */
   const heartTex = (() => {
     const s = 64, cv = document.createElement('canvas');
@@ -2120,6 +2638,11 @@ function makeHall(THREE, canvas, fx) {
       mtx.setPosition(p.x, (p.by || p.y) + 2.04 * p.s, p.z + 0.03);
       b.mesh.setMatrixAt(b.i, mtx);
       b.mesh.instanceMatrix.needsUpdate = true;
+    }
+    if (myBoard) {
+      if (myP) myBoard.position.set(myP.x, (myP.by || myP.y) + 2.25 * myP.s, myP.z + 0.06);
+      else myBoard.position.set(camPos.x + (portrait ? 0.5 : 1.9), camPos.y + 0.5, camPos.z - 3.4);
+      myBoard.rotation.z = reduced ? 0 : 0.09 * Math.sin(phase * 1.1);
     }
 
     // màn LED
@@ -2303,6 +2826,7 @@ function makeHall(THREE, canvas, fx) {
       const s = SEATS.find((x) => x.id === id) || SEATS[1];
       toPos.fromArray(s.pos);
       toLook.fromArray(s.look);
+      if (myBoard) myP = pickHolder();
       if (instant || reduced) { camPos.copy(toPos); camLook.copy(toLook); camT = 1; }
       else { fromPos.copy(camPos); fromLook.copy(camLook); camT = 0; }
     },
@@ -2314,6 +2838,20 @@ function makeHall(THREE, canvas, fx) {
       // trái tim bay lên từ khán giả phía trước mặt; gõ trúng tim vàng thì thêm pháo hoa phụt ngắn
       spawnHearts(power > 1.5 ? 6 : power >= 1 ? 3 : 1, camera.position.x, camera.position.z - 7, 8, userCol);
       if (power > 1.5 && now >= pyroUntil) { pyroTubes = 2; pyroUntil = now + 0.22; }
+    },
+    // bảng cổ vũ người xem tự viết (rỗng = bỏ bảng)
+    setMyBoard(text, color) {
+      if (myBoard) { scene.remove(myBoard); myBoard.material.map.dispose(); myBoard.material.dispose(); myBoard = null; }
+      if (!text || !boardGeo) return;
+      const parts = text.split(/(♥)/).map((x) => x.trim()).filter(Boolean);
+      myBoard = add(new THREE.Mesh(boardGeo, new THREE.MeshBasicMaterial({ map: boardTexture(parts, color), side: THREE.DoubleSide })));
+      myBoard.scale.setScalar(1.4);
+      myP = pickHolder();
+    },
+    // tiếng hô fanchant: màn LED loé + trái tim bay lên khắp sảnh (power 1 = tiếng "MIU!" cuối câu)
+    chant(power) {
+      flash = Math.min(1, flash + 0.25 * power);
+      spawnHearts(power >= 1 ? 10 : 4, 0, -6, 26, power >= 1 ? teamCol[0] : teamCol[1]);
     },
     burst() {
       burstAt = now;

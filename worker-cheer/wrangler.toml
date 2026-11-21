@@ -1,0 +1,16 @@
+# Máy chủ đếm số lần cổ vũ của cả fandom ở Sảnh cổ vũ (cheer/). Chạy lệnh trong thư mục worker-cheer/.
+#   Thử trong máy:   npx wrangler@4 dev --port 8791      (trang ở http://127.0.0.1:8765/cheer/ tự gọi cổng 8791)
+#   Đưa lên mạng:    npx wrangler@4 deploy
+# Chỉ lưu 2 con số: tổng lần gõ của phe LenaMiu (a) và phe MiuLena (b). Không lưu gì về người gõ.
+name = "lenamiu-cheer"
+main = "src/index.js"
+compatibility_date = "2025-10-01"
+
+# một Durable Object (bộ đếm) giữ 2 con số, lưu bằng SQLite của Cloudflare (dùng được ở gói miễn phí)
+[[durable_objects.bindings]]
+name = "COUNTER"
+class_name = "CheerCounter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["CheerCounter"]

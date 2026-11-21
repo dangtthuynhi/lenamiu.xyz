@@ -15,7 +15,8 @@
           normal Vừa  thêm nửa phách
           hard   Khó  thêm 1/4 phách, dày
         Đoạn to (điệp khúc) nhiều nốt hơn đoạn hát nhẹ. Vài phách mạnh nhất thành nốt to (gấp đôi điểm).
-     4. Đo tông và hợp âm theo từng phách (tiếng gõ lightstick chơi nốt trong hợp âm đang vang, nên luôn hợp với bài).
+     4. Đo tông và hợp âm theo từng phách (tiếng gõ lightstick chơi nốt trong hợp âm đang vang, nên luôn hợp với bài),
+        soạn câu hô fanchant "LE · NA · MIU!" cho các đoạn sôi động (chant: [phách, tiếng hô] — sửa tay được).
      5. Ghi cheer/charts/<tên>.json, in sẵn các dòng để dán vào cheer/songs.js.
    Nốt ghi theo SỐ PHÁCH tính từ mốc phách (không theo giây), nên mọi video của cùng một bài (cùng bản nhạc)
    dùng chung được một file nốt; mỗi video chỉ cần ô anchor riêng (giây có phách đầu tiên trong video đó).
@@ -354,6 +355,20 @@ function main() {
   }
   console.log('    16 ô nhịp đầu: ' + barLine.join(' '));
 
+  /* ---- fanchant: câu hô "LE · NA · MIU! · LE · NA · MIU!" ở nửa sau mỗi câu 8 phách của các đoạn sôi động (to nhất bài,
+     kéo dài ít nhất 2 câu liền — thường là điệp khúc). Trang hiện câu hô như karaoke trên video. Sửa tay được trong file nốt. ---- */
+  const CHANT = [[4, 'LE'], [4.5, 'NA'], [5, 'MIU!'], [6, 'LE'], [6.5, 'NA'], [7, 'MIU!']];
+  const phrases = [];
+  for (let p0 = CHD.bar + Math.ceil((first + 16 - CHD.bar) / 8) * 8; p0 + 8 <= last; p0 += 8) {
+    let r = 0;
+    for (let i = p0; i < p0 + 8; i++) r += beatRms[i];
+    phrases.push({ p0, r: r / 8 });
+  }
+  const loudCut = pct(phrases.map((x) => x.r), 0.65), loud = phrases.map((x) => x.r >= loudCut);
+  const chant = [];
+  phrases.forEach((x, k) => { if (loud[k] && (loud[k - 1] || loud[k + 1])) CHANT.forEach(([o, syl]) => chant.push([x.p0 + o, syl])); });
+  console.log(`• Fanchant: ${chant.length / CHANT.length} câu hô (trong ${phrases.length} câu nhạc)`);
+
   /* ---- ô lưới 1/4 phách: độ nhấn tương đối so với vùng xung quanh, độ to của ô nhịp (4 phách) ---- */
   const s0 = first * 4, s1 = last * 4 + 3;
   const slots = [];
@@ -432,6 +447,7 @@ function main() {
     '  "key": ' + JSON.stringify(key) + ',\n' +
     '  "bar": ' + CHD.bar + ',\n' +
     '  "chords": ' + JSON.stringify(CHD.runs) + ',\n' +
+    '  "chant": ' + JSON.stringify(chant) + ',\n' +
     '  "note": "Nốt tính theo số phách từ mốc phách (anchor) của từng video. [phách, 1 = nốt to]. chords: [phách bắt đầu, hợp âm]; bar: phách đầu ô nhịp (mod 4). Tạo bằng tools/make-chart.mjs",\n' +
     '  "end": ' + (last + 1) + ',\n' +
     Object.keys(LEVELS).map((k) => '  "' + k + '": ' + line(out[k])).join(',\n') + '\n}\n';
