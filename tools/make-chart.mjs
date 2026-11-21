@@ -4,6 +4,7 @@
    Cách dùng (chạy ở thư mục lenamiu.xyz):
      node tools/make-chart.mjs "D:\nhac\style.webm" style
      node tools/make-chart.mjs "D:\nhac\style.webm" style --bpm 100 --anchor 1.375   ← đã biết nhịp / mốc phách
+     node tools/make-chart.mjs "D:\nhac\style.webm" style --key Db                   ← ghi tay tông của bài (C, F#, Bb, Am, C#m…)
    (nhận mọi file ffmpeg đọc được: mp4, webm, m4a, mp3, wav...; cần cài ffmpeg như tools/up-video.mjs)
 
    Lệnh sẽ:
@@ -14,7 +15,8 @@
           normal Vừa  thêm nửa phách
           hard   Khó  thêm 1/4 phách, dày
         Đoạn to (điệp khúc) nhiều nốt hơn đoạn hát nhẹ. Vài phách mạnh nhất thành nốt to (gấp đôi điểm).
-     4. Ghi cheer/charts/<tên>.json, in sẵn các dòng để dán vào cheer/songs.js.
+     4. Đo tông và hợp âm theo từng phách (tiếng gõ lightstick chơi nốt trong hợp âm đang vang, nên luôn hợp với bài).
+     5. Ghi cheer/charts/<tên>.json, in sẵn các dòng để dán vào cheer/songs.js.
    Nốt ghi theo SỐ PHÁCH tính từ mốc phách (không theo giây), nên mọi video của cùng một bài (cùng bản nhạc)
    dùng chung được một file nốt; mỗi video chỉ cần ô anchor riêng (giây có phách đầu tiên trong video đó).
    File âm thanh gốc không bị sửa và không bị chép vào thư mục web.
@@ -83,6 +85,111 @@ function fft(re, im) {
       }
     }
   }
+}
+
+/* ---------- tông + hợp âm ----------
+   Mỗi khung phân tích (8192 mẫu, bước 1024): chỉ lấy các đỉnh phổ nhô hẳn lên khỏi nền xung quanh (nốt nhạc thật; tiếng hò,
+   tiếng vang khán đài trải đều nên bị bỏ), cộng vào 12 cao độ (chroma) của phách chứa khung đó, tách phần trầm (< 260 Hz) và giữa.
+   Tông: tổng chroma cả bài so với khuôn Krumhansl–Kessler của 24 giọng.
+   Hợp âm: mỗi phách chấm điểm các hợp âm ba thuận của tông (bỏ hợp âm giảm), rồi Viterbi chọn chuỗi hợp âm (phạt đổi hợp âm,
+   phạt nhẹ ở đầu ô nhịp; đầu ô nhịp = vị trí phách hay đổi hợp âm nhất). */
+const NOTE_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+const KK_MAJOR = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
+const KK_MINOR = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
+const keyName = (pc, minor) => NOTE_NAMES[pc] + (minor ? 'm' : '');
+function parseKey(str) {
+  const m = /^([A-Ga-g])([#b]?)(m?)$/.exec(String(str || '').trim());
+  if (!m) return null;
+  const base = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[m[1].toUpperCase()];
+  return { pc: (base + (m[2] === '#' ? 1 : m[2] === 'b' ? 11 : 0)) % 12, minor: m[3] === 'm' };
+}
+function beatChroma(x, anchor, P, nBeats) {
+  const K = 8192, H = 1024;
+  const win = Float64Array.from({ length: K }, (_, i) => 0.5 - 0.5 * Math.cos(2 * Math.PI * i / K));
+  const lo = Math.ceil(55 * K / SR), split = Math.round(260 * K / SR), hi = Math.floor(2200 * K / SR);
+  const re = new Float64Array(K), im = new Float64Array(K), mag = new Float64Array(hi + 2);
+  const bass = Array.from({ length: nBeats }, () => new Float64Array(12)), mid = Array.from({ length: nBeats }, () => new Float64Array(12));
+  for (let s = 0; s + K <= x.length; s += H) {
+    const bi = Math.floor(((s + K / 2) / SR - anchor) / P);
+    if (bi < 0 || bi >= nBeats) continue;
+    for (let i = 0; i < K; i++) { re[i] = x[s + i] * win[i]; im[i] = 0; }
+    fft(re, im);
+    for (let k = 0; k <= hi + 1; k++) mag[k] = Math.hypot(re[k], im[k]);
+    for (let k = lo + 1; k <= hi; k++) {
+      if (!(mag[k] > mag[k - 1] && mag[k] >= mag[k + 1])) continue;
+      let bg = 0, n = 0;
+      for (let j = Math.max(lo, k - 30); j <= Math.min(hi, k + 30); j++) { bg += mag[j]; n++; }
+      bg /= n;
+      if (mag[k] < bg * 4) continue;                                   // không nhô hẳn lên: tiếng ồn, bỏ
+      const a = mag[k - 1], b = mag[k], c = mag[k + 1], d = 0.5 * (a - c) / (a - 2 * b + c);   // vị trí đỉnh chính xác hơn
+      const semi = Math.round(12 * Math.log2((k + d) * SR / K / 440)) + 9;
+      (k < split ? bass : mid)[bi][((semi % 12) + 12) % 12] += Math.log1p(b / bg);
+    }
+  }
+  return { bass, mid };
+}
+function findKey(C, first, last) {
+  const chroma = new Float64Array(12);
+  for (let i = first; i <= last; i++) for (let p = 0; p < 12; p++) chroma[p] += C.bass[i][p] + C.mid[i][p];
+  const corr = (prof, rot) => {
+    let ma = 0, mb = 0;
+    for (let i = 0; i < 12; i++) { ma += chroma[i]; mb += prof[i]; }
+    ma /= 12; mb /= 12;
+    let n = 0, da = 0, db = 0;
+    for (let i = 0; i < 12; i++) { const a = chroma[(i + rot) % 12] - ma, b = prof[i] - mb; n += a * b; da += a * a; db += b * b; }
+    return n / Math.sqrt(da * db);
+  };
+  const all = [];
+  for (let pc = 0; pc < 12; pc++) all.push({ key: keyName(pc, false), r: corr(KK_MAJOR, pc) }, { key: keyName(pc, true), r: corr(KK_MINOR, pc) });
+  all.sort((a, b) => b.r - a.r);
+  return { key: all[0].key, top: all.slice(0, 4) };
+}
+function findChords(C, first, last, keyStr) {
+  const key = parseKey(keyStr);
+  const scale = (key.minor ? [0, 2, 3, 5, 7, 8, 10] : [0, 2, 4, 5, 7, 9, 11]).map((d) => (key.pc + d) % 12);
+  const CH = [];
+  for (let d = 0; d < 7; d++) {         // hợp âm ba trên từng bậc của thang, bỏ hợp âm giảm
+    const r = scale[d], t3 = scale[(d + 2) % 7], t5 = scale[(d + 4) % 7];
+    const i3 = (t3 - r + 12) % 12, i5 = (t5 - r + 12) % 12;
+    if (i5 !== 7) continue;
+    CH.push({ name: NOTE_NAMES[r] + (i3 === 3 ? 'm' : ''), tones: [r, t3, t5] });
+  }
+  const norm = (v) => { const s = v.reduce((a, b) => a + b, 0); return s > 0 ? Array.from(v, (x) => x / s) : Array.from(v); };
+  const S = [];
+  for (let i = first; i <= last; i++) {
+    const m = norm(C.mid[i]), bs = norm(C.bass[i]);
+    S.push(CH.map(({ tones: [r, t3, t5], tones }) => {
+      let out = 0;
+      for (let p = 0; p < 12; p++) if (!tones.includes(p)) out += m[p];
+      return m[r] + 0.9 * m[t3] + 0.8 * m[t5] - 0.35 * out + 1.1 * bs[r] + 0.25 * (bs[t3] + bs[t5]);
+    }));
+  }
+  const viterbi = (pen) => {
+    const n = S.length, N = CH.length, back = [];
+    let dp = S[0].slice();
+    for (let i = 1; i < n; i++) {
+      const nd = new Array(N), bk = new Array(N);
+      for (let c = 0; c < N; c++) {
+        let best = -1e9, arg = 0;
+        for (let q = 0; q < N; q++) { const v = dp[q] - (q === c ? 0 : pen(i + first)); if (v > best) { best = v; arg = q; } }
+        nd[c] = best + S[i][c]; bk[c] = arg;
+      }
+      back.push(bk); dp = nd;
+    }
+    let c = dp.indexOf(Math.max(...dp));
+    const path = [c];
+    for (let i = back.length - 1; i >= 0; i--) { c = back[i][c]; path.unshift(c); }
+    return path;
+  };
+  const p1 = viterbi(() => 0.25), changes = [0, 0, 0, 0];
+  for (let i = 1; i < p1.length; i++) if (p1[i] !== p1[i - 1]) changes[(i + first) % 4]++;
+  const bar = changes.indexOf(Math.max(...changes));
+  const path = viterbi((i) => { const q = ((i - bar) % 4 + 4) % 4; return q === 0 ? 0.12 : q === 2 ? 0.45 : 0.9; });
+  const runs = [];
+  path.forEach((c, i) => { if (!runs.length || runs[runs.length - 1][1] !== CH[c].name) runs.push([i + first, CH[c].name]); });
+  let rootBass = 0;
+  path.forEach((c, i) => { const bs = Array.from(C.bass[i + first]); if (bs.indexOf(Math.max(...bs)) === CH[c].tones[0]) rootBass++; });
+  return { bar, runs, rootBass: rootBass / path.length };
 }
 
 /* ---------- độ nhấn theo thời gian (spectral flux), tách 3 dải: trầm (trống), giữa (snare, vỗ tay), cao ---------- */
@@ -174,7 +281,8 @@ function main() {
   if (!src) die('Thiếu file âm thanh. Cách dùng: node tools/make-chart.mjs "D:\\nhac\\bai.webm" ten-bai [--bpm 100] [--anchor 1.375]');
   const id = slug(idArg || '') || die('Thiếu tên bài (vd style): node tools/make-chart.mjs "<file>" style');
   console.log('• Đọc âm thanh: ' + src);
-  const A = analyze(readAudio(src));
+  const X = readAudio(src);
+  const A = analyze(X);
   if (A.dur < 20) die('File quá ngắn (' + A.dur.toFixed(1) + ' giây).');
 
   // khoảng có tiếng (bỏ im lặng hẳn ở đầu / cuối) để đo nhịp
@@ -227,6 +335,24 @@ function main() {
   while (last > first && !isMusic(last)) last--;
   if (last - first < 16) die('Không tìm thấy đoạn nhạc đủ dài theo nhịp ' + bpm + ' BPM. Thử ghi --bpm đúng.');
   console.log(`• Có nhạc từ phách ${first} (giây ${(anchor + first * P).toFixed(1)}) đến phách ${last} (giây ${(anchor + last * P).toFixed(1)}) — ${last - first + 1} phách`);
+
+  /* ---- tông + hợp âm (cho giai điệu tiếng gõ lightstick) ---- */
+  const C = beatChroma(X, anchor, P, nBeats);
+  let key = flag('key');
+  if (key != null && !parseKey(key)) die('--key không đúng dạng (vd C, F#, Bb, Am, C#m): ' + key);
+  if (key == null) {
+    const K = findKey(C, first, last);
+    key = K.key;
+    console.log('• Tông của bài (điểm càng gần 1 càng chắc): ' + K.top.map((k) => k.key + ' ' + k.r.toFixed(2)).join(' · '));
+  } else { const k = parseKey(key); key = keyName(k.pc, k.minor); console.log('• Tông của bài: ' + key); }
+  const CHD = findChords(C, first, last, key);
+  console.log(`• Hợp âm: ${CHD.runs.length} lần đổi, đầu ô nhịp ở phách ≡ ${CHD.bar} (mod 4), nốt trầm khớp chủ âm ${Math.round(CHD.rootBass * 100)}% số phách`);
+  const barLine = [];
+  for (let b = CHD.bar + Math.ceil((first - CHD.bar) / 4) * 4, n = 0; b <= last && n < 16; b += 4, n++) {
+    let name = ''; for (const [s0, c] of CHD.runs) if (s0 <= b) name = c;
+    barLine.push(name);
+  }
+  console.log('    16 ô nhịp đầu: ' + barLine.join(' '));
 
   /* ---- ô lưới 1/4 phách: độ nhấn tương đối so với vùng xung quanh, độ to của ô nhịp (4 phách) ---- */
   const s0 = first * 4, s1 = last * 4 + 3;
@@ -303,7 +429,10 @@ function main() {
     '  "v": 1,\n' +
     '  "song": ' + JSON.stringify(id) + ',\n' +
     '  "bpm": ' + bpm + ',\n' +
-    '  "note": "Nốt tính theo số phách từ mốc phách (anchor) của từng video. [phách, 1 = nốt to]. Tạo bằng tools/make-chart.mjs",\n' +
+    '  "key": ' + JSON.stringify(key) + ',\n' +
+    '  "bar": ' + CHD.bar + ',\n' +
+    '  "chords": ' + JSON.stringify(CHD.runs) + ',\n' +
+    '  "note": "Nốt tính theo số phách từ mốc phách (anchor) của từng video. [phách, 1 = nốt to]. chords: [phách bắt đầu, hợp âm]; bar: phách đầu ô nhịp (mod 4). Tạo bằng tools/make-chart.mjs",\n' +
     '  "end": ' + (last + 1) + ',\n' +
     Object.keys(LEVELS).map((k) => '  "' + k + '": ' + line(out[k])).join(',\n') + '\n}\n';
   writeFileSync(file, json);

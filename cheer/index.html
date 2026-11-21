@@ -23,12 +23,14 @@
 <meta name="theme-color" content="#0b0810">
 <!-- YouTube cần biết trang nào đang nhúng nó, thiếu là báo "Lỗi 153" -->
 <meta name="referrer" content="strict-origin-when-cross-origin">
+<!-- three.js + phần hiệu ứng toả sáng (bloom) của nó: phần hiệu ứng gọi "three" nên cần bảng tên này; cùng địa chỉ với THREE_URL trong cheer.js -->
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.min.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/" } }</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap"
       media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"></noscript>
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap"></noscript>
 <!-- phần dùng chung mọi trang: đầu trang, dải chữ chạy, hộp donate (đi cùng ../site.js) -->
 <link rel="stylesheet" href="../site.css">
 <style>
@@ -200,6 +202,12 @@
   .offset { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 10px; font-weight: 600; color: var(--text); }
   .offset output { min-width: 56px; font-variant-numeric: tabular-nums; color: var(--accent); }
   .offset input { flex: 1 1 200px; accent-color: var(--accent); }
+  .sel {
+    min-width: 0; font: inherit; font-size: .85rem; font-weight: 700; color: var(--text); min-height: 34px; padding: 5px 30px 5px 12px;
+    border: 1px solid var(--line); border-radius: 999px; cursor: pointer; appearance: none; -webkit-appearance: none;
+    background: var(--surface-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23b9adc2' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center;
+  }
+  .sel option { background: var(--surface); color: var(--text); }
 
   /* ---------- thanh năng lượng + lời nhắc ---------- */
   .cheerbox { max-width: 560px; margin: 16px auto 0; text-align: center; }
@@ -298,6 +306,134 @@
   .heart svg { display: block; width: 100%; height: 100%; overflow: visible; }
   .heart path { fill: currentColor; stroke: #fff; stroke-width: 7; stroke-linejoin: round; }
 
+  /* ---------- lớp áo "sân khấu" ----------
+     viền neon chạy quanh màn hình + quầng sáng nhịp theo phách (cheer.js chỉnh độ mờ), bìa video kiểu poster, làn nốt / điểm /
+     combo / thanh năng lượng neon, chữ "bùng nổ" giữa màn hình, huy hiệu hạng ánh kim, viền tối quanh mép cho có chiều sâu */
+  @property --spin { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+  @keyframes spin { to { --spin: 360deg; } }
+  body::after {
+    content: ""; position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(135% 100% at 50% 38%, rgba(5, 3, 8, 0) 58%, rgba(5, 3, 8, .62) 100%);
+  }
+  .fit { position: relative; }
+  .screen {
+    border: 2px solid transparent;
+    background: linear-gradient(#000, #000) padding-box,
+      conic-gradient(from var(--spin), var(--team-a), var(--glow), var(--team-b), #ffd36e, var(--team-a)) border-box;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, .05), 0 22px 60px -20px rgba(0, 0, 0, .95);
+    animation: spin 10s linear infinite;
+  }
+  .screen-glow {
+    position: absolute; left: 0; right: 0; top: 2px; margin: 0 auto; aspect-ratio: 16 / 9; border-radius: 16px; pointer-events: none;
+    width: min(100%, 760px); opacity: .3; will-change: opacity;
+    box-shadow: 0 0 50px 4px var(--glow), 0 0 140px 24px var(--glow);
+  }
+  /* bìa video: nhãn LIVE nhấp nháy, tên bài to, vòng sáng loang quanh nút phát */
+  .facade .live {
+    position: absolute; left: 14px; top: 12px; display: inline-flex; align-items: center; gap: 7px; padding: 4px 11px 4px 9px;
+    border-radius: 999px; font-size: .68rem; font-weight: 800; letter-spacing: .14em; color: #fff;
+    background: rgba(0, 0, 0, .55); border: 1px solid rgba(255, 255, 255, .2); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  }
+  .facade .live::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%; background: #ff3b5c; box-shadow: 0 0 10px #ff3b5c;
+    animation: blink 1.4s ease-in-out infinite;
+  }
+  @keyframes blink { 50% { opacity: .25; } }
+  .facade .play::before {
+    content: ""; position: absolute; inset: -12px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .55);
+    animation: ring 2.2s ease-out infinite;
+  }
+  @keyframes ring { from { transform: scale(.82); opacity: .9; } to { transform: scale(1.55); opacity: 0; } }
+  .facade .cap { padding: 56px 18px 14px; }
+  .facade .cap b {
+    display: block; font-size: clamp(1.15rem, 2.5vw, 1.9rem); font-weight: 800; letter-spacing: -.01em; line-height: 1.15;
+    background: linear-gradient(180deg, #fff 30%, #ffd1e6); -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, .8));
+  }
+  .facade .cap small { margin-top: 3px; font-size: .8rem; letter-spacing: .02em; }
+  /* bảng chọn, làn nốt, hộp chữ: kính có viền sáng phía trên */
+  .songs, .pick, .pill, .lane-wrap, .results, .about {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 10px 28px -16px rgba(0, 0, 0, .9);
+  }
+  .pick { transition: border-color .2s ease; }
+  .pick:hover, .pick:focus-within { border-color: rgba(255, 255, 255, .3); }
+  .lane-wrap {
+    background: linear-gradient(90deg, rgba(255, 255, 255, .13), rgba(20, 13, 28, .72) 22%, rgba(20, 13, 28, .58));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 10px 28px -14px rgba(0, 0, 0, .9), 0 0 26px -10px var(--stick);
+  }
+  /* điểm, combo, chấm điểm */
+  .score {
+    font-size: 1.45rem; font-weight: 800; text-shadow: none;
+    background: linear-gradient(180deg, #fff 35%, #ffc9e2); -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 9px var(--stick));
+  }
+  .combo:not(:empty) {
+    padding: 1px 10px; border-radius: 999px; color: #fff; font-weight: 800; letter-spacing: .02em;
+    background: linear-gradient(135deg, var(--team-a), var(--team-b)); box-shadow: 0 0 16px -4px var(--team-a);
+  }
+  .judge { font-size: 1.15rem; font-style: italic; letter-spacing: .04em; }
+  .judge[data-j="perfect"] {
+    background: linear-gradient(180deg, #fff6cf, #ffd36e 55%, #ff9a5a); -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: none; filter: drop-shadow(0 0 8px rgba(255, 211, 110, .75));
+  }
+  /* thanh năng lượng: neon chia đốt, ánh sáng chạy; gần đầy thì rực lên */
+  .energy { height: 12px; background: rgba(255, 255, 255, .08); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08); }
+  .energy i {
+    position: relative; background-size: 200% 100%; animation: flow 2.4s linear infinite;
+    background-image: linear-gradient(90deg, var(--team-b), var(--team-a), #ffd36e, var(--team-a), var(--team-b));
+    box-shadow: 0 0 18px var(--team-a), 0 0 4px #fff;
+  }
+  .energy i::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit;
+    background: repeating-linear-gradient(90deg, transparent 0 11px, rgba(11, 8, 16, .35) 11px 13px);
+  }
+  .energy.hot i { animation: flow 1s linear infinite, hot .45s ease-in-out infinite alternate; }
+  @keyframes flow { to { background-position: -200% 0; } }
+  @keyframes hot { to { filter: brightness(1.4) saturate(1.2); } }
+  /* "bùng nổ": chữ to giữa màn hình + loé sáng (chữ cho trình đọc màn hình vẫn nằm ở #say) */
+  .say { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .burst-fx { position: fixed; inset: 0; z-index: 4; display: grid; place-items: center; pointer-events: none; opacity: 0; }
+  .burst-fx::before {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(circle at 50% 42%, rgba(255, 255, 255, .5), rgba(255, 111, 168, .18) 35%, transparent 65%);
+  }
+  .burst-fx b {
+    position: relative; padding: 0 16px; text-align: center; font-size: clamp(1.7rem, 5.5vw, 4rem); font-weight: 800; line-height: 1.1;
+    background: linear-gradient(180deg, #fff 25%, #ffd36e 60%, #ff7aa8); -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 18px var(--team-a)) drop-shadow(0 3px 6px rgba(0, 0, 0, .7));
+  }
+  .burst-fx.on { animation: bfade 2.6s ease-out forwards; }
+  .burst-fx.on::before { animation: bflash .7s ease-out forwards; }
+  .burst-fx.on b { animation: bpop 2.6s cubic-bezier(.2, .9, .25, 1) forwards; }
+  @keyframes bfade { 0% { opacity: 0; } 5% { opacity: 1; } 78% { opacity: 1; } 100% { opacity: 0; } }
+  @keyframes bflash { from { opacity: 1; } to { opacity: 0; } }
+  @keyframes bpop {
+    0% { transform: scale(.35) rotate(-8deg); } 12% { transform: scale(1.14) rotate(2deg); } 22% { transform: scale(1) rotate(0); }
+    100% { transform: scale(1.08) translateY(-12px); }
+  }
+  /* huy hiệu hạng: ánh kim + vệt sáng lướt qua */
+  .results .grade {
+    position: relative; overflow: hidden; color: #2a1030;
+    background: conic-gradient(from 210deg, #ffd36e, #fff6cf, #ff9fcf, #b99bff, #ffd36e);
+    box-shadow: 0 0 26px -4px rgba(255, 211, 110, .8), inset 0 0 0 2px rgba(255, 255, 255, .55);
+  }
+  .results .grade::after {
+    content: ""; position: absolute; inset: -40%;
+    background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, .75) 50%, transparent 58%);
+    animation: shine 2.8s ease-in-out infinite;
+  }
+  @keyframes shine { from { transform: translateX(-70%); } to { transform: translateX(70%); } }
+  @media (min-width: 641px) { .screen-glow { width: min(100cqw, 760px, calc((100cqh - 2px) * 16 / 9)); } }
+  .combo { display: inline-block; }
+  @media (max-width: 640px) {
+    .screen-glow { display: none; }
+    .screen { border-width: 2px 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .screen, .energy i, .facade .live::before, .facade .play::before, .results .grade::after { animation: none; }
+    .burst-fx { display: none; }
+  }
+
   /* ---------- máy tính / máy tính bảng: cả trang vừa khít một màn hình, không phải cuộn ----------
      Đầu trang ở trên; phần còn lại chia cho video (.fit co giãn theo chiều cao còn trống, video giữ 16:9 bên trong)
      và các khối bên dưới. Chỉ khi màn hình quá thấp (video đã ở cỡ nhỏ nhất) trang mới dài hơn màn hình. */
@@ -356,7 +492,7 @@
 <main class="wrap stagebox" id="main" tabindex="-1">
   <h1 class="sr-only" data-i18n="c.doc">Sảnh cổ vũ LenaMiu</h1>
   <!-- .fit: khung chứa video; trên màn hình rộng nó co giãn theo chiều cao còn trống để cả trang vừa một màn hình -->
-  <div class="fit"><div class="screen" id="screen"></div></div>
+  <div class="fit"><div class="screen-glow" id="screenGlow" aria-hidden="true"></div><div class="screen" id="screen"></div></div>
 
   <nav class="bar" data-i18n-attr="aria-label:c.controls" aria-label="Chọn bài, video và chỗ ngồi">
     <div class="songs" id="songs" role="tablist" data-i18n-attr="aria-label:c.songs" aria-label="Chọn bài hát"></div>
@@ -393,8 +529,10 @@
 
   <details class="about">
     <summary data-i18n="c.timing">Tiếng gõ, căn nhịp &amp; giới thiệu</summary>
-    <label class="offset"><span data-i18n="c.sfxVol">Âm lượng tiếng gõ</span> <output id="sfxOut">35%</output>
-      <input type="range" id="sfxVol" min="0" max="100" step="5" value="35"></label>
+    <label class="offset"><span data-i18n="c.inst">Nhạc cụ</span> <select id="inst" class="sel"></select></label>
+    <label class="offset"><span data-i18n="c.sfxVol">Âm lượng tiếng gõ</span> <output id="sfxOut">40%</output>
+      <input type="range" id="sfxVol" min="0" max="100" step="5" value="40"></label>
+    <p data-i18n="c.instHelp">Mỗi lần gõ là một nốt trong hợp âm đang vang của bài, tự rơi đúng nhịp. Bấm 🔊 để bật.</p>
     <div class="sync">
       <button type="button" class="ghost" id="syncBtn" data-i18n="c.sync">Căn nhịp bằng tai</button>
       <span id="syncOut" data-i18n="c.syncHelp">Nốt lệch so với nhạc? Bấm phát video rồi bấm nút này, gõ theo phách nhạc 8 lần.</span>
@@ -406,6 +544,9 @@
     <p><a href="../" data-i18n="c.back">← Về trang video LenaMiu Sub</a></p>
   </details>
 </main>
+
+<!-- chữ "bùng nổ" to giữa màn hình khi năng lượng đầy (cheer.js → burst) -->
+<div class="burst-fx" id="burstFx" aria-hidden="true"><b></b></div>
 
 <!-- mèo nhảy theo nhịp bài hát: tay cầm lightstick tim + nơ + vòng cổ đổi màu theo lightstick người xem, tai hồng / tím như hai phe.
      Mỗi nhóm cat-* là một bộ phận cheer.js điều khiển riêng; bấm vào mèo để vuốt ve. -->
