@@ -2004,7 +2004,7 @@ addEventListener('pagehide', () => fanFlush(true));
 fanPoll();
 setInterval(fanPoll, 15000);
 
-/* ---- fanchant: câu hô "LE · NA · MIU!" hiện như karaoke trên màn hình video, sáng từng tiếng đúng phách ----
+/* ---- fanchant: câu hô "Lena · Miu · Lena · Miu" hiện như karaoke trên màn hình video, sáng từng tiếng đúng phách ----
    file nốt (make-chart) ghi chant: [[phách, tiếng], …] ở các đoạn sôi động. Gõ đúng lúc một tiếng hô: thêm năng lượng. */
 let chantLines = null, chantChart = null, chantShown = '', chantLit = -1, chantLast = -1;
 function chantPrep() {
@@ -2042,7 +2042,7 @@ function chantFrame(beat) {
     const key = id + ':' + lit;
     if (lit >= 0 && key !== chantLast && beat - L.syl[lit][0] < 0.3) {
       chantLast = key;
-      if (hall) hall.chant(/!$/.test(L.syl[lit][1]) ? 1 : 0.5);
+      if (hall) hall.chant(/miu|!$/i.test(L.syl[lit][1]) ? 1 : 0.5);   // tiếng "Miu" (cuối mỗi cặp) thì cả sảnh hưởng ứng mạnh hơn
       cat.kick = Math.max(cat.kick, 0.6);
     }
   }
@@ -2848,7 +2848,7 @@ function makeHall(THREE, canvas, fx) {
       myBoard.scale.setScalar(1.4);
       myP = pickHolder();
     },
-    // tiếng hô fanchant: màn LED loé + trái tim bay lên khắp sảnh (power 1 = tiếng "MIU!" cuối câu)
+    // tiếng hô fanchant: màn LED loé + trái tim bay lên khắp sảnh (power 1 = tiếng "Miu" cuối mỗi cặp)
     chant(power) {
       flash = Math.min(1, flash + 0.25 * power);
       spawnHearts(power >= 1 ? 10 : 4, 0, -6, 26, power >= 1 ? teamCol[0] : teamCol[1]);

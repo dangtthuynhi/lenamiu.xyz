@@ -16,7 +16,7 @@
           hard   Khó  thêm 1/4 phách, dày
         Đoạn to (điệp khúc) nhiều nốt hơn đoạn hát nhẹ. Vài phách mạnh nhất thành nốt to (gấp đôi điểm).
      4. Đo tông và hợp âm theo từng phách (tiếng gõ lightstick chơi nốt trong hợp âm đang vang, nên luôn hợp với bài),
-        soạn câu hô fanchant "LE · NA · MIU!" cho các đoạn sôi động (chant: [phách, tiếng hô] — sửa tay được).
+        soạn câu hô fanchant "Lena · Miu · Lena · Miu" cho các đoạn sôi động (chant: [phách, tiếng hô] — sửa tay được).
      5. Ghi cheer/charts/<tên>.json, in sẵn các dòng để dán vào cheer/songs.js.
    Nốt ghi theo SỐ PHÁCH tính từ mốc phách (không theo giây), nên mọi video của cùng một bài (cùng bản nhạc)
    dùng chung được một file nốt; mỗi video chỉ cần ô anchor riêng (giây có phách đầu tiên trong video đó).
@@ -355,9 +355,9 @@ function main() {
   }
   console.log('    16 ô nhịp đầu: ' + barLine.join(' '));
 
-  /* ---- fanchant: câu hô "LE · NA · MIU! · LE · NA · MIU!" ở nửa sau mỗi câu 8 phách của các đoạn sôi động (to nhất bài,
+  /* ---- fanchant: câu hô "Lena · Miu · Lena · Miu" (mỗi tên một phách) ở nửa sau mỗi câu 8 phách của các đoạn sôi động (to nhất bài,
      kéo dài ít nhất 2 câu liền — thường là điệp khúc). Trang hiện câu hô như karaoke trên video. Sửa tay được trong file nốt. ---- */
-  const CHANT = [[4, 'LE'], [4.5, 'NA'], [5, 'MIU!'], [6, 'LE'], [6.5, 'NA'], [7, 'MIU!']];
+  const CHANT = [[4, 'Lena'], [5, 'Miu'], [6, 'Lena'], [7, 'Miu']];
   const phrases = [];
   for (let p0 = CHD.bar + Math.ceil((first + 16 - CHD.bar) / 8) * 8; p0 + 8 <= last; p0 += 8) {
     let r = 0;
